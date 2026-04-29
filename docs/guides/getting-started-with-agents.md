@@ -1,8 +1,8 @@
-# Getting Started With Codex Or Claude Code
+# Getting Started With Codex, Claude Code, Or Cursor
 
 Agent Operator Kit is intended to be installed by an agent, not by a human following a long checklist.
 
-Use this page when you want to open a fresh Codex or Claude Code session and ask it to set up the operator workflow end to end.
+Use this page when you want to open a fresh Codex, Claude Code, or Cursor session and ask it to set up the operator workflow end to end.
 
 ## Codex
 
@@ -66,6 +66,39 @@ They can also explicitly invoke the project subagent:
 ```text
 Use the operator-workflow subagent to inspect this repo and set up Agent Operator Kit.
 ```
+
+## Cursor
+
+Start Cursor Agent or Cursor CLI in or near the target repo and paste:
+
+```text
+Set up Agent Operator Kit for this project using:
+git@github.com:Agent-Operator-Kit/operator-kit.git
+
+Use Cursor as the frontend operator surface. Inspect first, propose the lane map, install the scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+
+Install the Cursor project assets too:
+- .cursor/rules/operator-workflow.mdc
+- .cursor/skills/operator-workflow/SKILL.md
+- .cursor/environment.json.example
+
+Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
+```
+
+For the full Cursor prompt, use:
+
+```text
+templates/prompts/cursor-agent-bootstrap.md
+```
+
+After installation, Cursor uses:
+
+```text
+.cursor/rules/operator-workflow.mdc
+.cursor/skills/operator-workflow/SKILL.md
+```
+
+Cursor Background Agents should be treated as remote branch workers. Put the full task packet in the Background Agent prompt and require the final response or PR description to include the handoff.
 
 ## What The Agent Should Return
 

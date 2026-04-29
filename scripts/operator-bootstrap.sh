@@ -33,6 +33,7 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
+mkdir -p "$repo_root/.cursor/rules" "$repo_root/.cursor/skills/operator-workflow"
 
 for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
@@ -76,6 +77,18 @@ done
 
 if [ ! -f "$repo_root/.claude/agents/operator-workflow.md" ]; then
   cp "$KIT_ROOT/templates/claude/agents/operator-workflow.md" "$repo_root/.claude/agents/operator-workflow.md"
+fi
+
+if [ ! -f "$repo_root/.cursor/rules/operator-workflow.mdc" ]; then
+  cp "$KIT_ROOT/templates/cursor/rules/operator-workflow.mdc" "$repo_root/.cursor/rules/operator-workflow.mdc"
+fi
+
+if [ ! -f "$repo_root/.cursor/skills/operator-workflow/SKILL.md" ]; then
+  cp "$KIT_ROOT/templates/cursor/skills/operator-workflow/SKILL.md" "$repo_root/.cursor/skills/operator-workflow/SKILL.md"
+fi
+
+if [ ! -f "$repo_root/.cursor/environment.json.example" ] && [ ! -f "$repo_root/.cursor/environment.json" ]; then
+  cp "$KIT_ROOT/templates/cursor/environment.json.example" "$repo_root/.cursor/environment.json.example"
 fi
 
 if [ ! -f "$project_root/operator/README.md" ]; then

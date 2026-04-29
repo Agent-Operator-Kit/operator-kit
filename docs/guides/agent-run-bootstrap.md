@@ -35,6 +35,10 @@ Goals:
   - .claude/commands/operator-bootstrap.md
   - .claude/commands/operator-status.md
   - .claude/agents/operator-workflow.md
+- Install Cursor project assets when using Cursor:
+  - .cursor/rules/operator-workflow.mdc
+  - .cursor/skills/operator-workflow/SKILL.md
+  - .cursor/environment.json.example
 - Create the external operator workspace beside the project root unless I specify another path.
 
 Required behavior:
@@ -105,6 +109,7 @@ The exact names should come from `operator.config.env`.
 - `scripts/operator-*.sh` are installed in the repo.
 - `AGENTS.md` documents the operating model.
 - Claude Code command/subagent templates are installed under `.claude/` when relevant.
+- Cursor rules, skill, and environment example are installed under `.cursor/` when relevant.
 - `OPERATOR_DIR` exists outside the repo.
 - smoke task output appears under `OPERATOR_DIR/tasks/<slug>`.
 - no raw task packets or handoffs are tracked by git.

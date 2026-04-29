@@ -25,6 +25,10 @@ Goals:
   - `.claude/commands/operator-bootstrap.md`
   - `.claude/commands/operator-status.md`
   - `.claude/agents/operator-workflow.md`
+- Install Cursor project assets when using Cursor:
+  - `.cursor/rules/operator-workflow.mdc`
+  - `.cursor/skills/operator-workflow/SKILL.md`
+  - `.cursor/environment.json.example`
 - Create the external operator workspace beside the project root unless I specify another path.
 
 Required behavior:

@@ -1,0 +1,44 @@
+---
+name: operator-workflow
+description: Use when setting up or operating Agent Operator Kit, tmux lanes, git worktrees, external task packets, handoffs, Cursor background agents, or status summaries.
+---
+
+# Operator Workflow
+
+Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
+
+## Local Cursor Operator Flow
+
+1. Inspect the repo and git status.
+2. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
+3. Confirm the stable branch and lane map.
+4. Install or update Agent Operator Kit scripts/templates if needed.
+5. Ensure `OPERATOR_DIR` is outside the repo.
+6. Create or verify lane worktrees.
+7. Start or inspect tmux.
+8. Create a smoke task under `OPERATOR_DIR`.
+9. Run:
+   - `bash -n scripts/*.sh`
+   - `bash scripts/operator-status.sh`
+   - `bash scripts/operator-summary.sh`
+10. Report installed files, lane map, smoke results, dirty files, and whether the repo is ready to commit.
+
+## Cursor Background Agent Flow
+
+Cursor Background Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR`.
+
+For Background Agent tasks:
+
+1. Put the full task packet in the prompt.
+2. Include branch name, scope, read-only areas, validation commands, and handoff requirements.
+3. Require a final handoff that names changed files, commands run, tests, blockers, and follow-up needs.
+4. Do not use Background Agents for provider-console changes, production deploys, or tasks that require local device/simulator state unless the environment is explicitly configured.
+
+## Guardrails
+
+- Do not rewrite git history.
+- Do not force-push.
+- Do not commit secrets.
+- Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not start production builds, deployments, or provider-console changes during setup.
+- Ask before destructive commands.

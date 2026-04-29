@@ -10,11 +10,12 @@ Use this skill when a user asks to set up, restore, or operate a multi-agent wor
 4. Create an external operator workspace.
 5. Install or update operator scripts and evergreen docs.
 6. Install Claude Code project assets under `.claude/` when the target project uses Claude Code.
-7. Create lane worktrees and branches.
-8. Start tmux lanes.
-9. Create a smoke task under the external operator workspace.
-10. Dispatch and collect one smoke handoff when appropriate.
-11. Report exact paths, branches, commands, and validation status.
+7. Install Cursor project assets under `.cursor/` when the target project uses Cursor.
+8. Create lane worktrees and branches.
+9. Start tmux lanes.
+10. Create a smoke task under the external operator workspace.
+11. Dispatch and collect one smoke handoff when appropriate.
+12. Report exact paths, branches, commands, and validation status.
 
 ## Agent-Run Setup
 

@@ -36,6 +36,13 @@ Recommended project layout:
 Recommended repo layout after installation:
 
 ```text
+.cursor/
+  rules/
+    operator-workflow.mdc
+  skills/
+    operator-workflow/
+      SKILL.md
+  environment.json.example
 .claude/
   commands/
     operator-bootstrap.md
@@ -57,7 +64,7 @@ operator.config.env
 
 ## Getting Started With Codex Or Claude Code
 
-Agent Operator Kit is optimized for agent-run setup. Ask Codex or Claude Code to do the setup for you with:
+Agent Operator Kit is optimized for agent-run setup. Ask Codex, Claude Code, or Cursor to do the setup for you with:
 
 ```text
 Use git@github.com:Agent-Operator-Kit/operator-kit.git to set up Agent Operator Kit for this project. Follow the agent-run bootstrap guide and keep generated task/handoff state outside the repo.
@@ -94,6 +101,16 @@ templates/claude/commands/operator-bootstrap.md
 templates/claude/commands/operator-status.md
 templates/claude/agents/operator-workflow.md
 skills/claude-code/operator-workflow/SKILL.md
+```
+
+Cursor reusable assets:
+
+```text
+templates/cursor/rules/operator-workflow.mdc
+templates/cursor/skills/operator-workflow/SKILL.md
+templates/cursor/environment.json.example
+templates/prompts/cursor-agent-bootstrap.md
+skills/cursor/operator-workflow/SKILL.md
 ```
 
 For an existing project:
