@@ -31,6 +31,10 @@ Goals:
 - Keep task packets, handoffs, captures, and transient operator notes outside the repo.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update AGENTS.md, CODEX.md, CLAUDE.md, and operator.config.env as needed.
+- Install Claude Code project assets when using Claude Code:
+  - .claude/commands/operator-bootstrap.md
+  - .claude/commands/operator-status.md
+  - .claude/agents/operator-workflow.md
 - Create the external operator workspace beside the project root unless I specify another path.
 
 Required behavior:
@@ -100,6 +104,7 @@ The exact names should come from `operator.config.env`.
 - `operator.config.env` matches the target project.
 - `scripts/operator-*.sh` are installed in the repo.
 - `AGENTS.md` documents the operating model.
+- Claude Code command/subagent templates are installed under `.claude/` when relevant.
 - `OPERATOR_DIR` exists outside the repo.
 - smoke task output appears under `OPERATOR_DIR/tasks/<slug>`.
 - no raw task packets or handoffs are tracked by git.

@@ -1,0 +1,59 @@
+# Claude Code Operator Workflow Skill
+
+Claude Code does not need a Codex-style skill loader to use Agent Operator Kit. Its reusable project-level mechanisms are:
+
+- custom slash commands in `.claude/commands/`
+- project subagents in `.claude/agents/`
+
+This skill package describes how to install and use the Claude Code assets shipped with Agent Operator Kit.
+
+## Install Into A Target Repo
+
+Run the Agent Operator Kit bootstrap, or copy these templates into the target repo:
+
+```text
+templates/claude/commands/operator-bootstrap.md -> .claude/commands/operator-bootstrap.md
+templates/claude/commands/operator-status.md -> .claude/commands/operator-status.md
+templates/claude/agents/operator-workflow.md -> .claude/agents/operator-workflow.md
+```
+
+## Use In Claude Code
+
+After installation, invoke:
+
+```text
+/operator-bootstrap /absolute/path/to/repo
+```
+
+or:
+
+```text
+/operator-status
+```
+
+You can also ask:
+
+```text
+Use the operator-workflow subagent to set up Agent Operator Kit for this repo.
+```
+
+## Workflow
+
+1. Inspect the repo and git status.
+2. Identify default branch, remotes, package manager, and validation commands.
+3. Propose a lane map.
+4. Install scripts/templates.
+5. Create the external operator workspace.
+6. Create or verify worktrees.
+7. Start tmux.
+8. Create a smoke task.
+9. Run status and summary checks.
+10. Report whether the repo is ready to commit.
+
+## Guardrails
+
+- Do not rewrite git history.
+- Do not force-push.
+- Do not commit raw task packets, handoffs, pane captures, or transient notes.
+- Do not commit secrets.
+- Do not start deployments or production builds during setup.

@@ -32,6 +32,7 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 [ -n "$default_branch" ] || default_branch="main"
 
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures"
+mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 
 for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
@@ -65,6 +66,16 @@ fi
 
 if [ ! -f "$repo_root/CLAUDE.md" ]; then
   cp "$KIT_ROOT/templates/repo/CLAUDE.md" "$repo_root/CLAUDE.md"
+fi
+
+for command in operator-bootstrap.md operator-status.md; do
+  if [ ! -f "$repo_root/.claude/commands/$command" ]; then
+    cp "$KIT_ROOT/templates/claude/commands/$command" "$repo_root/.claude/commands/$command"
+  fi
+done
+
+if [ ! -f "$repo_root/.claude/agents/operator-workflow.md" ]; then
+  cp "$KIT_ROOT/templates/claude/agents/operator-workflow.md" "$repo_root/.claude/agents/operator-workflow.md"
 fi
 
 if [ ! -f "$project_root/operator/README.md" ]; then

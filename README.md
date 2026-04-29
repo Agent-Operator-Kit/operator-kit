@@ -36,6 +36,12 @@ Recommended project layout:
 Recommended repo layout after installation:
 
 ```text
+.claude/
+  commands/
+    operator-bootstrap.md
+    operator-status.md
+  agents/
+    operator-workflow.md
 scripts/
   operator-lib.sh
   operator-tmux.sh
@@ -49,9 +55,9 @@ AGENTS.md
 operator.config.env
 ```
 
-## Quick Start
+## Getting Started With Codex Or Claude Code
 
-Ask Codex or Claude Code to do the setup for you with:
+Agent Operator Kit is optimized for agent-run setup. Ask Codex or Claude Code to do the setup for you with:
 
 ```text
 Use git@github.com:Agent-Operator-Kit/operator-kit.git to set up Agent Operator Kit for this project. Follow the agent-run bootstrap guide and keep generated task/handoff state outside the repo.
@@ -63,10 +69,31 @@ Full copy/paste prompt:
 templates/prompts/agent-run-bootstrap.md
 ```
 
-Detailed guide:
+Getting started guide:
+
+```text
+docs/guides/getting-started-with-agents.md
+```
+
+Full bootstrap guide:
 
 ```text
 docs/guides/agent-run-bootstrap.md
+```
+
+Codex-specific reusable guidance:
+
+```text
+skills/codex/operator-workflow/SKILL.md
+```
+
+Claude Code reusable assets:
+
+```text
+templates/claude/commands/operator-bootstrap.md
+templates/claude/commands/operator-status.md
+templates/claude/agents/operator-workflow.md
+skills/claude-code/operator-workflow/SKILL.md
 ```
 
 For an existing project:

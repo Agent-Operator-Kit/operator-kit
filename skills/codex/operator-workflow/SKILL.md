@@ -9,11 +9,12 @@ Use this skill when a user asks to set up, restore, or operate a multi-agent wor
 3. Propose or read a lane map.
 4. Create an external operator workspace.
 5. Install or update operator scripts and evergreen docs.
-6. Create lane worktrees and branches.
-7. Start tmux lanes.
-8. Create a smoke task under the external operator workspace.
-9. Dispatch and collect one smoke handoff when appropriate.
-10. Report exact paths, branches, commands, and validation status.
+6. Install Claude Code project assets under `.claude/` when the target project uses Claude Code.
+7. Create lane worktrees and branches.
+8. Start tmux lanes.
+9. Create a smoke task under the external operator workspace.
+10. Dispatch and collect one smoke handoff when appropriate.
+11. Report exact paths, branches, commands, and validation status.
 
 ## Agent-Run Setup
 
