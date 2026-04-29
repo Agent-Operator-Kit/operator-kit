@@ -1,168 +1,1093 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Agent Operator Kit</title>
-    <meta
-      name="description"
-      content="A lightweight operator model for coordinating Codex, Claude Code, Cursor, and other coding agents across git worktrees, tmux lanes, and external handoffs."
-    >
-    <link rel="stylesheet" href="./styles.css">
-  </head>
-  <body>
-    <header class="site-header">
-      <a class="brand" href="./">Agent Operator Kit</a>
-      <nav aria-label="Primary navigation">
-        <a href="#getting-started">Getting Started</a>
-        <a href="#model">Model</a>
-        <a href="#assets">Assets</a>
-        <a href="https://github.com/Agent-Operator-Kit/operator-kit">GitHub</a>
-      </nav>
-    </header>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Operator Kit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --bg: oklch(0.11 0.015 240);
+    --bg2: oklch(0.14 0.015 240);
+    --bg3: oklch(0.17 0.015 240);
+    --border: oklch(0.22 0.015 240);
+    --border2: oklch(0.28 0.02 240);
+    --fg: oklch(0.92 0.01 240);
+    --fg2: oklch(0.65 0.015 240);
+    --fg3: oklch(0.42 0.015 240);
+    --accent: oklch(0.78 0.19 142);
+    --accent2: oklch(0.78 0.14 195);
+    --accent-dim: oklch(0.78 0.19 142 / 0.12);
+    --accent2-dim: oklch(0.78 0.14 195 / 0.12);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'JetBrains Mono', monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
 
-    <main>
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Operator-owned multi-agent development</p>
-          <h1>Coordinate coding agents without polluting your repo.</h1>
-          <p class="lede">
-            Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents a shared operating model:
-            isolated git worktrees, persistent tmux lanes, external task handoffs, and clean evergreen docs.
-          </p>
-          <div class="actions">
-            <a class="button primary" href="#getting-started">Start With An Agent</a>
-            <a class="button secondary" href="https://github.com/Agent-Operator-Kit/operator-kit">View Repository</a>
-          </div>
+  /* NOISE TEXTURE */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 3rem;
+    height: 60px;
+    background: oklch(0.11 0.015 240 / 0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .nav-logo-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--fg2);
+    text-decoration: none;
+    letter-spacing: 0.04em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--fg); }
+  .nav-github {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--fg2) !important;
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s !important;
+  }
+  .nav-github:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 4rem;
+    padding: 120px 3rem 80px;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .hero-grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(oklch(0.22 0.015 240 / 0.3) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.22 0.015 240 / 0.3) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 30%, transparent 80%);
+  }
+  .hero-glow {
+    position: fixed;
+    top: -200px; left: 50%;
+    transform: translateX(-50%);
+    width: 800px; height: 600px;
+    background: radial-gradient(ellipse, oklch(0.78 0.19 142 / 0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .hero-left {
+    position: relative;
+    z-index: 1;
+  }
+  .hero-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid oklch(0.78 0.19 142 / 0.3);
+    border-radius: 2px;
+    background: oklch(0.78 0.19 142 / 0.06);
+  }
+  .hero-title {
+    font-size: clamp(2.8rem, 4.5vw, 4.2rem);
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 1.5rem;
+    text-wrap: pretty;
+  }
+  .hero-title em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero-subtitle {
+    font-size: 1.05rem;
+    color: var(--fg2);
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+    max-width: 480px;
+    font-weight: 400;
+  }
+  .hero-ctas {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--accent);
+    color: oklch(0.1 0.01 240);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: filter 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid var(--border2);
+    color: var(--fg2);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-secondary:hover { border-color: var(--fg2); color: var(--fg); }
+  .hero-stats {
+    display: flex;
+    gap: 2.5rem;
+    margin-top: 3.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+  }
+  .hero-stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--fg3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+  .hero-stat-val {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--fg);
+  }
+
+  /* TERMINAL */
+  .hero-right {
+    position: relative;
+    z-index: 1;
+  }
+  .terminal {
+    background: var(--bg2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 32px 80px oklch(0 0 0 / 0.5), 0 0 0 1px oklch(1 0 0 / 0.03);
+  }
+  .terminal-bar {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0 1rem;
+    height: 40px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dots {
+    display: flex;
+    gap: 6px;
+    margin-right: auto;
+  }
+  .terminal-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+  }
+  .terminal-dot.red { background: #ff5f57; }
+  .terminal-dot.yellow { background: #febc2e; }
+  .terminal-dot.green { background: #28c840; }
+  .terminal-title {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--fg3);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .terminal-body {
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    line-height: 1.85;
+    color: var(--fg2);
+    min-height: 280px;
+  }
+  .t-prompt { color: var(--accent); }
+  .t-cmd { color: var(--fg); }
+  .t-comment { color: var(--fg3); }
+  .t-success { color: var(--accent); }
+  .t-info { color: var(--accent2); }
+  .t-dim { color: var(--fg3); }
+  .t-cursor {
+    display: inline-block;
+    width: 8px; height: 1em;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  /* DIVIDER */
+  .section-divider {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 3rem;
+    border-top: 1px solid var(--border);
+  }
+
+  /* SECTION */
+  section {
+    position: relative;
+    z-index: 1;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 6rem 3rem;
+  }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--fg3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+  .section-title {
+    font-size: clamp(1.8rem, 2.5vw, 2.6rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 1rem;
+    line-height: 1.1;
+  }
+  .section-sub {
+    font-size: 1rem;
+    color: var(--fg2);
+    max-width: 540px;
+    line-height: 1.7;
+    margin-bottom: 3.5rem;
+  }
+
+  /* HOW IT WORKS */
+  .how-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  .how-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    transition: border-color 0.2s;
+  }
+  .how-card:hover { border-color: var(--border2); }
+  .how-card-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--fg3);
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
+  }
+  .how-card h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.5rem;
+  }
+  .how-card p {
+    font-size: 0.9rem;
+    color: var(--fg2);
+    line-height: 1.65;
+  }
+  .how-card-accent {
+    display: inline-block;
+    width: 32px; height: 3px;
+    border-radius: 2px;
+    margin-bottom: 1.25rem;
+  }
+  .how-card:nth-child(1) .how-card-accent { background: var(--accent); }
+  .how-card:nth-child(2) .how-card-accent { background: var(--accent2); }
+  .how-card:nth-child(3) .how-card-accent { background: var(--accent); }
+  .how-card:nth-child(4) .how-card-accent { background: var(--accent2); }
+
+  /* FILE TREE */
+  .filetree-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 3rem;
+  }
+  .filetree-bar {
+    padding: 0.75rem 1.25rem;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--fg3);
+    letter-spacing: 0.08em;
+  }
+  .filetree-body {
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.77rem;
+    line-height: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 3rem;
+  }
+  .ft-dir { color: var(--accent2); }
+  .ft-file { color: var(--fg2); }
+  .ft-comment { color: var(--fg3); font-style: italic; }
+  .ft-indent { padding-left: 1.2em; }
+  .ft-indent2 { padding-left: 2.4em; }
+
+  /* GETTING STARTED */
+  .gs-section {
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .gs-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 6rem 3rem;
+    display: grid;
+    grid-template-columns: 1fr 1.4fr;
+    gap: 5rem;
+    align-items: start;
+  }
+  .prompt-card {
+    background: var(--bg);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .prompt-card-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1.25rem;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .prompt-card-title {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--fg3);
+    letter-spacing: 0.08em;
+  }
+  .copy-btn {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--accent);
+    background: none;
+    border: 1px solid oklch(0.78 0.19 142 / 0.3);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    transition: background 0.2s;
+  }
+  .copy-btn:hover { background: var(--accent-dim); }
+  .prompt-body {
+    padding: 1.25rem 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    line-height: 1.9;
+    color: var(--fg2);
+    max-height: 420px;
+    overflow-y: auto;
+  }
+  .prompt-body::-webkit-scrollbar { width: 4px; }
+  .prompt-body::-webkit-scrollbar-track { background: transparent; }
+  .prompt-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  .p-key { color: var(--accent2); }
+  .p-val { color: var(--fg); }
+  .p-comment { color: var(--fg3); }
+  .p-req { color: var(--accent); }
+
+  /* AGENTS GRID */
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    margin-top: 1rem;
+  }
+  .agent-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .agent-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+  .agent-logo {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+  .agent-logo.codex { background: oklch(0.78 0.19 142 / 0.12); color: var(--accent); border: 1px solid oklch(0.78 0.19 142 / 0.2); }
+  .agent-logo.claude { background: oklch(0.78 0.14 30 / 0.12); color: oklch(0.78 0.14 30); border: 1px solid oklch(0.78 0.14 30 / 0.2); }
+  .agent-logo.cursor { background: oklch(0.78 0.14 195 / 0.12); color: var(--accent2); border: 1px solid oklch(0.78 0.14 195 / 0.2); }
+  .agent-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .agent-desc {
+    font-size: 0.87rem;
+    color: var(--fg2);
+    line-height: 1.65;
+    flex: 1;
+  }
+  .agent-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .agent-tag {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 2px;
+    border: 1px solid var(--border2);
+    color: var(--fg3);
+    letter-spacing: 0.05em;
+  }
+  .agent-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    text-decoration: none;
+    margin-top: 0.5rem;
+    letter-spacing: 0.04em;
+    transition: gap 0.2s;
+  }
+  .agent-link:hover { gap: 0.6rem; }
+
+  /* FOOTER */
+  footer {
+    position: relative;
+    z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .footer-left {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--fg3);
+  }
+  .footer-left a { color: var(--accent); text-decoration: none; }
+  .footer-right {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--fg3);
+    display: flex;
+    gap: 2rem;
+  }
+  .footer-right a { color: var(--fg3); text-decoration: none; transition: color 0.2s; }
+  .footer-right a:hover { color: var(--fg2); }
+
+  /* ANIMATIONS */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fade-up 0.6s ease forwards; }
+  .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
+  .fade-up-2 { animation-delay: 0.15s; opacity: 0; }
+  .fade-up-3 { animation-delay: 0.25s; opacity: 0; }
+  .fade-up-4 { animation-delay: 0.35s; opacity: 0; }
+  .fade-up-5 { animation-delay: 0.45s; opacity: 0; }
+
+  /* LANE VIZ */
+  .lane-viz {
+    margin-top: 3.5rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+  .lane-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem 1.25rem;
+  }
+  .lane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .lane-name {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .lane-status {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  .lane-status.idle { background: var(--fg3); box-shadow: none; animation: none; }
+  .lane-branch {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--fg3);
+    margin-bottom: 0.4rem;
+  }
+  .lane-agent {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--accent2);
+  }
+</style>
+</head>
+<body>
+
+<div class="hero-grid-bg"></div>
+<div class="hero-glow"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <img src="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png" style="width:24px;height:24px;border-radius:5px;" alt="operator-kit icon">
+    operator-kit
+  </a>
+  <ul class="nav-links">
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#how-it-works">Model</a></li>
+    <li><a href="#agents">Assets</a></li>
+    <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      GitHub
+    </a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow fade-up fade-up-1">
+      <span>v0.1</span>
+      <span style="color:var(--fg3)">—</span>
+      <span>multi-agent operating model</span>
+    </div>
+    <h1 class="hero-title fade-up fade-up-2">
+      Coordinate coding agents without <em>polluting</em> your repo.
+    </h1>
+    <p class="hero-subtitle fade-up fade-up-3">
+      Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents
+      a shared operating model: isolated git worktrees, persistent tmux lanes,
+      external task handoffs, and clean evergreen docs.
+    </p>
+    <div class="hero-ctas fade-up fade-up-4">
+      <a class="btn-primary" href="#getting-started">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        Start With An Agent
+      </a>
+      <a class="btn-secondary" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        View Repository
+      </a>
+    </div>
+    <div class="hero-stats fade-up fade-up-5">
+      <div>
+        <div class="hero-stat-label">Agents Supported</div>
+        <div class="hero-stat-val">Codex · Claude · Cursor</div>
+      </div>
+      <div>
+        <div class="hero-stat-label">Setup Method</div>
+        <div class="hero-stat-val">Agent-run · Shell</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-right fade-up fade-up-3">
+    <div class="terminal">
+      <div class="terminal-bar">
+        <div class="terminal-dots">
+          <div class="terminal-dot red"></div>
+          <div class="terminal-dot yellow"></div>
+          <div class="terminal-dot green"></div>
         </div>
-        <div class="terminal-panel" aria-label="Agent Operator Kit setup prompt">
-          <div class="terminal-bar">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
-          <pre><code>Set up Agent Operator Kit for the current repo.
+        <span class="terminal-title">operator — tmux: acme</span>
+      </div>
+      <div class="terminal-body" id="terminal-body">
+        <div><span class="t-comment"># operator lane — main integration</span></div>
+        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-status.sh</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-success">✓</span> <span class="t-info">SESSION</span>   acme (4 panes active)</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      operator  →  app/main</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      backend   →  app-backend/codex/backend</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      ui        →  app-ui/claude/ui</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      release   →  app/release  <span class="t-dim">(idle)</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-comment"># dispatching task to ui lane</span></div>
+        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-dispatch.sh ui tasks/ui-nav-001.md</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-success">✓</span> dispatched  <span class="t-info">ui-nav-001</span>  →  claude/ui</div>
+        <div><span class="t-dim">  pane capture saved to operator/captures/</span></div>
+        <div>&nbsp;</div>
+        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ </span><span class="t-cursor"></span></div>
+      </div>
+    </div>
 
-Use this source kit:
-git@github.com:Agent-Operator-Kit/operator-kit.git
-
-Requirements:
-- inspect the repo first
-- propose the lane map
-- install Codex, Claude Code, and Cursor assets
-- create OPERATOR_DIR outside the repo
-- run smoke and status checks</code></pre>
+    <!-- lane map -->
+    <div class="lane-viz">
+      <div class="lane-item">
+        <div class="lane-header">
+          <span class="lane-name">operator</span>
+          <div class="lane-status"></div>
         </div>
-      </section>
-
-      <section id="getting-started" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">Agent-run setup</p>
-          <h2>Getting Started</h2>
-          <p>Open Codex, Claude Code, or Cursor in the target repo and paste the prompt below.</p>
+        <div class="lane-branch">app / main</div>
+        <div class="lane-agent">Codex Desktop</div>
+      </div>
+      <div class="lane-item">
+        <div class="lane-header">
+          <span class="lane-name">backend</span>
+          <div class="lane-status"></div>
         </div>
-        <pre class="prompt"><code>Set up Agent Operator Kit for the current repo.
-
-Use this source kit:
-git@github.com:Agent-Operator-Kit/operator-kit.git
-
-First clone or read the kit, then follow its agent-run bootstrap guide:
-templates/prompts/agent-run-bootstrap.md
-docs/guides/agent-run-bootstrap.md
-
-Treat the current working directory as the target project repo.
-
-Requirements:
-- inspect the repo first
-- propose the lane map before creating worktrees
-- install the scripts/templates
-- install Codex, Claude Code, and Cursor project assets when relevant
-- create the external operator workspace outside the repo
-- create or verify worktrees without overwriting existing work
-- start or inspect tmux
-- create a smoke task
-- run the status and summary checks
-- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit
-
-Guardrails:
-- do not rewrite git history
-- do not force-push
-- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes
-- do not deploy or run production builds during setup</code></pre>
-      </section>
-
-      <section id="model" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">How it works</p>
-          <h2>One operator, many isolated lanes.</h2>
+        <div class="lane-branch">app-backend / codex/backend</div>
+        <div class="lane-agent">Codex CLI</div>
+      </div>
+      <div class="lane-item">
+        <div class="lane-header">
+          <span class="lane-name">ui</span>
+          <div class="lane-status"></div>
         </div>
-        <div class="grid three">
-          <article class="card">
-            <h3>Worktrees</h3>
-            <p>Each agent lane gets a separate directory and branch, so long-running work stays isolated.</p>
-          </article>
-          <article class="card">
-            <h3>tmux Lanes</h3>
-            <p>Persistent terminals keep Codex, Claude Code, Cursor CLI, and other workers visible and recoverable.</p>
-          </article>
-          <article class="card">
-            <h3>External Handoffs</h3>
-            <p>Task packets, pane captures, and raw handoffs live under an operator workspace outside the repo.</p>
-          </article>
+        <div class="lane-branch">app-ui / claude/ui</div>
+        <div class="lane-agent">Claude Code</div>
+      </div>
+      <div class="lane-item">
+        <div class="lane-header">
+          <span class="lane-name">release</span>
+          <div class="lane-status idle"></div>
         </div>
-      </section>
+        <div class="lane-branch">app / release</div>
+        <div class="lane-agent" style="color:var(--fg3)">idle</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-      <section class="section band">
-        <div class="layout-diagram" aria-label="Recommended folder layout">
+<!-- HOW IT WORKS -->
+<div class="section-divider"><div></div></div>
+<section id="how-it-works">
+  <div class="section-label">// model</div>
+  <h2 class="section-title">One operator,<br>many isolated lanes.</h2>
+  <p class="section-sub">A lightweight operating model that keeps your codebase clean while agents run in parallel across named worktrees.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — ISOLATION</div>
+      <div class="how-card-accent"></div>
+      <h3>Worktrees</h3>
+      <p>Each agent lane gets a separate directory and branch. Long-running work stays isolated and never conflicts with other lanes or main.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — PERSISTENCE</div>
+      <div class="how-card-accent"></div>
+      <h3>tmux Lanes</h3>
+      <p>Persistent terminals keep Codex, Claude Code, and Cursor CLI workers visible, inspectable, and recoverable across sessions.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — HANDOFFS</div>
+      <div class="how-card-accent"></div>
+      <h3>External Task Packets</h3>
+      <p>Task packets, pane captures, and raw handoffs live under an operator workspace outside the repo — delete or archive without touching git history.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — EVERGREEN</div>
+      <div class="how-card-accent"></div>
+      <h3>Clean Codebase</h3>
+      <p>The repo stores only source code, reusable scripts, stable rules, and durable docs. Generated operator state never bleeds into source history.</p>
+    </div>
+  </div>
+
+  <div class="filetree-wrap">
+    <div class="filetree-bar">// recommended project layout</div>
+    <div class="filetree-body">
+      <div>
+        <div><span class="ft-dir">~/Projects/acme/</span></div>
+        <div class="ft-indent"><span class="ft-dir">code/</span></div>
+        <div class="ft-indent2"><span class="ft-file">app/</span>  <span class="ft-comment">canonical repo</span></div>
+        <div class="ft-indent2"><span class="ft-file">app-backend/</span>  <span class="ft-comment">worker lane</span></div>
+        <div class="ft-indent2"><span class="ft-file">app-ui/</span>  <span class="ft-comment">worker lane</span></div>
+        <div class="ft-indent"><span class="ft-dir">operator/</span></div>
+        <div class="ft-indent2"><span class="ft-file">README.md</span></div>
+        <div class="ft-indent2"><span class="ft-dir">tasks/</span></div>
+        <div class="ft-indent2"><span class="ft-dir">captures/</span></div>
+      </div>
+      <div>
+        <div><span class="ft-comment">// installed into repo</span></div>
+        <div><span class="ft-dir">.cursor/rules/</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-workflow.mdc</span></div>
+        <div><span class="ft-dir">.claude/commands/</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-bootstrap.md</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-status.md</span></div>
+        <div><span class="ft-dir">scripts/</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-tmux.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GETTING STARTED -->
+<div class="gs-section" id="getting-started">
+  <div class="gs-inner">
+    <div>
+      <div class="section-label">// getting started</div>
+      <h2 class="section-title">Agent-run setup.</h2>
+      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent handles the rest.</p>
+
+      <div style="display:flex;flex-direction:column;gap:1.25rem;margin-top:2rem;">
+        <div style="display:flex;gap:1rem;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">1</div>
           <div>
-            <h2>Keep the codebase evergreen.</h2>
-            <p>
-              The repo stores source code, reusable scripts, stable rules, and durable docs. Generated operator state stays
-              beside the project so it can be deleted, archived, or ignored without touching source history.
-            </p>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Open your agent</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">Launch Codex, Claude Code, or Cursor in the target repository.</div>
           </div>
-          <pre><code>~/Projects/acme/
-  code/
-    app/
-    app-backend/
-    app-ui/
-  operator/
-    tasks/
-      task-slug/
-        tasks/
-        handoffs/
-    captures/</code></pre>
         </div>
-      </section>
+        <div style="display:flex;gap:1rem;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
+          <div>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the bootstrap prompt</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">The agent will inspect your repo, propose a lane map, and install all assets.</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:flex-start;">
+          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">3</div>
+          <div>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review and commit</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">Inspect installed files, confirm the lane map, and commit the evergreen assets.</div>
+          </div>
+        </div>
+      </div>
 
-      <section id="assets" class="section">
-        <div class="section-heading">
-          <p class="eyebrow">Agent surfaces</p>
-          <h2>Reusable assets for each agent.</h2>
+      <div style="margin-top:2.5rem;padding:1.25rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;">
+        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--fg3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;">manual install</div>
+        <div style="font-family:var(--font-mono);font-size:0.75rem;line-height:2;color:var(--fg2);">
+          <div><span style="color:var(--fg3)">$</span> git clone git@github.com:Agent-Operator-Kit/operator-kit.git</div>
+          <div><span style="color:var(--fg3)">$</span> cd operator-kit</div>
+          <div><span style="color:var(--fg3)">$</span> bash scripts/operator-bootstrap.sh /path/to/your/repo</div>
         </div>
-        <div class="grid three">
-          <article class="card">
-            <h3>Codex</h3>
-            <p>Skill-style setup instructions and operator workflow guardrails.</p>
-            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-workflow">Open Codex Skill</a>
-          </article>
-          <article class="card">
-            <h3>Claude Code</h3>
-            <p>Project slash commands and a project subagent for setup and status inspection.</p>
-            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/claude">Open Claude Assets</a>
-          </article>
-          <article class="card">
-            <h3>Cursor</h3>
-            <p>Project rules, a Cursor skill, and a Background Agent environment starter.</p>
-            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/cursor">Open Cursor Assets</a>
-          </article>
-        </div>
-      </section>
-    </main>
+      </div>
+    </div>
 
-    <footer class="site-footer">
-      <span>Agent Operator Kit</span>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit">github.com/Agent-Operator-Kit/operator-kit</a>
-    </footer>
-  </body>
+    <div class="prompt-card">
+      <div class="prompt-card-bar">
+        <span class="prompt-card-title">agent-run-bootstrap.md</span>
+        <button class="copy-btn" id="copy-prompt-btn">copy</button>
+      </div>
+      <div class="prompt-body" id="prompt-text">
+        <div>Set up Agent Operator Kit for the current repo.</div>
+        <div>&nbsp;</div>
+        <div><span class="p-key">Use this source kit:</span></div>
+        <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
+        <div>&nbsp;</div>
+        <div><span class="p-key">First clone or read the kit, then follow its agent-run bootstrap guide:</span></div>
+        <div><span class="p-val">templates/prompts/agent-run-bootstrap.md</span></div>
+        <div><span class="p-val">docs/guides/agent-run-bootstrap.md</span></div>
+        <div>&nbsp;</div>
+        <div>Treat the current working directory as the target project repo.</div>
+        <div>&nbsp;</div>
+        <div><span class="p-req">Requirements:</span></div>
+        <div><span class="p-comment">- inspect the repo first</span></div>
+        <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
+        <div><span class="p-comment">- install the scripts/templates</span></div>
+        <div><span class="p-comment">- install Codex, Claude Code, and Cursor project assets when relevant</span></div>
+        <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
+        <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
+        <div><span class="p-comment">- start or inspect tmux</span></div>
+        <div><span class="p-comment">- create a smoke task</span></div>
+        <div><span class="p-comment">- run the status and summary checks</span></div>
+        <div><span class="p-comment">- report installed files, OPERATOR_DIR, lane map, smoke results, git status,</span></div>
+        <div><span class="p-comment">&nbsp;&nbsp;and whether the repo is ready to commit</span></div>
+        <div>&nbsp;</div>
+        <div><span class="p-req">Guardrails:</span></div>
+        <div><span class="p-comment">- do not rewrite git history</span></div>
+        <div><span class="p-comment">- do not force-push</span></div>
+        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets,</span></div>
+        <div><span class="p-comment">&nbsp;&nbsp;pane captures, or transient notes</span></div>
+        <div><span class="p-comment">- do not deploy or run production builds during setup</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- AGENTS -->
+<section id="agents">
+  <div class="section-label">// agent surfaces</div>
+  <h2 class="section-title">Reusable assets<br>for each agent.</h2>
+  <p class="section-sub">Pre-built skills, commands, and rules tailored to each agent's native format.</p>
+
+  <div class="agents-grid">
+    <div class="agent-card">
+      <div class="agent-logo codex">CDEX</div>
+      <div class="agent-name">Codex</div>
+      <p class="agent-desc">Skill-style setup instructions and operator workflow guardrails for Codex Desktop and Codex CLI.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">SKILL.md</span>
+        <span class="agent-tag">operator-workflow</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-workflow" target="_blank">
+        Open Codex Skill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
+      <div class="agent-logo claude">CC</div>
+      <div class="agent-name">Claude Code</div>
+      <p class="agent-desc">Project slash commands and a project subagent for setup, status inspection, and operator workflow.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">/operator-bootstrap</span>
+        <span class="agent-tag">/operator-status</span>
+        <span class="agent-tag">agents/</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/claude" target="_blank">
+        Open Claude Assets
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
+      <div class="agent-logo cursor">CRS</div>
+      <div class="agent-name">Cursor</div>
+      <p class="agent-desc">Project rules, a Cursor skill, and a Background Agent environment starter with full operator workflow support.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">.mdc rules</span>
+        <span class="agent-tag">environment.json</span>
+        <span class="agent-tag">SKILL.md</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/cursor" target="_blank">
+        Open Cursor Assets
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div style="border-top:1px solid var(--border);position:relative;z-index:1;">
+  <footer>
+    <div class="footer-left">
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit">Agent Operator Kit</a>
+      &nbsp;·&nbsp; MIT License
+    </div>
+    <div class="footer-right">
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
+    </div>
+  </footer>
+</div>
+
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel">
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accentColor": "orange",
+  "terminalFont": "JetBrains Mono",
+  "showLaneViz": true,
+  "density": "compact"
+}/*EDITMODE-END*/;
+
+function OperatorTweaks() {
+  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+  React.useEffect(() => {
+    const accentMap = {
+      orange: ['oklch(0.68 0.13 50)', 'oklch(0.78 0.09 220)', 'oklch(0.68 0.13 50 / 0.12)'],
+      green:  ['oklch(0.78 0.19 142)', 'oklch(0.78 0.14 195)', 'oklch(0.78 0.19 142 / 0.12)'],
+      cyan:   ['oklch(0.78 0.14 195)', 'oklch(0.78 0.16 260)', 'oklch(0.78 0.14 195 / 0.12)'],
+    };
+    const [a, a2, ad] = accentMap[tweaks.accentColor] || accentMap.green;
+    document.documentElement.style.setProperty('--accent', a);
+    document.documentElement.style.setProperty('--accent2', a2);
+    document.documentElement.style.setProperty('--accent-dim', ad);
+  }, [tweaks.accentColor]);
+
+  React.useEffect(() => {
+    document.documentElement.style.setProperty('--font-mono', `'${tweaks.terminalFont}', monospace`);
+  }, [tweaks.terminalFont]);
+
+  React.useEffect(() => {
+    const laneViz = document.querySelector('.lane-viz');
+    if (laneViz) laneViz.style.display = tweaks.showLaneViz ? 'grid' : 'none';
+  }, [tweaks.showLaneViz]);
+
+  React.useEffect(() => {
+    const padding = tweaks.density === 'compact' ? '4rem' : tweaks.density === 'spacious' ? '8rem' : '6rem';
+    document.querySelectorAll('section').forEach(s => {
+      s.style.paddingTop = padding;
+      s.style.paddingBottom = padding;
+    });
+  }, [tweaks.density]);
+
+  return (
+    <TweaksPanel title="Tweaks">
+      <TweakSection label="Accent Color">
+        <TweakRadio id="accentColor" value={tweaks.accentColor} onChange={v => setTweak('accentColor', v)}
+          options={[{value:'orange',label:'Orange'},{value:'green',label:'Green'},{value:'cyan',label:'Cyan'}]} />
+      </TweakSection>
+      <TweakSection label="Terminal Font">
+        <TweakSelect id="terminalFont" value={tweaks.terminalFont} onChange={v => setTweak('terminalFont', v)}
+          options={['JetBrains Mono','IBM Plex Mono','Fira Code','Courier New']} />
+      </TweakSection>
+      <TweakSection label="Show Lane Map">
+        <TweakToggle id="showLaneViz" value={tweaks.showLaneViz} onChange={v => setTweak('showLaneViz', v)} label="Show lane visualization" />
+      </TweakSection>
+      <TweakSection label="Section Density">
+        <TweakRadio id="density" value={tweaks.density} onChange={v => setTweak('density', v)}
+          options={[{value:'compact',label:'Compact'},{value:'comfortable',label:'Default'},{value:'spacious',label:'Spacious'}]} />
+      </TweakSection>
+    </TweaksPanel>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTweaks />);
+</script>
+
+<div id="tweaks-root"></div>
+
+<script>
+// Copy prompt button
+document.getElementById('copy-prompt-btn').addEventListener('click', function() {
+  const promptLines = [
+    'Set up Agent Operator Kit for the current repo.',
+    '',
+    'Use this source kit:',
+    'git@github.com:Agent-Operator-Kit/operator-kit.git',
+    '',
+    'First clone or read the kit, then follow its agent-run bootstrap guide:',
+    'templates/prompts/agent-run-bootstrap.md',
+    'docs/guides/agent-run-bootstrap.md',
+    '',
+    'Treat the current working directory as the target project repo.',
+    '',
+    'Requirements:',
+    '- inspect the repo first',
+    '- propose the lane map before creating worktrees',
+    '- install the scripts/templates',
+    '- install Codex, Claude Code, and Cursor project assets when relevant',
+    '- create the external operator workspace outside the repo',
+    '- create or verify worktrees without overwriting existing work',
+    '- start or inspect tmux',
+    '- create a smoke task',
+    '- run the status and summary checks',
+    '- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit',
+    '',
+    'Guardrails:',
+    '- do not rewrite git history',
+    '- do not force-push',
+    '- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes',
+    '- do not deploy or run production builds during setup',
+  ].join('\n');
+  navigator.clipboard.writeText(promptLines).then(() => {
+    const btn = document.getElementById('copy-prompt-btn');
+    btn.textContent = 'copied!';
+    setTimeout(() => { btn.textContent = 'copy'; }, 2000);
+  });
+});
+</script>
+
+</body>
 </html>
