@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Agent Operator Kit</title>
+    <meta
+      name="description"
+      content="A lightweight operator model for coordinating Codex, Claude Code, Cursor, and other coding agents across git worktrees, tmux lanes, and external handoffs."
+    >
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./">Agent Operator Kit</a>
+      <nav aria-label="Primary navigation">
+        <a href="#getting-started">Getting Started</a>
+        <a href="#model">Model</a>
+        <a href="#assets">Assets</a>
+        <a href="https://github.com/Agent-Operator-Kit/operator-kit">GitHub</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Operator-owned multi-agent development</p>
+          <h1>Coordinate coding agents without polluting your repo.</h1>
+          <p class="lede">
+            Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents a shared operating model:
+            isolated git worktrees, persistent tmux lanes, external task handoffs, and clean evergreen docs.
+          </p>
+          <div class="actions">
+            <a class="button primary" href="#getting-started">Start With An Agent</a>
+            <a class="button secondary" href="https://github.com/Agent-Operator-Kit/operator-kit">View Repository</a>
+          </div>
+        </div>
+        <div class="terminal-panel" aria-label="Agent Operator Kit setup prompt">
+          <div class="terminal-bar">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <pre><code>Set up Agent Operator Kit for the current repo.
+
+Use this source kit:
+git@github.com:Agent-Operator-Kit/operator-kit.git
+
+Requirements:
+- inspect the repo first
+- propose the lane map
+- install Codex, Claude Code, and Cursor assets
+- create OPERATOR_DIR outside the repo
+- run smoke and status checks</code></pre>
+        </div>
+      </section>
+
+      <section id="getting-started" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Agent-run setup</p>
+          <h2>Getting Started</h2>
+          <p>Open Codex, Claude Code, or Cursor in the target repo and paste the prompt below.</p>
+        </div>
+        <pre class="prompt"><code>Set up Agent Operator Kit for the current repo.
+
+Use this source kit:
+git@github.com:Agent-Operator-Kit/operator-kit.git
+
+First clone or read the kit, then follow its agent-run bootstrap guide:
+templates/prompts/agent-run-bootstrap.md
+docs/guides/agent-run-bootstrap.md
+
+Treat the current working directory as the target project repo.
+
+Requirements:
+- inspect the repo first
+- propose the lane map before creating worktrees
+- install the scripts/templates
+- install Codex, Claude Code, and Cursor project assets when relevant
+- create the external operator workspace outside the repo
+- create or verify worktrees without overwriting existing work
+- start or inspect tmux
+- create a smoke task
+- run the status and summary checks
+- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit
+
+Guardrails:
+- do not rewrite git history
+- do not force-push
+- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes
+- do not deploy or run production builds during setup</code></pre>
+      </section>
+
+      <section id="model" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">How it works</p>
+          <h2>One operator, many isolated lanes.</h2>
+        </div>
+        <div class="grid three">
+          <article class="card">
+            <h3>Worktrees</h3>
+            <p>Each agent lane gets a separate directory and branch, so long-running work stays isolated.</p>
+          </article>
+          <article class="card">
+            <h3>tmux Lanes</h3>
+            <p>Persistent terminals keep Codex, Claude Code, Cursor CLI, and other workers visible and recoverable.</p>
+          </article>
+          <article class="card">
+            <h3>External Handoffs</h3>
+            <p>Task packets, pane captures, and raw handoffs live under an operator workspace outside the repo.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section band">
+        <div class="layout-diagram" aria-label="Recommended folder layout">
+          <div>
+            <h2>Keep the codebase evergreen.</h2>
+            <p>
+              The repo stores source code, reusable scripts, stable rules, and durable docs. Generated operator state stays
+              beside the project so it can be deleted, archived, or ignored without touching source history.
+            </p>
+          </div>
+          <pre><code>~/Projects/acme/
+  code/
+    app/
+    app-backend/
+    app-ui/
+  operator/
+    tasks/
+      task-slug/
+        tasks/
+        handoffs/
+    captures/</code></pre>
+        </div>
+      </section>
+
+      <section id="assets" class="section">
+        <div class="section-heading">
+          <p class="eyebrow">Agent surfaces</p>
+          <h2>Reusable assets for each agent.</h2>
+        </div>
+        <div class="grid three">
+          <article class="card">
+            <h3>Codex</h3>
+            <p>Skill-style setup instructions and operator workflow guardrails.</p>
+            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-workflow">Open Codex Skill</a>
+          </article>
+          <article class="card">
+            <h3>Claude Code</h3>
+            <p>Project slash commands and a project subagent for setup and status inspection.</p>
+            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/claude">Open Claude Assets</a>
+          </article>
+          <article class="card">
+            <h3>Cursor</h3>
+            <p>Project rules, a Cursor skill, and a Background Agent environment starter.</p>
+            <a href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/cursor">Open Cursor Assets</a>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>Agent Operator Kit</span>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit">github.com/Agent-Operator-Kit/operator-kit</a>
+    </footer>
+  </body>
+</html>

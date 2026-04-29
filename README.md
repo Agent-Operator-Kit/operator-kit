@@ -4,6 +4,12 @@ Agent Operator Kit is a lightweight operating model for coordinating coding agen
 
 It is designed for teams or solo builders who want Codex, Claude Code, and similar agents to work in parallel without polluting the codebase with transient task packets, raw handoffs, pane captures, or session notes.
 
+Website:
+
+```text
+https://agent-operator-kit.github.io/operator-kit/
+```
+
 ## Core Idea
 
 - One human or primary agent acts as the operator and integrator.
@@ -113,6 +119,12 @@ Full bootstrap guide:
 
 ```text
 docs/guides/agent-run-bootstrap.md
+```
+
+GitHub Pages guide:
+
+```text
+docs/guides/github-pages.md
 ```
 
 Codex-specific reusable guidance:
