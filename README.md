@@ -64,10 +64,37 @@ operator.config.env
 
 ## Getting Started
 
-Agent Operator Kit is optimized for agent-run setup. Ask Codex, Claude Code, or Cursor to do the setup for you with:
+Agent Operator Kit is optimized for agent-run setup. Open Codex, Claude Code, or Cursor in the target repo and paste:
 
 ```text
-Use git@github.com:Agent-Operator-Kit/operator-kit.git to set up Agent Operator Kit for this project. Follow the agent-run bootstrap guide and keep generated task/handoff state outside the repo.
+Set up Agent Operator Kit for the current repo.
+
+Use this source kit:
+git@github.com:Agent-Operator-Kit/operator-kit.git
+
+First clone or read the kit, then follow its agent-run bootstrap guide:
+templates/prompts/agent-run-bootstrap.md
+docs/guides/agent-run-bootstrap.md
+
+Treat the current working directory as the target project repo.
+
+Requirements:
+- inspect the repo first
+- propose the lane map before creating worktrees
+- install the scripts/templates
+- install Codex, Claude Code, and Cursor project assets when relevant
+- create the external operator workspace outside the repo
+- create or verify worktrees without overwriting existing work
+- start or inspect tmux
+- create a smoke task
+- run the status and summary checks
+- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit
+
+Guardrails:
+- do not rewrite git history
+- do not force-push
+- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes
+- do not deploy or run production builds during setup
 ```
 
 Full copy/paste prompt:
