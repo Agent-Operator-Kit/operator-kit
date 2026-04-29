@@ -1,5 +1,9 @@
 # Agent Operator Kit
 
+<p align="center">
+  <img src="site/assets/operator-kit-icon.png" alt="Agent Operator Kit icon" width="96" height="96">
+</p>
+
 Agent Operator Kit is a lightweight operating model for coordinating coding agents across isolated git worktrees using tmux, external task handoffs, and an operator-owned integration flow.
 
 It is designed for teams or solo builders who want Codex, Claude Code, and similar agents to work in parallel without polluting the codebase with transient task packets, raw handoffs, pane captures, or session notes.
