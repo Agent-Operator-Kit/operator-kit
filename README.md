@@ -62,7 +62,7 @@ AGENTS.md
 operator.config.env
 ```
 
-## Getting Started With Codex Or Claude Code
+## Getting Started
 
 Agent Operator Kit is optimized for agent-run setup. Ask Codex, Claude Code, or Cursor to do the setup for you with:
 

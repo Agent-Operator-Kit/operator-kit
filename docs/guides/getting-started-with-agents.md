@@ -1,4 +1,4 @@
-# Getting Started With Codex, Claude Code, Or Cursor
+# Getting Started
 
 Agent Operator Kit is intended to be installed by an agent, not by a human following a long checklist.
 
