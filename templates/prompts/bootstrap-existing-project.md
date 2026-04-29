@@ -12,3 +12,5 @@ Goals:
 - Create an external operator workspace beside the project unless I specify another path.
 
 Start by inspecting the repo, detecting the default branch and validation commands, then propose a lane map before making broad changes.
+
+For a complete agent-run setup prompt, use `templates/prompts/agent-run-bootstrap.md`.

@@ -51,6 +51,24 @@ operator.config.env
 
 ## Quick Start
 
+Ask Codex or Claude Code to do the setup for you with:
+
+```text
+Use git@github.com:Agent-Operator-Kit/operator-kit.git to set up Agent Operator Kit for this project. Follow the agent-run bootstrap guide and keep generated task/handoff state outside the repo.
+```
+
+Full copy/paste prompt:
+
+```text
+templates/prompts/agent-run-bootstrap.md
+```
+
+Detailed guide:
+
+```text
+docs/guides/agent-run-bootstrap.md
+```
+
 For an existing project:
 
 ```bash
