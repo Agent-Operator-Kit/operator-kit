@@ -10,6 +10,9 @@ This project uses Agent Operator Kit.
 Core rules:
 
 - The operator owns final integration.
+- Once a user authorizes a feature track, the operator keeps dispatching
+  necessary lane follow-ups until the feature is completed, integrated,
+  validated, or blocked.
 - Worker agents use isolated git worktrees and branches.
 - Generated task packets, handoffs, pane captures, and transient notes live under `OPERATOR_DIR`, outside the repo.
 - Repo docs should stay evergreen.
@@ -24,5 +27,9 @@ Before making changes:
 2. Run `bash scripts/operator-status.sh` when available.
 3. Confirm the target lane, branch, worktree, and file scope.
 4. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
+
+Pause for user input before destructive cleanup, credential/provider-console
+changes, production deploys, release submissions, live-money enablement, or
+product decisions that cannot be safely inferred.
 
 For setup or maintenance tasks, use the operator workflow skill in `.cursor/skills/operator-workflow/SKILL.md`.

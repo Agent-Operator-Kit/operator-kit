@@ -24,6 +24,16 @@ When setting up a project:
 7. Run a smoke task and status summary.
 8. Report exact paths, branches, commands run, and remaining risks.
 
+When operating an authorized feature track:
+
+- Keep dispatching necessary follow-up work to the appropriate lanes until the
+  feature is completed, integrated, validated, or blocked.
+- Do not ask the user to approve every obvious handoff-to-handoff transition.
+- Pause for user input before destructive cleanup, credential changes,
+  provider-console changes, production deploys, release submissions,
+  live-money/trading enablement, or product decisions that cannot be safely
+  inferred.
+
 Guardrails:
 
 - Do not rewrite git history.

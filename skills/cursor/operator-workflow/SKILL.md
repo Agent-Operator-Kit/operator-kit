@@ -21,6 +21,11 @@ The local flow:
 5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, and `scripts/operator-summary.sh`.
 6. Commit only evergreen repo changes.
 
+Once the user authorizes a feature track, keep dispatching necessary follow-up
+tasks to the appropriate lanes until the feature is completed, integrated,
+validated, or blocked. Do not ask the user to approve every obvious
+handoff-to-handoff transition.
+
 ## Cursor CLI
 
 Cursor CLI uses `cursor-agent`.
@@ -56,3 +61,6 @@ For every Background Agent prompt, include:
 - Do not commit secrets.
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
 - Do not start deployments or production builds during setup.
+- Ask before destructive cleanup, credential/provider-console changes,
+  production deploys, release submissions, live-money enablement, or product
+  decisions that cannot be safely inferred.

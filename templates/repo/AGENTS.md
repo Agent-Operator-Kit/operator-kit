@@ -27,3 +27,15 @@ bash scripts/operator-summary.sh
 - Never let two agents edit the same file at the same time.
 - Never commit raw handoffs or task packets.
 - Merge worker work only after operator review and validation.
+
+## Operator Dispatch Rule
+
+- Once a user authorizes a feature track, the operator should keep
+  dispatching necessary lane follow-ups until the feature is completed,
+  integrated, validated, or blocked by a decision only the user can make.
+- The operator should monitor worker lanes, collect handoffs, inspect git
+  state, and route follow-up work to the appropriate lane without asking the
+  user to approve every handoff-to-handoff transition.
+- Pause for user input before destructive cleanup, credential changes,
+  provider-console changes, production deploys, release submissions, live-money
+  trading enablement, or product decisions that cannot be safely inferred.
