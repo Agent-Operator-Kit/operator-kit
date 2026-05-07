@@ -23,6 +23,18 @@ When the user wants an agent to fully set up the system from scratch, follow `do
 
 The setup agent should inspect first, propose a lane map, install scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
 
+## Operating Feature Tracks
+
+Once the user authorizes a feature track, keep dispatching necessary follow-up
+tasks to the appropriate lanes until the feature is completed, integrated,
+validated, or blocked. Do not ask the user to approve every obvious
+handoff-to-handoff transition.
+
+Pause for user input before destructive cleanup, credential changes,
+provider-console changes, production deploys, release submissions,
+live-money/trading enablement, or product decisions that cannot be safely
+inferred.
+
 ## Guardrails
 
 - Do not commit raw handoffs, pane captures, or task packets.

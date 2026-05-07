@@ -6,7 +6,15 @@
 4. Worker agents execute within their worktree and branch.
 5. Operator collects handoffs.
 6. Operator reviews diffs and validation.
-7. Operator integrates approved changes into the stable branch.
+7. If a handoff implies a necessary follow-up in another lane, the operator
+   dispatches it and keeps monitoring the feature track.
+8. Operator integrates approved changes into the stable branch.
+
+Once the user authorizes a feature track, the operator should keep dispatching
+lane follow-ups until the feature is completed, integrated, validated, or
+blocked. Pause for user input before destructive cleanup, credential/provider
+changes, production deploys, release submissions, live-money enablement, or
+product decisions that cannot be safely inferred.
 
 Example:
 

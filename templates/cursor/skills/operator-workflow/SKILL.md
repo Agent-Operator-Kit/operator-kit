@@ -23,6 +23,11 @@ Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
    - `bash scripts/operator-summary.sh`
 10. Report installed files, lane map, smoke results, dirty files, and whether the repo is ready to commit.
 
+Once the user authorizes a feature track, keep dispatching necessary follow-up
+tasks to the appropriate lanes until the feature is completed, integrated,
+validated, or blocked. Do not ask the user to approve every obvious
+handoff-to-handoff transition.
+
 ## Cursor Background Agent Flow
 
 Cursor Background Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR`.
@@ -42,3 +47,5 @@ For Background Agent tasks:
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
 - Do not start production builds, deployments, or provider-console changes during setup.
 - Ask before destructive commands.
+- Ask before credential/provider-console changes, release submissions,
+  live-money enablement, or product decisions that cannot be safely inferred.

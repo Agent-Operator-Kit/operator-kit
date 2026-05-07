@@ -213,6 +213,11 @@ bash scripts/operator-summary.sh
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Do not merge worker branches into `main` without operator review.
+- After a user authorizes a feature track, keep dispatching necessary lane
+  follow-ups until the feature is completed, integrated, validated, or blocked.
+- Pause for user input before destructive cleanup, credential/provider changes,
+  production deploys, release submissions, live-money enablement, or product
+  decisions that cannot be safely inferred.
 - Do not commit raw handoffs, task packets, pane captures, or transient session notes.
 - Keep generated operator state under `OPERATOR_DIR`.
 - Distill durable facts into evergreen repo docs.
