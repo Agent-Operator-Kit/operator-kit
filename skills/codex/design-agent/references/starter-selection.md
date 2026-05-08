@@ -47,4 +47,3 @@ Use a curated starter before going custom.
 4. Create product kits.
 5. Validate one screen.
 ```
-

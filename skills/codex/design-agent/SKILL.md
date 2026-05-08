@@ -123,4 +123,3 @@ Load only what the task needs:
 - `references/review-rubric.md`: comprehensive UX/design consistency review criteria.
 - `references/starter-selection.md`: starter shelf and selection rules.
 - `references/operator-collaboration.md`: Agent Operator Kit task-shaping details.
-

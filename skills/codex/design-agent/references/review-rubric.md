@@ -79,4 +79,3 @@ Lead with findings, then fixes:
 
 ## Operator Kit Recommendation
 ```
-

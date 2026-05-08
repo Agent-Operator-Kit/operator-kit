@@ -64,4 +64,3 @@ design|Claude Code|app-design|claude/design|claude --model opus --dangerously-sk
 ```
 
 Use a `design` lane when the project benefits from reviewable mockups or design handoffs before production UI implementation.
-

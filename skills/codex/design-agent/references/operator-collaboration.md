@@ -75,4 +75,3 @@ validation results
 - Do not let design and UI lanes edit the same files at the same time.
 - Keep raw task state in `$OPERATOR_DIR`.
 - Commit durable design-system decisions only when the user is ready.
-
