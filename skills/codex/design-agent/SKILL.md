@@ -1,6 +1,6 @@
 ---
 name: design-agent
-description: Use for product UX and design-system work in Codex Desktop projects: comprehensive UX and consistency reviews, code-first design-system extraction, starter recommendation, design-system audits, annotation feedback classification, and preparing Claude Code or Agent Operator Kit design/UI tasks.
+description: "Use for product UX and design-system work in Codex Desktop projects: comprehensive UX and consistency reviews, code-first design-system extraction, starter recommendation, design-system audits, annotation feedback classification, and preparing Claude Code or Agent Operator Kit design/UI tasks."
 ---
 
 # Design Agent

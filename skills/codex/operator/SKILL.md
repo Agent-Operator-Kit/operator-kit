@@ -1,6 +1,6 @@
 ---
 name: operator
-description: Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh.
+description: "Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh."
 ---
 
 # Operator
