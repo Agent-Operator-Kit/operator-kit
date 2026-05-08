@@ -1,0 +1,4 @@
+interface:
+  display_name: "Design Agent"
+  short_description: "Review UX and design systems"
+  default_prompt: "Use $design-agent to review UX consistency, extract or audit a design system, recommend a starter, or package design feedback for Claude Code or Operator Kit."

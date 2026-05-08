@@ -1,6 +1,6 @@
 ---
 name: operator
-description: Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh.
+description: Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh.
 ---
 
 # Operator
@@ -89,6 +89,36 @@ For new work:
 
 Before dispatch, check that no other active lane owns the same branch or file area.
 
+## Design-Agent Collaboration
+
+When the user asks for design, UX, UI consistency, design-system extraction, visual review, web-preview annotations, or starter-system recommendation:
+
+1. If the request names `$design-agent` or clearly needs design-system/UX reasoning, suggest using `$design-agent` before dispatch unless the user already did.
+2. Run normal operator detection, status, and summary before any lane work.
+3. Ask for confirmation before dispatch when the design task is broad, subjective, or could touch many UI files.
+4. Let `$design-agent` own the design/UX content:
+   - scenario classification,
+   - starter recommendation,
+   - design-system extraction/audit,
+   - annotation feedback classification,
+   - acceptance criteria for design/UI tasks.
+5. Keep `$operator` responsible for:
+   - lane safety,
+   - task folder creation under `$OPERATOR_DIR`,
+   - dispatch,
+   - collection,
+   - integration review.
+
+Suggested combined requests:
+
+```text
+Use $design-agent with $operator. Do a comprehensive UX and consistency review.
+Use $design-agent with $operator. Extract a design system and prepare a UI lane task.
+Use $design-agent with $operator. Turn my annotations into a design follow-up task.
+```
+
+Do not bypass `$operator` safety checks just because a task came from `$design-agent`. Do not let `design` and `ui` lanes edit the same files at the same time.
+
 ## Collection And Integration Review
 
 For collection:
@@ -119,7 +149,12 @@ When the user says `$operator update to latest version from git` or similar:
    mkdir -p ~/.codex/skills/operator
    cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
    ```
-5. Refresh the installed project using `operator-update.sh`:
+5. If the source contains optional companion Codex skills such as `skills/codex/design-agent`, offer to install or refresh them:
+   ```bash
+   mkdir -p ~/.codex/skills/design-agent
+   cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+   ```
+6. Refresh the installed project using `operator-update.sh`:
    ```bash
    bash scripts/operator-update.sh --source <kit-source> --target <project-root>
    ```
@@ -127,14 +162,14 @@ When the user says `$operator update to latest version from git` or similar:
    ```bash
    bash <kit-source>/scripts/operator-update.sh --source <kit-source> --target <project-root>
    ```
-6. Run:
+7. Run:
    ```bash
    bash -n scripts/*.sh
    bash scripts/operator-status.sh
    bash scripts/operator-summary.sh
    git status --short
    ```
-7. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, and any manual follow-up.
+8. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
 
 The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, captures, and all source code.
 

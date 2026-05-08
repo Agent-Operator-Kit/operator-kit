@@ -134,9 +134,12 @@ Codex-specific reusable guidance:
 ```text
 skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
+skills/codex/design-agent/SKILL.md
 ```
 
 Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
+
+Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
 
 Claude Code reusable assets:
 
@@ -234,6 +237,26 @@ Use $operator. Collect backend lane result for auth-001 and tell me if it is rea
 Use $operator. Summarize blockers across all lanes.
 Use $operator. Update to latest version from git.
 ```
+
+## Optional Codex Desktop `$design-agent` Skill
+
+Install the companion skill when you want Codex Desktop to help with UX/design-system workflows before dispatching Claude Code or Operator Kit lanes:
+
+```bash
+mkdir -p ~/.codex/skills/design-agent
+cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+```
+
+Then open or restart Codex Desktop and use:
+
+```text
+Use $design-agent. Do a comprehensive UX and consistency review of this project.
+Use $design-agent. Extract a design system from this codebase.
+Use $design-agent. Recommend a design-system starter.
+Use $design-agent with $operator. Package my annotations and dispatch a follow-up task.
+```
+
+`$design-agent` owns design/UX reasoning and task content. `$operator` owns project detection, lane safety, dispatch, collection, and integration review.
 
 The skill detects Operator Kit by walking upward from the current directory and looking for `operator.config.env` plus the required `scripts/operator-*.sh` files. If Codex starts inside a worker lane, it also checks sibling worktrees for a canonical repo with `operator.config.env`.
 

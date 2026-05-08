@@ -22,6 +22,32 @@ Restart or reopen Codex Desktop so the skill list refreshes.
 
 Codex skills are not background daemons. Invoke the skill explicitly with `$operator`, or use language that clearly refers to Operator Kit lanes, task packets, dispatch, collection, or handoffs.
 
+## Optional Design Agent Companion
+
+Install `$design-agent` when you want Codex Desktop to help with UX consistency reviews, code-first design-system extraction, curated starter recommendation, web annotation feedback classification, and preparing design/UI task packets for Claude Code or Operator Kit lanes.
+
+From this kit repo:
+
+```bash
+mkdir -p ~/.codex/skills/design-agent
+cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+```
+
+Use the skills together:
+
+```text
+Use $design-agent with $operator. Do a comprehensive UX and consistency review of this project.
+Use $design-agent with $operator. Extract a design system and prepare a UI lane task.
+Use $design-agent with $operator. Package my annotations into a design follow-up task.
+```
+
+Role split:
+
+```text
+$design-agent -> UX/design-system reasoning and task content
+$operator     -> lane safety, dispatch, collection, integration review
+```
+
 ## Detection
 
 The skill detects an Operator Kit project by walking upward from the current directory and checking for:
