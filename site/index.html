@@ -86,7 +86,7 @@
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 2rem;
+    gap: 1.35rem;
     list-style: none;
   }
   .nav-links a {
@@ -322,7 +322,9 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 6rem 3rem;
+    scroll-margin-top: 80px;
   }
+  .gs-section { scroll-margin-top: 80px; }
   .section-label {
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -491,7 +493,7 @@
   /* AGENTS GRID */
   .agents-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 1.5rem;
     margin-top: 1rem;
   }
@@ -520,6 +522,7 @@
   .agent-logo.codex { background: oklch(0.78 0.19 142 / 0.12); color: var(--accent); border: 1px solid oklch(0.78 0.19 142 / 0.2); }
   .agent-logo.claude { background: oklch(0.78 0.14 30 / 0.12); color: oklch(0.78 0.14 30); border: 1px solid oklch(0.78 0.14 30 / 0.2); }
   .agent-logo.cursor { background: oklch(0.78 0.14 195 / 0.12); color: var(--accent2); border: 1px solid oklch(0.78 0.14 195 / 0.2); }
+  .agent-logo.design { background: oklch(0.78 0.16 300 / 0.12); color: oklch(0.78 0.16 300); border: 1px solid oklch(0.78 0.16 300 / 0.2); }
   .agent-name {
     font-size: 1.05rem;
     font-weight: 700;
@@ -777,6 +780,7 @@
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#codex-skill">Codex Skill</a></li>
+    <li><a href="#design-agent">Design Agent</a></li>
     <li><a href="#agents">Assets</a></li>
     <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -814,7 +818,7 @@
     <div class="hero-stats fade-up fade-up-5">
       <div>
         <div class="hero-stat-label">Agents Supported</div>
-        <div class="hero-stat-val">Codex · Claude · Cursor</div>
+        <div class="hero-stat-val">Codex · Claude · Cursor · Design</div>
       </div>
       <div>
         <div class="hero-stat-label">Setup Method</div>
@@ -1026,7 +1030,7 @@
         <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
         <div><span class="p-comment">- install the scripts/templates</span></div>
         <div><span class="p-comment">- install Codex, Claude Code, and Cursor project assets when relevant</span></div>
-        <div><span class="p-comment">- explain how to install the global Codex Desktop $operator skill when relevant</span></div>
+        <div><span class="p-comment">- explain how to install the global Codex Desktop $operator skill and optional $design-agent skill when relevant</span></div>
         <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
@@ -1102,6 +1106,65 @@
   </div>
 </section>
 
+<!-- DESIGN AGENT -->
+<section id="design-agent">
+  <div class="section-label">// design-agent companion</div>
+  <h2 class="section-title">Add <span style="color:var(--accent)">$design-agent</span><br>for UX and design-system work.</h2>
+  <p class="section-sub">Use the optional Codex Desktop design-agent skill to review product UX, extract or recommend a design system, classify web-preview annotations, and shape Claude Code Opus or Operator Kit UI tasks.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — REVIEW</div>
+      <div class="how-card-accent"></div>
+      <h3>UX and consistency audits</h3>
+      <p>Ask for a comprehensive review when you want drift, awkward flows, weak states, copy issues, and component inconsistencies called out before implementation work starts.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — SYSTEM</div>
+      <div class="how-card-accent"></div>
+      <h3>Design-system extraction</h3>
+      <p>For existing products, it inspects code, tokens, components, CSS variables, and screens, then separates intentional design language from accidental drift.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — STARTER</div>
+      <div class="how-card-accent"></div>
+      <h3>Starter recommendation</h3>
+      <p>For new projects, it recommends a grounded starter such as shadcn/Radix/Tailwind, Material UI, Ant Design, Mantine, or Chakra instead of letting every agent improvise.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — OPERATOR</div>
+      <div class="how-card-accent"></div>
+      <h3>Task shaping, not dispatch</h3>
+      <p><code>$design-agent</code> owns design judgment and task content. <code>$operator</code> owns project detection, lane safety, dispatch, collection, and integration review.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">design-agent examples</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md" target="_blank">Full guide
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># install once from the kit repo</span></div>
+      <div><span class="p-key">mkdir</span> -p ~/.codex/skills/design-agent</div>
+      <div><span class="p-key">cp</span> -R skills/codex/design-agent/* ~/.codex/skills/design-agent/</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># standalone design exploration</span></div>
+      <div><span class="p-val">Use $design-agent. Do a comprehensive UX and consistency review of this project.</span></div>
+      <div><span class="p-val">Use $design-agent. Extract a design system from this existing codebase.</span></div>
+      <div><span class="p-val">Use $design-agent. Recommend a design-system starter for this new product.</span></div>
+      <div><span class="p-val">Use $design-agent. Classify my web-preview annotations into system, component, flow, and one-off feedback.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># design-agent with operator lanes</span></div>
+      <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task for the dashboard refresh.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator. Turn my annotations into a design follow-up task and ask before dispatch.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator. Extract the design system, then package the safest next UI task.</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- AGENTS -->
 <section id="agents">
   <div class="section-label">// agent surfaces</div>
@@ -1120,6 +1183,20 @@
       </div>
       <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator" target="_blank">
         Open Codex Skill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
+      <div class="agent-logo design">DSGN</div>
+      <div class="agent-name">Design Agent</div>
+      <p class="agent-desc">An optional Codex Desktop companion skill for UX reviews, design-system extraction, starter recommendations, annotation classification, and UI task shaping.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">$design-agent</span>
+        <span class="agent-tag">UX review</span>
+        <span class="agent-tag">design-system</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/design-agent" target="_blank">
+        Open Design Skill
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
     </div>
@@ -1163,6 +1240,7 @@
     </div>
     <div class="footer-right">
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md">Design Agent</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
     </div>
@@ -1256,7 +1334,7 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- propose the lane map before creating worktrees',
     '- install the scripts/templates',
     '- install Codex, Claude Code, and Cursor project assets when relevant',
-    '- explain how to install the global Codex Desktop $operator skill when relevant',
+    '- explain how to install the global Codex Desktop $operator skill and optional $design-agent skill when relevant',
     '- create the external operator workspace outside the repo',
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',
