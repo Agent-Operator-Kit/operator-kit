@@ -16,3 +16,30 @@ bash scripts/operator-tmux.sh start
 bash scripts/operator-task.sh smoke-001 "Smoke task"
 bash scripts/operator-status.sh
 ```
+
+## Codex Desktop Operation
+
+After installation, Codex Desktop can use the global `$operator` skill:
+
+```bash
+mkdir -p ~/.codex/skills/operator
+cp /path/to/operator-kit/skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+```
+
+Then reopen Codex Desktop and run:
+
+```text
+Use $operator. Show project status.
+Use $operator. Summarize blockers across all lanes.
+Use $operator. Collect backend result for smoke-001 and tell me if it is ready to integrate.
+```
+
+The skill detects installed, partial, and missing Operator Kit states before it operates. It should not dispatch or collect work in a partial install.
+
+To refresh an existing project from the latest kit source while preserving project-specific files:
+
+```text
+Use $operator. Update to latest version from git.
+```
+
+This runs the safe update flow: refresh evergreen scripts, install missing templates, keep `operator.config.env` and existing project docs/assets, then report what changed.

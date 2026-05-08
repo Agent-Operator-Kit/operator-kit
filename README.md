@@ -63,6 +63,7 @@ scripts/
   operator-dispatch.sh
   operator-collect.sh
   operator-summary.sh
+  operator-update.sh
 
 AGENTS.md
 operator.config.env
@@ -89,6 +90,7 @@ Requirements:
 - propose the lane map before creating worktrees
 - install the scripts/templates
 - install Codex, Claude Code, and Cursor project assets when relevant
+- explain how to install the global Codex Desktop $operator skill when relevant
 - create the external operator workspace outside the repo
 - create or verify worktrees without overwriting existing work
 - start or inspect tmux
@@ -130,8 +132,11 @@ docs/guides/github-pages.md
 Codex-specific reusable guidance:
 
 ```text
+skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
 ```
+
+Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
 
 Claude Code reusable assets:
 
@@ -206,7 +211,39 @@ bash scripts/operator-task.sh <slug> "<title>"
 bash scripts/operator-dispatch.sh [--no-enter] <lane> <task-file>
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
+bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 ```
+
+## Codex Desktop `$operator` Skill
+
+For Codex Desktop, install the runtime skill globally:
+
+```bash
+mkdir -p ~/.codex/skills/operator
+cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+```
+
+Then open or restart Codex Desktop and use natural-language operator requests:
+
+```text
+Use $operator. Show project status.
+Use $operator. Start tmux lanes.
+Use $operator. Create a backend task for auth scaffolding.
+Use $operator. Dispatch this task to the ui lane.
+Use $operator. Collect backend lane result for auth-001 and tell me if it is ready to integrate.
+Use $operator. Summarize blockers across all lanes.
+Use $operator. Update to latest version from git.
+```
+
+The skill detects Operator Kit by walking upward from the current directory and looking for `operator.config.env` plus the required `scripts/operator-*.sh` files. If Codex starts inside a worker lane, it also checks sibling worktrees for a canonical repo with `operator.config.env`.
+
+- `installed`: config and scripts exist, and `operator-status.sh` runs.
+- `partial`: some files exist, but required scripts/config are missing or broken.
+- `not-installed`: no reliable Operator Kit signals were found.
+
+When installed, `$operator` reads `operator.config.env`, reads `AGENTS.md`, runs status and summary checks, and operates through the project-local scripts. When partial or missing, it reports what is missing and avoids unsafe dispatch/collect actions.
+
+For updates, `$operator` can refresh the global skill and the installed project from the latest Operator Kit git source while preserving project-specific files. The update script refreshes evergreen `scripts/operator-*.sh` files, installs missing templates, preserves existing `operator.config.env`, `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, and `.cursor/*`, then prints a changed/preserved summary.
 
 ## Rules
 

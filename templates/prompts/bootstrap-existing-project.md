@@ -9,6 +9,7 @@ Goals:
 - Keep task packets, handoffs, captures, and transient operator notes outside the repo.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update `AGENTS.md`.
+- If Codex Desktop is relevant, explain the global `$operator` runtime skill install.
 - Create an external operator workspace beside the project unless I specify another path.
 
 Start by inspecting the repo, detecting the default branch and validation commands, then propose a lane map before making broad changes.

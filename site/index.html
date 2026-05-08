@@ -776,6 +776,7 @@
   <ul class="nav-links">
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
+    <li><a href="#codex-skill">Codex Skill</a></li>
     <li><a href="#agents">Assets</a></li>
     <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -955,6 +956,7 @@
         <div class="ft-indent"><span class="ft-file">operator-tmux.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
       </div>
     </div>
   </div>
@@ -1024,6 +1026,7 @@
         <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
         <div><span class="p-comment">- install the scripts/templates</span></div>
         <div><span class="p-comment">- install Codex, Claude Code, and Cursor project assets when relevant</span></div>
+        <div><span class="p-comment">- explain how to install the global Codex Desktop $operator skill when relevant</span></div>
         <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
@@ -1043,6 +1046,62 @@
   </div>
 </div>
 
+<!-- CODEX SKILL -->
+<section id="codex-skill">
+  <div class="section-label">// codex desktop</div>
+  <h2 class="section-title">Use <span style="color:var(--accent)">$operator</span><br>as the project cockpit.</h2>
+  <p class="section-sub">Install the runtime skill globally, then ask Codex to operate installed Operator Kit projects in natural language. The skill detects the kit first and uses the project-local scripts as source of truth.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — INSTALL</div>
+      <div class="how-card-accent"></div>
+      <h3>Global Codex Skill</h3>
+      <p>Copy <code>skills/codex/operator/SKILL.md</code> to <code>~/.codex/skills/operator/SKILL.md</code>, then reopen Codex Desktop so <code>$operator</code> is available.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — DETECT</div>
+      <div class="how-card-accent"></div>
+      <h3>Installed, Partial, Missing</h3>
+      <p>The skill checks upward and across sibling worktrees for <code>operator.config.env</code> plus the required <code>scripts/operator-*.sh</code> commands before it acts.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — OPERATE</div>
+      <div class="how-card-accent"></div>
+      <h3>Status, Dispatch, Collect, Update</h3>
+      <p>For installed projects it reads config, runs status and summary, creates task packets under <code>OPERATOR_DIR</code>, dispatches lanes, reviews handoffs, and refreshes kit assets safely.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — GUARD</div>
+      <div class="how-card-accent"></div>
+      <h3>No Unsafe Guessing</h3>
+      <p>For partial or missing installs it reports what is missing and avoids tmux dispatch or collection until the Operator Kit install is repaired.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">codex desktop examples</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/codex-operator-skill.md" target="_blank">Full guide
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># install once from the kit repo</span></div>
+      <div><span class="p-key">mkdir</span> -p ~/.codex/skills/operator</div>
+      <div><span class="p-key">cp</span> skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># operate an installed project</span></div>
+      <div><span class="p-val">Use $operator. Show project status.</span></div>
+      <div><span class="p-val">Use $operator. Start tmux lanes.</span></div>
+      <div><span class="p-val">Use $operator. Create a backend task for auth scaffolding.</span></div>
+      <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
+      <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
+      <div><span class="p-val">Use $operator. Update to latest version from git.</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- AGENTS -->
 <section id="agents">
   <div class="section-label">// agent surfaces</div>
@@ -1053,12 +1112,13 @@
     <div class="agent-card">
       <div class="agent-logo codex">CDEX</div>
       <div class="agent-name">Codex</div>
-      <p class="agent-desc">Skill-style setup instructions and operator workflow guardrails for Codex Desktop and Codex CLI.</p>
+      <p class="agent-desc">A global <code>$operator</code> runtime skill for Codex Desktop, plus setup and repair guidance for Codex-driven bootstrap.</p>
       <div class="agent-tags">
+        <span class="agent-tag">$operator</span>
         <span class="agent-tag">SKILL.md</span>
         <span class="agent-tag">operator-workflow</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-workflow" target="_blank">
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator" target="_blank">
         Open Codex Skill
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
@@ -1196,6 +1256,7 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- propose the lane map before creating worktrees',
     '- install the scripts/templates',
     '- install Codex, Claude Code, and Cursor project assets when relevant',
+    '- explain how to install the global Codex Desktop $operator skill when relevant',
     '- create the external operator workspace outside the repo',
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',

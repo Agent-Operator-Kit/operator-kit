@@ -11,5 +11,6 @@ Goals:
 - Define initial lanes.
 - Start tmux.
 - Create a smoke task.
+- If Codex Desktop is relevant, explain the global `$operator` runtime skill install.
 
 Do not commit generated task packets or handoffs.

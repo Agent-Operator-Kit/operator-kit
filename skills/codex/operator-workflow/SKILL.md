@@ -1,6 +1,8 @@
 # Operator Workflow Skill
 
-Use this skill when a user asks to set up, restore, or operate a multi-agent workflow using git worktrees, tmux, external task packets, and operator-owned integration.
+Use this skill when a user asks Codex to set up or repair an Agent Operator Kit installation using git worktrees, tmux, external task packets, and operator-owned integration.
+
+For day-to-day operation inside an already installed project, prefer the runtime `$operator` skill in `skills/codex/operator/SKILL.md`.
 
 ## Workflow
 

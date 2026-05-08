@@ -2,6 +2,8 @@
 
 This project uses Agent Operator Kit.
 
+When operating this project in Codex Desktop, use the global `$operator` skill by default unless the user explicitly says otherwise. `operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, and Operator Kit updates.
+
 ## Operating Model
 
 - The operator is the integrator and system owner.
@@ -19,6 +21,7 @@ bash scripts/operator-task.sh <slug> "<title>"
 bash scripts/operator-dispatch.sh <lane> "$OPERATOR_DIR/tasks/<slug>/tasks/<lane>.md"
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
+bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 ```
 
 ## Rules

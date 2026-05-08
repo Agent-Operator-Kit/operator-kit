@@ -31,6 +31,7 @@ Goals:
 - Keep task packets, handoffs, captures, and transient operator notes outside the repo.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update AGENTS.md, CODEX.md, CLAUDE.md, and operator.config.env as needed.
+- If Codex Desktop is relevant, explain how to install the global $operator runtime skill from skills/codex/operator/SKILL.md; do not write to ~/.codex unless I explicitly ask.
 - Install Claude Code project assets when using Claude Code:
   - .claude/commands/operator-bootstrap.md
   - .claude/commands/operator-status.md
@@ -60,7 +61,9 @@ Required behavior:
    - bash scripts/operator-status.sh
    - bash scripts/operator-summary.sh
 10. Confirm generated task and handoff files landed under OPERATOR_DIR, not inside the repo.
-11. Show git status and list intended repo changes.
+11. Confirm scripts/operator-update.sh is installed for future safe refreshes.
+12. Confirm AGENTS.md points Codex users to the global $operator skill when available.
+13. Show git status and list intended repo changes.
 
 Guardrails:
 - Do not rewrite git history.
@@ -75,6 +78,7 @@ Final response:
 - Show OPERATOR_DIR.
 - Show lane map.
 - Show smoke-test results.
+- Show Codex Desktop $operator skill install instructions when relevant.
 - Show remaining manual steps, if any.
 - Say whether the repo is ready to commit.
 ```

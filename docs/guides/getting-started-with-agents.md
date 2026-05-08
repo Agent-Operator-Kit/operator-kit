@@ -25,6 +25,7 @@ Requirements:
 - propose the lane map before creating worktrees
 - install the scripts/templates
 - install Codex, Claude Code, and Cursor project assets when relevant
+- explain how to install the global Codex Desktop $operator skill when relevant
 - create the external operator workspace outside the repo
 - create or verify worktrees without overwriting existing work
 - start or inspect tmux
@@ -61,7 +62,32 @@ templates/prompts/agent-run-bootstrap.md
 For Codex skill-style guidance, use:
 
 ```text
+skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
+```
+
+Use `operator-workflow` for setup and repair. After the kit is installed, install the runtime `$operator` skill globally:
+
+```bash
+mkdir -p ~/.codex/skills/operator
+cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+```
+
+Restart or reopen Codex Desktop, then operate installed projects with prompts like:
+
+```text
+Use $operator. Show project status.
+Use $operator. Create a backend task for auth scaffolding.
+Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.
+Use $operator. Update to latest version from git.
+```
+
+The `$operator` skill detects `operator.config.env` and the required `scripts/operator-*.sh` files. If the kit is partially installed or missing, it reports what is missing instead of dispatching unsafe work.
+
+Full guide:
+
+```text
+docs/guides/codex-operator-skill.md
 ```
 
 ## Claude Code
