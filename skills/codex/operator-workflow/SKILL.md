@@ -1,3 +1,8 @@
+---
+name: operator-workflow
+description: "Use for Agent Operator Kit setup, bootstrap, repair, and feature-track workflow guidance in Codex. Use when installing Operator Kit into a project, repairing a partial install, creating external operator workspaces, setting up tmux lanes and git worktrees, or validating smoke-task handoffs."
+---
+
 # Operator Workflow Skill
 
 Use this skill when a user asks Codex to set up or repair an Agent Operator Kit installation using git worktrees, tmux, external task packets, and operator-owned integration.

@@ -21,7 +21,7 @@ Goals:
 - Keep task packets, handoffs, captures, and transient operator notes outside the repo.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, and `operator.config.env` as needed.
-- If Codex Desktop is relevant, explain how to install the global `$operator` runtime skill from `skills/codex/operator/SKILL.md`; do not write to `~/.codex` unless I explicitly ask.
+- If Codex Desktop is relevant, explain how to install bundled global skills with `scripts/codex-skills-install.sh`; do not write to `~/.codex` unless I explicitly ask.
 - Install Claude Code project assets when using Claude Code:
   - `.claude/commands/operator-bootstrap.md`
   - `.claude/commands/operator-status.md`

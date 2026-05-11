@@ -27,7 +27,7 @@
     --font-sans: 'JetBrains Mono', monospace;
   }
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; scroll-padding-top: 120px; }
   body {
     background: var(--bg);
     color: var(--fg);
@@ -322,9 +322,9 @@
     max-width: 1280px;
     margin: 0 auto;
     padding: 6rem 3rem;
-    scroll-margin-top: 80px;
+    scroll-margin-top: 120px;
   }
-  .gs-section { scroll-margin-top: 80px; }
+  .gs-section { scroll-margin-top: 120px; }
   .section-label {
     font-family: var(--font-mono);
     font-size: 0.68rem;
@@ -523,6 +523,7 @@
   .agent-logo.claude { background: oklch(0.78 0.14 30 / 0.12); color: oklch(0.78 0.14 30); border: 1px solid oklch(0.78 0.14 30 / 0.2); }
   .agent-logo.cursor { background: oklch(0.78 0.14 195 / 0.12); color: var(--accent2); border: 1px solid oklch(0.78 0.14 195 / 0.2); }
   .agent-logo.design { background: oklch(0.78 0.16 300 / 0.12); color: oklch(0.78 0.16 300); border: 1px solid oklch(0.78 0.16 300 / 0.2); }
+  .agent-logo.incubation { background: oklch(0.78 0.13 85 / 0.12); color: oklch(0.78 0.13 85); border: 1px solid oklch(0.78 0.13 85 / 0.2); }
   .agent-name {
     font-size: 1.05rem;
     font-weight: 700;
@@ -780,6 +781,7 @@
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#codex-skill">Codex Skill</a></li>
+    <li><a href="#incubation">Incubation</a></li>
     <li><a href="#design-agent">Design Agent</a></li>
     <li><a href="#agents">Assets</a></li>
     <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
@@ -818,7 +820,7 @@
     <div class="hero-stats fade-up fade-up-5">
       <div>
         <div class="hero-stat-label">Agents Supported</div>
-        <div class="hero-stat-val">Codex · Claude · Cursor · Design</div>
+        <div class="hero-stat-val">Codex · Claude · Cursor + companions</div>
       </div>
       <div>
         <div class="hero-stat-label">Setup Method</div>
@@ -1030,7 +1032,7 @@
         <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
         <div><span class="p-comment">- install the scripts/templates</span></div>
         <div><span class="p-comment">- install Codex, Claude Code, and Cursor project assets when relevant</span></div>
-        <div><span class="p-comment">- explain how to install the global Codex Desktop $operator skill and optional $design-agent skill when relevant</span></div>
+        <div><span class="p-comment">- explain how to install bundled Codex Desktop skills when relevant</span></div>
         <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
@@ -1061,7 +1063,7 @@
       <div class="how-card-num">01 — INSTALL</div>
       <div class="how-card-accent"></div>
       <h3>Global Codex Skill</h3>
-      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so bundled skills such as <code>$operator</code> and <code>$design-agent</code> are available.</p>
+      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so bundled skills such as <code>$operator</code>, <code>$incubation</code>, and <code>$design-agent</code> are available.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — DETECT</div>
@@ -1102,6 +1104,64 @@
       <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
       <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
       <div><span class="p-val">Use $operator. Update to latest version from git.</span></div>
+      <div><span class="p-val">Use $incubation with $operator. Prepare an idea for promotion.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator. Package a UI follow-up task.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- INCUBATION -->
+<section id="incubation">
+  <div class="section-label">// incubation companion</div>
+  <h2 class="section-title">Use <span style="color:var(--accent)">$incubation</span><br>before a project becomes a lane.</h2>
+  <p class="section-sub">Use the optional Codex Desktop incubation skill to frame product ideas, critique assumptions, keep durable idea files, and promote only ready ideas into real Operator Kit projects.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — FRAME</div>
+      <div class="how-card-accent"></div>
+      <h3>Sharper idea framing</h3>
+      <p>It turns rough thoughts into a clear one-liner, target user, painful job, alternatives, wedge, why-now argument, hidden assumptions, and contrarian critique.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — CAPTURE</div>
+      <div class="how-card-accent"></div>
+      <h3>Durable markdown memory</h3>
+      <p>Meaningful learning is captured into idea files such as <code>README.md</code>, <code>framing.md</code>, <code>experiments.md</code>, <code>decision-log.md</code>, and <code>promotion-brief.md</code>.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — PROMOTE</div>
+      <div class="how-card-accent"></div>
+      <h3>Project handoff boundary</h3>
+      <p>When an idea is ready, it prepares <code>/Users/norbert/Projects/&lt;product&gt;/code/app</code> and hands setup to <code>$operator</code> in the promoted repo.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — GUARD</div>
+      <div class="how-card-accent"></div>
+      <h3>No lanes in Incubation</h3>
+      <p><code>$incubation</code> does not initialize Operator Kit inside <code>/Users/norbert/Incubation</code>. Promotion is the handoff point.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">incubation examples</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/incubation-collaboration.md" target="_blank">Full guide
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># install once from the kit repo</span></div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill incubation</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># idea work</span></div>
+      <div><span class="p-val">Use $incubation. Frame this idea and capture the next experiment.</span></div>
+      <div><span class="p-val">Use $incubation. Review promotion readiness for this idea.</span></div>
+      <div><span class="p-val">Use $incubation. Archive this idea and explain why.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># incubation with operator and design-agent</span></div>
+      <div><span class="p-val">Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.</span></div>
+      <div><span class="p-val">Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.</span></div>
     </div>
   </div>
 </section>
@@ -1186,6 +1246,20 @@
       </a>
     </div>
     <div class="agent-card">
+      <div class="agent-logo incubation">IDEA</div>
+      <div class="agent-name">Incubation</div>
+      <p class="agent-desc">An optional Codex Desktop companion skill for idea framing, contrarian critique, durable incubation files, promotion readiness, and Operator Kit handoff.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">$incubation</span>
+        <span class="agent-tag">idea files</span>
+        <span class="agent-tag">promotion</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/incubation" target="_blank">
+        Open Incubation Skill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
       <div class="agent-logo design">DSGN</div>
       <div class="agent-name">Design Agent</div>
       <p class="agent-desc">An optional Codex Desktop companion skill for UX reviews, design-system extraction, starter recommendations, annotation classification, and UI task shaping.</p>
@@ -1239,6 +1313,7 @@
     </div>
     <div class="footer-right">
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/incubation-collaboration.md">Incubation</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md">Design Agent</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
@@ -1333,7 +1408,7 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- propose the lane map before creating worktrees',
     '- install the scripts/templates',
     '- install Codex, Claude Code, and Cursor project assets when relevant',
-    '- explain how to install the global Codex Desktop $operator skill and optional $design-agent skill when relevant',
+    '- explain how to install bundled Codex Desktop skills when relevant',
     '- create the external operator workspace outside the repo',
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',

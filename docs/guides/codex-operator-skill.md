@@ -17,7 +17,7 @@ From this kit repo:
 bash scripts/codex-skills-install.sh
 ```
 
-This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, and `$design-agent`.
+This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, `$design-agent`, and `$incubation`.
 
 To fast-forward the kit source first, then refresh skills:
 
@@ -53,6 +53,35 @@ Role split:
 $design-agent -> UX/design-system reasoning and task content
 $operator     -> lane safety, dispatch, collection, integration review
 ```
+
+## Optional Incubation Companion
+
+Install `$incubation` when you want Codex Desktop to manage product ideas before they become Operator Kit projects.
+
+From this kit repo:
+
+```bash
+bash scripts/codex-skills-install.sh --skill incubation
+```
+
+Use the skills together:
+
+```text
+Use $incubation. Frame this idea and capture the next experiment.
+Use $incubation. Review promotion readiness for this idea.
+Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.
+Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.
+```
+
+Role split:
+
+```text
+$incubation  -> idea framing, durable idea files, promotion readiness
+$operator    -> promoted-project setup, lane safety, dispatch, collection
+$design-agent -> UX/design-system reasoning and task content
+```
+
+Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`; initialize it only after promotion into `/Users/norbert/Projects/<product-slug>/code/app`.
 
 ## Detection
 

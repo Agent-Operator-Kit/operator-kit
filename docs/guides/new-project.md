@@ -14,15 +14,15 @@ bash "$HOME/Projects/operator-kit/scripts/operator-bootstrap.sh" "$PWD"
 
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.
 
-For Codex Desktop operation after install, add the global runtime skill:
+For Codex Desktop operation after install, add or refresh the bundled global skills:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp "$HOME/Projects/operator-kit/skills/codex/operator/SKILL.md" ~/.codex/skills/operator/SKILL.md
+bash "$HOME/Projects/operator-kit/scripts/codex-skills-install.sh"
 ```
 
 Then reopen Codex Desktop and use:
 
 ```text
 Use $operator. Show project status.
+Use $design-agent. Recommend a design-system starter.
 ```

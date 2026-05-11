@@ -1,0 +1,4 @@
+interface:
+  display_name: "Incubation"
+  short_description: "Frame ideas and promotion readiness"
+  default_prompt: "Use $incubation to frame a product idea, capture durable idea files, review promotion readiness, archive or prioritize ideas, or prepare a handoff into an Agent Operator Kit project."

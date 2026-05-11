@@ -62,3 +62,13 @@ design|Claude Code|app-design|claude/design|claude --model opus --dangerously-sk
 ```
 
 Use a `design` lane when the project benefits from reviewable mockups or design handoffs before production UI implementation.
+
+## Incubation Handoff
+
+When design work starts from a not-yet-promoted idea, use `$incubation` first to capture the thesis, assumptions, and promotion brief:
+
+```text
+Use $incubation with $design-agent. Turn this product thesis into design-system starting assumptions.
+```
+
+After promotion, use `$operator` for project setup, lane safety, dispatch, and collection.

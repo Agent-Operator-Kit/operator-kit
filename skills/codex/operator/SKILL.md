@@ -1,6 +1,6 @@
 ---
 name: operator
-description: "Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh."
+description: "Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, incubation promotion, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh."
 ---
 
 # Operator
@@ -118,6 +118,35 @@ Use $design-agent with $operator. Turn my annotations into a design follow-up ta
 ```
 
 Do not bypass `$operator` safety checks just because a task came from `$design-agent`. Do not let `design` and `ui` lanes edit the same files at the same time.
+
+## Incubation Collaboration
+
+When the user asks about ideas, idea folders, product framing, promotion readiness, archiving, prioritization, or moving an idea from `/Users/norbert/Incubation` into a real Operator Kit project:
+
+1. If the request names `$incubation` or clearly needs idea-framing/promotion workflow, suggest using `$incubation` before Operator Kit setup unless the user already did.
+2. Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`.
+3. Let `$incubation` own:
+   - idea framing and contrarian critique,
+   - durable markdown capture under `ideas/<slug>/`,
+   - `promotion-brief.md`,
+   - `_ops/promoted.md`, `_ops/archived.md`, and review-board updates.
+4. Keep `$operator` responsible for:
+   - setup only after the idea is promoted into `/Users/norbert/Projects/<product-slug>/code/app`,
+   - lane safety,
+   - task folder creation under `$OPERATOR_DIR`,
+   - dispatch,
+   - collection,
+   - integration review.
+
+Suggested combined requests:
+
+```text
+Use $incubation with $operator. Prepare this idea for promotion, then tell me what Operator Kit setup would do.
+Use $incubation with $operator. Promote this idea into /Users/norbert/Projects and initialize Operator Kit only after I confirm.
+Use $incubation with $design-agent. Turn the thesis into product and design-system assumptions before UI work.
+```
+
+Do not bootstrap lanes, create worktrees, or dispatch implementation agents from the Incubation workspace. Promotion is the handoff boundary.
 
 ## Collection And Integration Review
 

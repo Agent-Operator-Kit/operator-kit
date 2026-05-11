@@ -90,7 +90,7 @@ Requirements:
 - propose the lane map before creating worktrees
 - install the scripts/templates
 - install Codex, Claude Code, and Cursor project assets when relevant
-- explain how to install the global Codex Desktop $operator skill when relevant
+- explain how to install bundled Codex Desktop skills when relevant
 - create the external operator workspace outside the repo
 - create or verify worktrees without overwriting existing work
 - start or inspect tmux
@@ -135,6 +135,14 @@ Codex-specific reusable guidance:
 skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
 skills/codex/design-agent/SKILL.md
+skills/codex/incubation/SKILL.md
+```
+
+Companion skill guides:
+
+```text
+docs/guides/design-agent-collaboration.md
+docs/guides/incubation-collaboration.md
 ```
 
 Install or refresh every bundled Codex Desktop skill from this kit:
@@ -147,6 +155,8 @@ bash scripts/codex-skills-install.sh --latest
 Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
 
 Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
+
+Use `skills/codex/incubation/SKILL.md` as the optional global Codex Desktop `$incubation` companion skill for product idea framing, durable idea-file capture, promotion readiness, and handoff into promoted Operator Kit projects.
 
 Claude Code reusable assets:
 
@@ -269,6 +279,27 @@ Use $design-agent with $operator. Package my annotations and dispatch a follow-u
 ```
 
 `$design-agent` owns design/UX reasoning and task content. `$operator` owns project detection, lane safety, dispatch, collection, and integration review.
+
+## Optional Codex Desktop `$incubation` Skill
+
+The install script also refreshes the companion `$incubation` skill. Use it when you want Codex Desktop to manage lightweight idea work before creating a real Operator Kit project:
+
+```bash
+bash scripts/codex-skills-install.sh --skill incubation
+```
+
+Then open or restart Codex Desktop and use:
+
+```text
+Use $incubation. Frame this idea and capture the next experiment.
+Use $incubation. Review promotion readiness for this idea.
+Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.
+Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.
+```
+
+`$incubation` owns idea framing, critique, durable markdown capture, and promotion readiness. `$operator` owns setup and operation after an idea is promoted into `/Users/norbert/Projects/<product-slug>/code/app`.
+
+Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`.
 
 The skill detects Operator Kit by walking upward from the current directory and looking for `operator.config.env` plus the required `scripts/operator-*.sh` files. If Codex starts inside a worker lane, it also checks sibling worktrees for a canonical repo with `operator.config.env`.
 

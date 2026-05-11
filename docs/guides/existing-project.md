@@ -19,11 +19,10 @@ bash scripts/operator-status.sh
 
 ## Codex Desktop Operation
 
-After installation, Codex Desktop can use the global `$operator` skill:
+After installation, Codex Desktop can use the bundled global skills:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp /path/to/operator-kit/skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+bash /path/to/operator-kit/scripts/codex-skills-install.sh
 ```
 
 Then reopen Codex Desktop and run:
@@ -32,6 +31,7 @@ Then reopen Codex Desktop and run:
 Use $operator. Show project status.
 Use $operator. Summarize blockers across all lanes.
 Use $operator. Collect backend result for smoke-001 and tell me if it is ready to integrate.
+Use $design-agent. Do a comprehensive UX and consistency review.
 ```
 
 The skill detects installed, partial, and missing Operator Kit states before it operates. It should not dispatch or collect work in a partial install.
