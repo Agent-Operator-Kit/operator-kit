@@ -193,7 +193,7 @@ source "$TARGET_REPO/operator.config.env"
 : "${OPERATOR_DIR:?OPERATOR_DIR is required in operator.config.env}"
 
 mkdir -p "$TARGET_REPO/scripts"
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-update.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-update.sh operator-sync.sh; do
   copy_refresh "$SOURCE_PATH/scripts/$script" "$TARGET_REPO/scripts/$script" "scripts/$script"
 done
 

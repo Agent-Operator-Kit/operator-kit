@@ -77,7 +77,7 @@ bash scripts/codex-skills-install.sh
 To update from the latest kit source first:
 
 ```bash
-bash scripts/codex-skills-install.sh --latest
+bash scripts/operator-sync.sh --skip-project
 ```
 
 Restart or reopen Codex Desktop, then operate installed projects with prompts like:

@@ -61,7 +61,7 @@ Required behavior:
    - bash scripts/operator-status.sh
    - bash scripts/operator-summary.sh
 10. Confirm generated task and handoff files landed under OPERATOR_DIR, not inside the repo.
-11. Confirm scripts/operator-update.sh is installed for future safe refreshes.
+11. Confirm scripts/operator-update.sh and scripts/operator-sync.sh are installed for future safe refreshes.
 12. Confirm AGENTS.md points Codex users to the global $operator skill when available.
 13. Show git status and list intended repo changes.
 

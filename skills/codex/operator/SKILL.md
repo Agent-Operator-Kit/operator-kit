@@ -54,6 +54,8 @@ bash scripts/operator-dispatch.sh [--no-enter] <lane> <task-file>
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
+bash scripts/operator-sync.sh [--target <repo>]
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
 ```
 
 Avoid sending arbitrary text directly into tmux panes unless the scripts do not cover the use case.
@@ -173,12 +175,16 @@ When the user says `$operator update to latest version from git` or similar:
    - otherwise use `https://github.com/Agent-Operator-Kit/operator-kit.git`;
    - respect `OPERATOR_KIT_SOURCE` if the user or environment provides it.
 3. If using a local source repo, run `git pull --ff-only` there only when it has no local changes. If it is dirty, report that and do not overwrite its changes.
-4. Refresh bundled global Codex skills from the source:
+4. Prefer the single-command sync script when available:
+   ```bash
+   bash <kit-source>/scripts/operator-sync.sh --source <kit-source> --target <project-root>
+   ```
+5. If running the lower-level steps manually, refresh bundled global Codex skills from the source:
    ```bash
    bash <kit-source>/scripts/codex-skills-install.sh --source <kit-source> --no-fetch
    ```
-5. If the user only wants a subset, use `--skill <name>` for one or more skills. Otherwise install every bundled `skills/codex/*/SKILL.md` directory.
-6. Refresh the installed project using `operator-update.sh`:
+6. If the user only wants a subset, use `--skill <name>` for one or more skills. Otherwise install every bundled `skills/codex/*/SKILL.md` directory.
+7. Refresh the installed project using `operator-update.sh`:
    ```bash
    bash scripts/operator-update.sh --source <kit-source> --target <project-root>
    ```
@@ -186,14 +192,14 @@ When the user says `$operator update to latest version from git` or similar:
    ```bash
    bash <kit-source>/scripts/operator-update.sh --source <kit-source> --target <project-root>
    ```
-7. Run:
+8. Run:
    ```bash
    bash -n scripts/*.sh
    bash scripts/operator-status.sh
    bash scripts/operator-summary.sh
    git status --short
    ```
-8. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
+9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
 
 The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, captures, and all source code.
 

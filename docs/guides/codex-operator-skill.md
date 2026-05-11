@@ -22,7 +22,7 @@ This installs or refreshes every bundled Codex Desktop skill under `skills/codex
 To fast-forward the kit source first, then refresh skills:
 
 ```bash
-bash scripts/codex-skills-install.sh --latest
+bash scripts/operator-sync.sh --skip-project
 ```
 
 Restart or reopen Codex Desktop so the skill list refreshes.
@@ -156,10 +156,11 @@ Codex should:
 
 1. Detect the installed project.
 2. Pull the latest local kit source when it is clean, or clone/fetch the public source.
-3. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
-4. Run `scripts/operator-update.sh` against the project.
-5. Run syntax, status, summary, and git status checks.
-6. Summarize updated files, installed missing files, preserved project-specific files, validation results, and follow-up.
+3. Prefer `scripts/operator-sync.sh` for the full one-command path.
+4. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
+5. Run `scripts/operator-update.sh` against the project.
+6. Run syntax, status, summary, and git status checks.
+7. Summarize updated files, installed missing files, preserved project-specific files, validation results, and follow-up.
 
 The update must preserve:
 

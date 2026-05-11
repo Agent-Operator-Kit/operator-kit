@@ -963,6 +963,7 @@
         <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-sync.sh</span></div>
       </div>
     </div>
   </div>
@@ -1095,7 +1096,11 @@
     <div class="prompt-body">
       <div><span class="p-comment"># install once from the kit repo</span></div>
       <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --latest</div>
+      <div><span class="p-key">bash</span> scripts/operator-sync.sh --skip-project</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># update an existing Operator Kit project</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project</div>
+      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># operate an installed project</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>

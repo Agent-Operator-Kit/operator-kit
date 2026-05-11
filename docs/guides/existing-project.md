@@ -1,20 +1,26 @@
 # Existing Project Setup
 
-1. Clone this kit.
-2. Run the bootstrap script against your repo.
-3. Edit `operator.config.env`.
-4. Start tmux.
-5. Create a smoke task.
-6. Dispatch to a worker lane.
-7. Collect a handoff.
-8. Confirm generated state lands under `OPERATOR_DIR`, not the repo.
+1. Clone or update this kit.
+2. Run the sync script against your repo.
+3. Let it refresh bundled Codex Desktop skills.
+4. Let it detect whether the target repo already has Operator Kit.
+5. Let it update the installed project and run checks.
 
 ```bash
-bash scripts/operator-bootstrap.sh /path/to/repo
-cd /path/to/repo
-bash scripts/operator-tmux.sh start
-bash scripts/operator-task.sh smoke-001 "Smoke task"
-bash scripts/operator-status.sh
+git clone git@github.com:Agent-Operator-Kit/operator-kit.git /path/to/operator-kit
+bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
+```
+
+From inside an older Operator Kit project, you can use the remote entry point as the single command:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
+```
+
+If the repo has never had Operator Kit installed, bootstrap intentionally:
+
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing
 ```
 
 ## Codex Desktop Operation
@@ -22,7 +28,7 @@ bash scripts/operator-status.sh
 After installation, Codex Desktop can use the bundled global skills:
 
 ```bash
-bash /path/to/operator-kit/scripts/codex-skills-install.sh
+bash /path/to/operator-kit/scripts/operator-sync.sh --skip-project
 ```
 
 Then reopen Codex Desktop and run:
@@ -38,8 +44,8 @@ The skill detects installed, partial, and missing Operator Kit states before it 
 
 To refresh an existing project from the latest kit source while preserving project-specific files:
 
-```text
-Use $operator. Update to latest version from git.
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
 ```
 
 This runs the safe update flow: refresh evergreen scripts, install missing templates, keep `operator.config.env` and existing project docs/assets, then report what changed.

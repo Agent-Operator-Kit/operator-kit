@@ -64,6 +64,7 @@ scripts/
   operator-collect.sh
   operator-summary.sh
   operator-update.sh
+  operator-sync.sh
 
 AGENTS.md
 operator.config.env
@@ -182,15 +183,19 @@ For an existing project:
 ```bash
 git clone git@github.com:Agent-Operator-Kit/operator-kit.git
 cd operator-kit
-bash scripts/operator-bootstrap.sh /path/to/your/repo
+bash scripts/operator-sync.sh --target /path/to/your/repo
 ```
 
-Then from the target repo:
+Or, from inside an existing Operator Kit project, run the remote entry point:
 
 ```bash
-bash scripts/operator-tmux.sh start
-bash scripts/operator-status.sh
-bash scripts/operator-task.sh setup-smoke-001 "Setup smoke"
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
+```
+
+For a repo that does not have Operator Kit yet, bootstrap intentionally:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing
 ```
 
 ## Configuration
@@ -233,6 +238,7 @@ bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/codex-skills-install.sh [--latest]
+bash scripts/operator-sync.sh [--target <repo>]
 ```
 
 ## Codex Desktop `$operator` Skill
@@ -246,7 +252,7 @@ bash scripts/codex-skills-install.sh
 To update from the latest git source first:
 
 ```bash
-bash scripts/codex-skills-install.sh --latest
+bash scripts/operator-sync.sh
 ```
 
 Then open or restart Codex Desktop and use natural-language operator requests:
@@ -309,7 +315,7 @@ The skill detects Operator Kit by walking upward from the current directory and 
 
 When installed, `$operator` reads `operator.config.env`, reads `AGENTS.md`, runs status and summary checks, and operates through the project-local scripts. When partial or missing, it reports what is missing and avoids unsafe dispatch/collect actions.
 
-For updates, `$operator` can refresh the global skill and the installed project from the latest Operator Kit git source while preserving project-specific files. The update script refreshes evergreen `scripts/operator-*.sh` files, installs missing templates, preserves existing `operator.config.env`, `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, and `.cursor/*`, then prints a changed/preserved summary.
+For updates, `scripts/operator-sync.sh` can refresh bundled Codex Desktop skills, detect the current Operator Kit project, update it from the latest kit source, and run validation checks. The lower-level `operator-update.sh` script refreshes evergreen `scripts/operator-*.sh` files, installs missing templates, preserves existing `operator.config.env`, `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, and `.cursor/*`, then prints a changed/preserved summary.
 
 ## Rules
 
