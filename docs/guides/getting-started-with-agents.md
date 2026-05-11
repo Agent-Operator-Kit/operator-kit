@@ -66,11 +66,16 @@ skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
 ```
 
-Use `operator-workflow` for setup and repair. After the kit is installed, install the runtime `$operator` skill globally:
+Use `operator-workflow` for setup and repair. After the kit is installed, install or refresh the bundled Codex Desktop skills globally:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+bash scripts/codex-skills-install.sh
+```
+
+To update from the latest kit source first:
+
+```bash
+bash scripts/codex-skills-install.sh --latest
 ```
 
 Restart or reopen Codex Desktop, then operate installed projects with prompts like:

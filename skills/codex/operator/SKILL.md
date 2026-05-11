@@ -144,16 +144,11 @@ When the user says `$operator update to latest version from git` or similar:
    - otherwise use `https://github.com/Agent-Operator-Kit/operator-kit.git`;
    - respect `OPERATOR_KIT_SOURCE` if the user or environment provides it.
 3. If using a local source repo, run `git pull --ff-only` there only when it has no local changes. If it is dirty, report that and do not overwrite its changes.
-4. Refresh the global Codex skill from the source:
+4. Refresh bundled global Codex skills from the source:
    ```bash
-   mkdir -p ~/.codex/skills/operator
-   cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+   bash <kit-source>/scripts/codex-skills-install.sh --source <kit-source> --no-fetch
    ```
-5. If the source contains optional companion Codex skills such as `skills/codex/design-agent`, offer to install or refresh them:
-   ```bash
-   mkdir -p ~/.codex/skills/design-agent
-   cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
-   ```
+5. If the user only wants a subset, use `--skill <name>` for one or more skills. Otherwise install every bundled `skills/codex/*/SKILL.md` directory.
 6. Refresh the installed project using `operator-update.sh`:
    ```bash
    bash scripts/operator-update.sh --source <kit-source> --target <project-root>

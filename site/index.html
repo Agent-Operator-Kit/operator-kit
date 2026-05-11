@@ -1061,7 +1061,7 @@
       <div class="how-card-num">01 — INSTALL</div>
       <div class="how-card-accent"></div>
       <h3>Global Codex Skill</h3>
-      <p>Copy <code>skills/codex/operator/SKILL.md</code> to <code>~/.codex/skills/operator/SKILL.md</code>, then reopen Codex Desktop so <code>$operator</code> is available.</p>
+      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so bundled skills such as <code>$operator</code> and <code>$design-agent</code> are available.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — DETECT</div>
@@ -1092,8 +1092,8 @@
     </div>
     <div class="prompt-body">
       <div><span class="p-comment"># install once from the kit repo</span></div>
-      <div><span class="p-key">mkdir</span> -p ~/.codex/skills/operator</div>
-      <div><span class="p-key">cp</span> skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md</div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --latest</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># operate an installed project</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>
@@ -1148,8 +1148,7 @@
     </div>
     <div class="prompt-body">
       <div><span class="p-comment"># install once from the kit repo</span></div>
-      <div><span class="p-key">mkdir</span> -p ~/.codex/skills/design-agent</div>
-      <div><span class="p-key">cp</span> -R skills/codex/design-agent/* ~/.codex/skills/design-agent/</div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill design-agent</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># standalone design exploration</span></div>
       <div><span class="p-val">Use $design-agent. Do a comprehensive UX and consistency review of this project.</span></div>

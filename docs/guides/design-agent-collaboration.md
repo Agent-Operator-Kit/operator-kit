@@ -14,15 +14,13 @@ $operator = lane safety, dispatch, collection, integration review
 From the Operator Kit source repo:
 
 ```bash
-mkdir -p ~/.codex/skills/design-agent
-cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+bash scripts/codex-skills-install.sh --skill design-agent
 ```
 
-The runtime `$operator` skill can also be installed from:
+The runtime `$operator` skill and all bundled Codex Desktop skills can also be installed or refreshed with:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+bash scripts/codex-skills-install.sh
 ```
 
 Restart Codex Desktop after installing or updating skills.

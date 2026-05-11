@@ -137,6 +137,13 @@ skills/codex/operator-workflow/SKILL.md
 skills/codex/design-agent/SKILL.md
 ```
 
+Install or refresh every bundled Codex Desktop skill from this kit:
+
+```bash
+bash scripts/codex-skills-install.sh
+bash scripts/codex-skills-install.sh --latest
+```
+
 Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
 
 Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
@@ -215,15 +222,21 @@ bash scripts/operator-dispatch.sh [--no-enter] <lane> <task-file>
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
+bash scripts/codex-skills-install.sh [--latest]
 ```
 
 ## Codex Desktop `$operator` Skill
 
-For Codex Desktop, install the runtime skill globally:
+For Codex Desktop, install or refresh every bundled skill globally:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+bash scripts/codex-skills-install.sh
+```
+
+To update from the latest git source first:
+
+```bash
+bash scripts/codex-skills-install.sh --latest
 ```
 
 Then open or restart Codex Desktop and use natural-language operator requests:
@@ -240,11 +253,10 @@ Use $operator. Update to latest version from git.
 
 ## Optional Codex Desktop `$design-agent` Skill
 
-Install the companion skill when you want Codex Desktop to help with UX/design-system workflows before dispatching Claude Code or Operator Kit lanes:
+The install script also refreshes the companion `$design-agent` skill. Use it when you want Codex Desktop to help with UX/design-system workflows before dispatching Claude Code or Operator Kit lanes:
 
 ```bash
-mkdir -p ~/.codex/skills/design-agent
-cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+bash scripts/codex-skills-install.sh --skill design-agent
 ```
 
 Then open or restart Codex Desktop and use:

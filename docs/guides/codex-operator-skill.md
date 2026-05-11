@@ -14,8 +14,15 @@ operator          -> daily operation in an installed project
 From this kit repo:
 
 ```bash
-mkdir -p ~/.codex/skills/operator
-cp skills/codex/operator/SKILL.md ~/.codex/skills/operator/SKILL.md
+bash scripts/codex-skills-install.sh
+```
+
+This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, and `$design-agent`.
+
+To fast-forward the kit source first, then refresh skills:
+
+```bash
+bash scripts/codex-skills-install.sh --latest
 ```
 
 Restart or reopen Codex Desktop so the skill list refreshes.
@@ -29,8 +36,7 @@ Install `$design-agent` when you want Codex Desktop to help with UX consistency 
 From this kit repo:
 
 ```bash
-mkdir -p ~/.codex/skills/design-agent
-cp -R skills/codex/design-agent/* ~/.codex/skills/design-agent/
+bash scripts/codex-skills-install.sh --skill design-agent
 ```
 
 Use the skills together:
@@ -121,7 +127,7 @@ Codex should:
 
 1. Detect the installed project.
 2. Pull the latest local kit source when it is clean, or clone/fetch the public source.
-3. Refresh `~/.codex/skills/operator/SKILL.md`.
+3. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
 4. Run `scripts/operator-update.sh` against the project.
 5. Run syntax, status, summary, and git status checks.
 6. Summarize updated files, installed missing files, preserved project-specific files, validation results, and follow-up.
