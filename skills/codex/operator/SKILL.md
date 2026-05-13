@@ -71,6 +71,18 @@ For status requests:
 
 Keep the answer operational: what is safe to dispatch, what should be collected, what needs review, and what is blocked.
 
+## Local Data Isolation
+
+When a project has a persistent local environment used by the human for product feedback, protect it from agent automation:
+
+1. Check the project docs and scripts for separate personal/local and agent/e2e profiles before running app servers, reset scripts, seed scripts, Playwright, Maestro, or integration tests.
+2. Prefer the disposable agent/e2e profile for implementation validation, browser automation, reset/seed workflows, and worker handoff verification.
+3. Use the persistent personal/local profile only when the user is manually testing curated data or explicitly asks to run that profile.
+4. Do not run destructive reset, seed, fixture, or migration-cleanup commands against the human's persistent local database unless the user explicitly requests it and there is a backup or reversible path.
+5. If the project has no local isolation yet and testing would pollute the human's data, recommend or implement a split before continuing with broad UI/backend validation.
+
+Keep project-specific ports, database names, env files, and backup commands in the project repo docs. The reusable operator rule is: agent work should have a disposable sandbox, and human feedback data should be stable.
+
 ## Task Creation And Dispatch
 
 For new work:
