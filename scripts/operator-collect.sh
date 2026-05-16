@@ -54,3 +54,11 @@ output_file="$handoff_dir/${lane}-capture-${timestamp}.md"
 } > "$output_file"
 
 printf '%s\n' "$output_file"
+
+if [ -f "$SCRIPT_DIR/operator-memory.sh" ]; then
+  if episode_file="$(bash "$SCRIPT_DIR/operator-memory.sh" ingest "$lane" "$slug" "$output_file")"; then
+    printf 'memory: %s\n' "$episode_file"
+  else
+    printf 'warning: failed to ingest memory from %s\n' "$output_file" >&2
+  fi
+fi

@@ -33,3 +33,14 @@ Report:
 - test results
 - blockers
 - follow-up needed from another lane
+
+## Memory Candidates
+
+List only context worth considering for future retrieval:
+
+- durable decision
+- project fact
+- task constraint
+- failed approach
+- validation finding
+- follow-up needed from another lane

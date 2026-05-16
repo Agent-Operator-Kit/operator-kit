@@ -95,6 +95,7 @@ scripts/operator-task.sh
 scripts/operator-dispatch.sh
 scripts/operator-collect.sh
 scripts/operator-summary.sh
+scripts/operator-memory.sh
 ```
 
 If Codex starts inside a worker lane such as `code/app-backend`, the skill should also check sibling worktrees by walking upward and looking for immediate child directories with `operator.config.env`. If multiple candidate configs are found, it should ask which project root to operate.
@@ -139,10 +140,29 @@ Use $operator. Start tmux lanes.
 Use $operator. Summarize blockers across all lanes.
 Use $operator. Create a backend task for auth scaffolding.
 Use $operator. Dispatch the auth task to backend with --no-enter.
+Use $operator. Dispatch the auth task to backend with memory.
 Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.
+Use $operator. Search operator memory for auth migration notes.
 Use $operator. Review the ui lane diff and recommend whether to merge.
 Use $operator. Update to latest version from git.
 ```
+
+## Memory
+
+The `$operator` skill should use Operator Memory Router for cross-lane context
+that should survive chat compaction:
+
+```bash
+bash scripts/operator-memory.sh status
+bash scripts/operator-memory.sh search <query>
+bash scripts/operator-memory.sh promote project "<durable fact>"
+bash scripts/operator-memory.sh promote task <slug> "<feature-track fact>"
+bash scripts/operator-dispatch.sh --with-memory <lane> "$OPERATOR_DIR/tasks/<slug>/tasks/<lane>.md"
+```
+
+Task creation creates `OPERATOR_DIR/tasks/<slug>/memory.md`. Collection writes
+a distilled episode under `OPERATOR_DIR/memory/episodes/`. The operator should
+promote only relevant facts; raw captures and handoffs stay as evidence.
 
 ## Updating Operator Kit
 
@@ -160,7 +180,8 @@ Codex should:
 4. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
 5. Run `scripts/operator-update.sh` against the project.
 6. Run syntax, status, summary, and git status checks.
-7. Summarize updated files, installed missing files, preserved project-specific files, validation results, and follow-up.
+7. Run `scripts/operator-memory.sh status`.
+8. Summarize updated files, installed missing files, preserved project-specific files, validation results, memory status, and follow-up.
 
 The update must preserve:
 

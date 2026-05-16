@@ -83,6 +83,13 @@ for lane in $(operator_lanes); do
   fi
 done
 
+print_section "Operator Memory"
+if [ -f "$SCRIPT_DIR/operator-memory.sh" ]; then
+  bash "$SCRIPT_DIR/operator-memory.sh" status || true
+else
+  printf 'operator-memory.sh: missing\n'
+fi
+
 print_section "Recent Task Folders"
 find "$OPERATOR_DIR/tasks" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
   | sort \

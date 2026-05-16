@@ -105,7 +105,7 @@ Suggested flow:
 
 1. `$operator` detects the project and runs status/summary.
 2. `$design-agent` inspects design context and drafts task packet content.
-3. `$operator` creates task folders under `$OPERATOR_DIR`, checks lane/file ownership, and dispatches with `operator-dispatch.sh`.
+3. `$operator` creates task folders under `$OPERATOR_DIR`, checks lane/file ownership, stores cross-lane design facts in task memory when useful, and dispatches with `operator-dispatch.sh`.
 4. `$operator` collects the result.
 5. `$design-agent` reviews output and packages next feedback.
 

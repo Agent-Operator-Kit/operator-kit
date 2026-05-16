@@ -34,9 +34,14 @@ Recommended project layout:
     tasks/
       <slug>/
         00-operator-brief.md
+        memory.md
         tasks/*.md
         handoffs/*.md
     captures/
+    memory/
+      project.md
+      episodes/*.md
+      packs/
 ```
 
 Recommended repo layout after installation:
@@ -63,6 +68,7 @@ scripts/
   operator-dispatch.sh
   operator-collect.sh
   operator-summary.sh
+  operator-memory.sh
   operator-update.sh
   operator-sync.sh
 
@@ -144,6 +150,7 @@ Companion skill guides:
 ```text
 docs/guides/design-agent-collaboration.md
 docs/guides/incubation-collaboration.md
+docs/concepts/operator-memory.md
 ```
 
 Install or refresh every bundled Codex Desktop skill from this kit:
@@ -233,13 +240,36 @@ bash scripts/operator-tmux.sh attach
 bash scripts/operator-tmux.sh start-workers
 bash scripts/operator-status.sh
 bash scripts/operator-task.sh <slug> "<title>"
-bash scripts/operator-dispatch.sh [--no-enter] <lane> <task-file>
+bash scripts/operator-dispatch.sh [--no-enter] [--with-memory] <lane> <task-file>
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
+bash scripts/operator-memory.sh status
+bash scripts/operator-memory.sh search <query>
+bash scripts/operator-memory.sh promote project "<fact>"
+bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/codex-skills-install.sh [--latest]
 bash scripts/operator-sync.sh [--target <repo>]
 ```
+
+## Operator Memory
+
+Operator memory is a small file-first router for context that should survive lane changes, session compaction, and future handoffs without bloating every prompt.
+
+It uses four layers:
+
+- `AGENTS.md` for evergreen repo operating rules.
+- `OPERATOR_DIR/memory/project.md` for durable project facts and decisions.
+- `OPERATOR_DIR/tasks/<slug>/memory.md` for feature-track memory shared across lanes working on the same task.
+- `OPERATOR_DIR/memory/episodes/*.md` for distilled lane handoffs.
+
+Dispatch remains explicit. Use `--with-memory` when a lane should receive a retrieved context pack:
+
+```bash
+bash scripts/operator-dispatch.sh --with-memory backend "$OPERATOR_DIR/tasks/auth-001/tasks/backend.md"
+```
+
+Collection automatically writes an episode memory file from the raw pane handoff. Raw captures remain evidence; concise facts should be promoted into project or task memory only when they will help future work.
 
 ## Codex Desktop `$operator` Skill
 
@@ -329,7 +359,7 @@ For updates, `scripts/operator-sync.sh` can refresh bundled Codex Desktop skills
   decisions that cannot be safely inferred.
 - Do not commit raw handoffs, task packets, pane captures, or transient session notes.
 - Keep generated operator state under `OPERATOR_DIR`.
-- Distill durable facts into evergreen repo docs.
+- Distill durable facts into operator memory or evergreen repo docs.
 
 ## Status
 

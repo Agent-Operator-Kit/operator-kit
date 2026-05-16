@@ -25,18 +25,19 @@ Requirements:
 - propose the lane map before creating worktrees
 - install the scripts/templates
 - install Codex, Claude Code, and Cursor project assets when relevant
+- install Operator Memory Router and verify memory status
 - explain how to install bundled Codex Desktop skills when relevant
 - create the external operator workspace outside the repo
 - create or verify worktrees without overwriting existing work
 - start or inspect tmux
 - create a smoke task
-- run the status and summary checks
-- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit
+- run the status, summary, and memory checks
+- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status, and whether the repo is ready to commit
 
 Guardrails:
 - do not rewrite git history
 - do not force-push
-- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes
+- do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes
 - do not deploy or run production builds during setup
 ```
 
@@ -48,7 +49,7 @@ Start Codex in or near the target repo and paste the minimal prompt above, or us
 Set up Agent Operator Kit for this project using:
 git@github.com:Agent-Operator-Kit/operator-kit.git
 
-Use the agent-run bootstrap flow. Inspect first, propose the lane map, install the scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+Use the agent-run bootstrap flow. Inspect first, propose the lane map, install the scripts/templates and Operator Memory Router, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
 
 Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
 ```
@@ -85,6 +86,7 @@ Restart or reopen Codex Desktop, then operate installed projects with prompts li
 ```text
 Use $operator. Show project status.
 Use $operator. Create a backend task for auth scaffolding.
+Use $operator. Dispatch the backend task with memory.
 Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.
 Use $operator. Update to latest version from git.
 Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.
@@ -107,14 +109,14 @@ Start Claude Code in or near the target repo and paste:
 Set up Agent Operator Kit for this project using:
 git@github.com:Agent-Operator-Kit/operator-kit.git
 
-Use the agent-run bootstrap flow. Inspect first, propose the lane map, install the scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+Use the agent-run bootstrap flow. Inspect first, propose the lane map, install the scripts/templates and Operator Memory Router, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
 
 Install the Claude Code project assets too:
 - .claude/commands/operator-bootstrap.md
 - .claude/commands/operator-status.md
 - .claude/agents/operator-workflow.md
 
-Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
+Keep generated task packets, handoffs, pane captures, memory packs, and transient notes outside the repo.
 ```
 
 For Claude Code, the reusable assets are project slash commands and a project subagent. Agent Operator Kit stores those as templates so bootstrap can install them into the target repo.
@@ -145,14 +147,14 @@ Start Cursor Agent or Cursor CLI in or near the target repo and paste:
 Set up Agent Operator Kit for this project using:
 git@github.com:Agent-Operator-Kit/operator-kit.git
 
-Use Cursor as the frontend operator surface. Inspect first, propose the lane map, install the scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+Use Cursor as the frontend operator surface. Inspect first, propose the lane map, install the scripts/templates and Operator Memory Router, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
 
 Install the Cursor project assets too:
 - .cursor/rules/operator-workflow.mdc
 - .cursor/skills/operator-workflow/SKILL.md
 - .cursor/environment.json.example
 
-Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
+Keep generated task packets, handoffs, pane captures, memory packs, and transient notes outside the repo.
 ```
 
 For the full Cursor prompt, use:
@@ -177,6 +179,7 @@ The setup agent should finish with:
 - installed files
 - `OPERATOR_DIR`
 - lane map
+- memory status
 - tmux session name
 - smoke task path
 - validation results

@@ -18,11 +18,22 @@ When operating this project in Codex Desktop, use the global `$operator` skill b
 bash scripts/operator-tmux.sh start
 bash scripts/operator-status.sh
 bash scripts/operator-task.sh <slug> "<title>"
-bash scripts/operator-dispatch.sh <lane> "$OPERATOR_DIR/tasks/<slug>/tasks/<lane>.md"
+bash scripts/operator-dispatch.sh [--with-memory] <lane> "$OPERATOR_DIR/tasks/<slug>/tasks/<lane>.md"
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
+bash scripts/operator-memory.sh status
+bash scripts/operator-memory.sh search <query>
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 ```
+
+## Memory
+
+- `AGENTS.md` is evergreen repo guidance.
+- `OPERATOR_DIR/memory/project.md` stores durable project facts.
+- `OPERATOR_DIR/tasks/<slug>/memory.md` stores feature-track facts shared across lanes.
+- `OPERATOR_DIR/memory/episodes/*.md` stores distilled lane handoffs.
+- Use `operator-dispatch.sh --with-memory` when prior context should be retrieved for a lane.
+- Raw captures and handoffs are evidence; promote only concise facts that will help future work.
 
 ## Rules
 

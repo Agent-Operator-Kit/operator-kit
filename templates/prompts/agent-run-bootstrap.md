@@ -19,6 +19,7 @@ Goals:
 - Use git worktrees for isolated agent lanes.
 - Use tmux for persistent Codex/Claude worker lanes.
 - Keep task packets, handoffs, captures, and transient operator notes outside the repo.
+- Install Operator Memory Router for compact project, task, and lane episode context.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, and `operator.config.env` as needed.
 - If Codex Desktop is relevant, explain how to install bundled global skills with `scripts/codex-skills-install.sh`; do not write to `~/.codex` unless I explicitly ask.
@@ -52,8 +53,9 @@ Required behavior:
     - `bash -n scripts/*.sh`
     - `bash scripts/operator-status.sh`
     - `bash scripts/operator-summary.sh`
-11. Confirm generated task and handoff files landed under `OPERATOR_DIR`, not inside the repo.
-12. Confirm `scripts/operator-update.sh` and `scripts/operator-sync.sh` are installed for future safe refreshes.
+    - `bash scripts/operator-memory.sh status`
+11. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
+12. Confirm `scripts/operator-memory.sh`, `scripts/operator-update.sh`, and `scripts/operator-sync.sh` are installed for future safe refreshes.
 13. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
 14. Show git status and list intended repo changes.
 
@@ -61,7 +63,7 @@ Guardrails:
 
 - Do not rewrite git history.
 - Do not force-push.
-- Do not commit secrets, raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before starting destructive commands, deployments, production builds, or provider-console changes.

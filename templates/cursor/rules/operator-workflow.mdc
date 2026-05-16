@@ -15,18 +15,21 @@ Core rules:
   validated, or blocked.
 - Worker agents use isolated git worktrees and branches.
 - Generated task packets, handoffs, pane captures, and transient notes live under `OPERATOR_DIR`, outside the repo.
+- Operator memory under `OPERATOR_DIR/memory/` carries compact project, task, and episode context across lanes.
 - Repo docs should stay evergreen.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit memory packs or generated operator memory.
 - Do not rewrite git history or force-push unless the user explicitly asks.
 
 Before making changes:
 
 1. Read `operator.config.env`.
 2. Run `bash scripts/operator-status.sh` when available.
-3. Confirm the target lane, branch, worktree, and file scope.
-4. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
+3. Run `bash scripts/operator-memory.sh status` when available.
+4. Confirm the target lane, branch, worktree, and file scope.
+5. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
 
 Pause for user input before destructive cleanup, credential/provider-console
 changes, production deploys, release submissions, live-money enablement, or

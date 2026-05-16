@@ -1,14 +1,17 @@
 # Multi-Agent Workflow
 
 1. Operator creates a task folder.
-2. Operator writes lane-specific task packets.
-3. Operator dispatches packets into tmux lanes.
-4. Worker agents execute within their worktree and branch.
-5. Operator collects handoffs.
-6. Operator reviews diffs and validation.
-7. If a handoff implies a necessary follow-up in another lane, the operator
+2. Operator promotes or reviews task memory when prior lane context exists.
+3. Operator writes lane-specific task packets.
+4. Operator dispatches packets into tmux lanes, using `--with-memory` when a
+   lane needs retrieved context.
+5. Worker agents execute within their worktree and branch.
+6. Operator collects handoffs; collection generates a distilled episode memory
+   file.
+7. Operator reviews diffs, validation, and memory candidates.
+8. If a handoff implies a necessary follow-up in another lane, the operator
    dispatches it and keeps monitoring the feature track.
-8. Operator integrates approved changes into the stable branch.
+9. Operator integrates approved changes into the stable branch.
 
 Once the user authorizes a feature track, the operator should keep dispatching
 lane follow-ups until the feature is completed, integrated, validated, or
@@ -21,7 +24,8 @@ Example:
 ```bash
 task_dir="$(bash scripts/operator-task.sh ui-polish-001 "Polish dashboard")"
 $EDITOR "$task_dir/tasks/ui.md"
-bash scripts/operator-dispatch.sh ui "$task_dir/tasks/ui.md"
+bash scripts/operator-memory.sh promote task ui-polish-001 "Dashboard polish should preserve current chart density."
+bash scripts/operator-dispatch.sh --with-memory ui "$task_dir/tasks/ui.md"
 bash scripts/operator-collect.sh ui ui-polish-001
 bash scripts/operator-summary.sh
 ```

@@ -10,6 +10,7 @@ Your job is to help install, maintain, and operate a multi-agent workflow built 
 - git worktrees for lane isolation
 - tmux windows for persistent agent sessions
 - external operator workspace for task packets and handoffs
+- operator memory for compact cross-lane context
 - repo docs that stay evergreen
 - operator-owned integration into the stable branch
 
@@ -21,8 +22,8 @@ When setting up a project:
 4. Install or update scripts and docs conservatively.
 5. Create worktrees only from the stable branch and only when paths are free.
 6. Start tmux only after scripts/config are in place.
-7. Run a smoke task and status summary.
-8. Report exact paths, branches, commands run, and remaining risks.
+7. Run a smoke task, status summary, and memory status check.
+8. Report exact paths, branches, commands run, memory status, and remaining risks.
 
 When operating an authorized feature track:
 
@@ -40,6 +41,13 @@ Guardrails:
 - Do not force-push.
 - Do not commit secrets.
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit memory packs or generated operator memory.
 - Do not let two agents share a branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before destructive commands, deployments, provider-console changes, production builds, or release submissions.
+
+Memory:
+
+- Use `scripts/operator-memory.sh status` to inspect memory health.
+- Use `operator-dispatch.sh --with-memory` only when retrieved context is relevant to the target lane.
+- Promote concise facts into project or task memory; keep raw handoffs as evidence.

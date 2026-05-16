@@ -31,11 +31,11 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 [ -n "$default_branch" ] || default_branch="$(git -C "$repo_root" branch --show-current)"
 [ -n "$default_branch" ] || default_branch="main"
 
-mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures"
+mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules" "$repo_root/.cursor/skills/operator-workflow"
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-update.sh operator-sync.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-update.sh operator-sync.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
   chmod +x "$repo_root/scripts/$script"
 done
@@ -101,6 +101,8 @@ if ! grep -q 'Agent Operator Kit generated state' "$repo_root/.gitignore" 2>/dev
     cat "$KIT_ROOT/templates/repo/gitignore.snippet"
   } >> "$repo_root/.gitignore"
 fi
+
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-memory.sh" init >/dev/null
 
 printf 'Installed Agent Operator Kit into: %s\n' "$repo_root"
 printf 'Operator workspace: %s\n' "$project_root/operator"

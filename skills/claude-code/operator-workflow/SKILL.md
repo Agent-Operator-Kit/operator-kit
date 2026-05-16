@@ -42,13 +42,20 @@ Use the operator-workflow subagent to set up Agent Operator Kit for this repo.
 1. Inspect the repo and git status.
 2. Identify default branch, remotes, package manager, and validation commands.
 3. Propose a lane map.
-4. Install scripts/templates.
-5. Create the external operator workspace.
+4. Install scripts/templates, including `scripts/operator-memory.sh`.
+5. Create the external operator workspace and memory folders.
 6. Create or verify worktrees.
 7. Start tmux.
 8. Create a smoke task.
-9. Run status and summary checks.
+9. Run status, summary, and memory status checks.
 10. Report whether the repo is ready to commit.
+
+## Memory
+
+Use `scripts/operator-memory.sh` for cross-lane context that should survive
+Claude Code compaction. Dispatch with `--with-memory` when a lane needs
+retrieved project, task, or episode context. Promote only concise facts; raw
+handoffs and captures remain evidence under `OPERATOR_DIR`.
 
 ## Operating Feature Tracks
 
@@ -67,5 +74,6 @@ inferred.
 - Do not rewrite git history.
 - Do not force-push.
 - Do not commit raw task packets, handoffs, pane captures, or transient notes.
+- Do not commit memory packs or generated operator memory.
 - Do not commit secrets.
 - Do not start deployments or production builds during setup.

@@ -19,6 +19,7 @@ Use Cursor as the frontend operator surface. Keep the standard Agent Operator Ki
 - local worktrees for local agents
 - tmux for persistent local lanes
 - `OPERATOR_DIR` outside the repo for local task packets and handoffs
+- Operator Memory Router for compact local project, task, and episode context
 - Cursor rules/skills for persistent Cursor guidance
 - Cursor Background Agents only for isolated remote branch tasks
 
@@ -39,12 +40,13 @@ Required setup:
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
-10. Confirm generated task and handoff files landed under `OPERATOR_DIR`, not inside the repo.
+   - `bash scripts/operator-memory.sh status`
+10. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
 
 Cursor Background Agent policy:
 
 - Treat Background Agents as remote branch workers, not local tmux lanes.
-- Put full task packets in their prompt because they may not have local operator state.
+- Put full task packets and relevant memory context in their prompt because they may not have local operator state.
 - Require a final handoff in the response, branch commits, or pull request description.
 - Do not use Background Agents for deploys, provider consoles, local simulators, or local-device validation unless the environment is explicitly configured.
 
@@ -52,7 +54,7 @@ Guardrails:
 
 - Do not rewrite git history.
 - Do not force-push.
-- Do not commit secrets, raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before destructive commands, deployments, production builds, or provider-console changes.

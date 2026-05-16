@@ -21,7 +21,8 @@ Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
-10. Report installed files, lane map, smoke results, dirty files, and whether the repo is ready to commit.
+   - `bash scripts/operator-memory.sh status`
+10. Report installed files, lane map, smoke results, memory status, dirty files, and whether the repo is ready to commit.
 
 Once the user authorizes a feature track, keep dispatching necessary follow-up
 tasks to the appropriate lanes until the feature is completed, integrated,
@@ -30,7 +31,7 @@ handoff-to-handoff transition.
 
 ## Cursor Background Agent Flow
 
-Cursor Background Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR`.
+Cursor Background Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR` or local Operator Memory.
 
 For Background Agent tasks:
 
@@ -38,6 +39,13 @@ For Background Agent tasks:
 2. Include branch name, scope, read-only areas, validation commands, and handoff requirements.
 3. Require a final handoff that names changed files, commands run, tests, blockers, and follow-up needs.
 4. Do not use Background Agents for provider-console changes, production deploys, or tasks that require local device/simulator state unless the environment is explicitly configured.
+5. Include relevant operator memory explicitly in the prompt when a Background Agent needs it.
+
+## Memory
+
+Use `scripts/operator-memory.sh` for local cross-lane context. Dispatch with
+`--with-memory` when a lane needs retrieved context. Promote concise project or
+task facts; do not commit generated memory files.
 
 ## Guardrails
 
@@ -45,6 +53,7 @@ For Background Agent tasks:
 - Do not force-push.
 - Do not commit secrets.
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit memory packs or generated operator memory.
 - Do not start production builds, deployments, or provider-console changes during setup.
 - Ask before destructive commands.
 - Ask before credential/provider-console changes, release submissions,

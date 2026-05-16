@@ -18,7 +18,7 @@ The local flow:
 2. Read `operator.config.env`.
 3. Confirm lane map and expected branches.
 4. Keep generated state under `OPERATOR_DIR`.
-5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, and `scripts/operator-summary.sh`.
+5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, and `scripts/operator-memory.sh`.
 6. Commit only evergreen repo changes.
 
 Once the user authorizes a feature track, keep dispatching necessary follow-up
@@ -54,12 +54,22 @@ For every Background Agent prompt, include:
 - validation commands
 - handoff requirements
 
+Do not assume Background Agents can access local Operator Memory. Include the
+relevant context explicitly in the prompt or task packet.
+
+## Memory
+
+Local Cursor operator work can use `operator-dispatch.sh --with-memory` to add
+a compact context pack. Use project memory for durable facts and task memory for
+feature-track facts. Do not commit generated memory files.
+
 ## Guardrails
 
 - Do not rewrite git history.
 - Do not force-push.
 - Do not commit secrets.
 - Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit memory packs or generated operator memory.
 - Do not start deployments or production builds during setup.
 - Ask before destructive cleanup, credential/provider-console changes,
   production deploys, release submissions, live-money enablement, or product

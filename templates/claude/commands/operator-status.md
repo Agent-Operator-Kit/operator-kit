@@ -9,6 +9,7 @@ Run:
 ```bash
 bash scripts/operator-status.sh
 bash scripts/operator-summary.sh
+bash scripts/operator-memory.sh status
 git status --short --branch
 ```
 
@@ -19,6 +20,7 @@ Summarize:
 - branch drift
 - tmux availability
 - latest handoffs
+- memory status
 - next recommended operator action
 
 Do not make file edits unless explicitly asked.

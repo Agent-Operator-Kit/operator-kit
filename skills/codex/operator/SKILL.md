@@ -23,9 +23,11 @@ Before operator work, resolve the project root:
    - `scripts/operator-dispatch.sh`
    - `scripts/operator-collect.sh`
    - `scripts/operator-summary.sh`
-5. Read `operator.config.env`.
-6. Read `AGENTS.md` if present.
-7. Classify the install:
+   - `scripts/operator-memory.sh`
+5. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
+6. Read `operator.config.env`.
+7. Read `AGENTS.md` if present.
+8. Classify the install:
    - `installed`: config and required scripts exist, and `bash scripts/operator-status.sh` runs.
    - `partial`: some detection files exist, but required files are missing or status fails.
    - `not-installed`: no reliable Operator Kit signals were found.
@@ -50,9 +52,13 @@ bash scripts/operator-tmux.sh attach
 bash scripts/operator-tmux.sh start-workers
 bash scripts/operator-status.sh
 bash scripts/operator-task.sh <slug> "<title>"
-bash scripts/operator-dispatch.sh [--no-enter] <lane> <task-file>
+bash scripts/operator-dispatch.sh [--no-enter] [--with-memory] <lane> <task-file>
 bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
+bash scripts/operator-memory.sh status
+bash scripts/operator-memory.sh search <query>
+bash scripts/operator-memory.sh promote project "<fact>"
+bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
 bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
@@ -66,7 +72,7 @@ For status requests:
 
 1. Detect the project.
 2. Run status and summary.
-3. Summarize the lane map, branch health, dirty worktrees, tmux windows, latest handoffs, blockers, and stale lanes.
+3. Summarize the lane map, branch health, dirty worktrees, tmux windows, latest handoffs, memory status, blockers, and stale lanes.
 4. Mention risks before recommendations.
 
 Keep the answer operational: what is safe to dispatch, what should be collected, what needs review, and what is blocked.
@@ -90,8 +96,9 @@ For new work:
 1. Check status first.
 2. Clarify the target lane only if it cannot be inferred.
 3. Create the task folder with `operator-task.sh`.
-4. Write lane task packets under `$OPERATOR_DIR/tasks/<slug>/tasks/`, not inside the repo.
-5. Include:
+4. Use `$OPERATOR_DIR/tasks/<slug>/memory.md` for feature-track facts that should move across lanes.
+5. Write lane task packets under `$OPERATOR_DIR/tasks/<slug>/tasks/`, not inside the repo.
+6. Include:
    - goal
    - context
    - owned files or modules
@@ -99,7 +106,8 @@ For new work:
    - acceptance criteria
    - validation commands
    - expected handoff output
-6. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer.
+   - `## Memory Candidates` handoff requirements
+7. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
 
 Before dispatch, check that no other active lane owns the same branch or file area.
 
@@ -167,15 +175,42 @@ Do not bootstrap lanes, create worktrees, or dispatch implementation agents from
 For collection:
 
 1. Run `operator-collect.sh <lane> <slug>`.
-2. Inspect the lane worktree git status and diff.
-3. Summarize:
+2. Check the generated episode under `$OPERATOR_DIR/memory/episodes/`.
+3. Inspect the lane worktree git status and diff.
+4. Summarize:
    - what changed
    - acceptance criteria met or missed
    - tests run and missing
+   - memory candidates worth promoting
    - risks and blockers
    - integration recommendation
 
 Do not merge worker branches into the stable branch without operator review. Do not commit raw handoffs, task packets, captures, or transient notes.
+
+## Operator Memory
+
+Use Operator Memory Router for context that should survive compaction and lane changes:
+
+- `AGENTS.md`: committed evergreen repo guidance.
+- `$OPERATOR_DIR/memory/project.md`: durable project facts and decisions.
+- `$OPERATOR_DIR/tasks/<slug>/memory.md`: feature-track facts shared across lanes.
+- `$OPERATOR_DIR/memory/episodes/*.md`: distilled lane handoffs from collection.
+
+Before dispatch, search or pack memory only when it is relevant to the lane:
+
+```bash
+bash scripts/operator-memory.sh search "<query>"
+bash scripts/operator-dispatch.sh --with-memory <lane> "$OPERATOR_DIR/tasks/<slug>/tasks/<lane>.md"
+```
+
+Promote facts intentionally:
+
+```bash
+bash scripts/operator-memory.sh promote project "<durable project fact>"
+bash scripts/operator-memory.sh promote task <slug> "<feature-track fact>"
+```
+
+Raw captures are evidence, not durable memory. If a memory fact should guide every contributor and agent by default, move it into evergreen repo docs instead.
 
 ## Update To Latest
 
@@ -209,6 +244,7 @@ When the user says `$operator update to latest version from git` or similar:
    bash -n scripts/*.sh
    bash scripts/operator-status.sh
    bash scripts/operator-summary.sh
+   bash scripts/operator-memory.sh status
    git status --short
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
@@ -220,7 +256,8 @@ The update flow must preserve project-specific files by default: `operator.confi
 - Do not let two agents share the same branch.
 - Do not let two lanes edit the same files at the same time.
 - Keep generated operator state under `OPERATOR_DIR`.
-- Distill durable facts into evergreen repo docs.
+- Distill durable facts into operator memory or evergreen repo docs.
+- Retrieve only context relevant to the current lane and task.
 - Do not deploy, force-push, rewrite history, or commit secrets unless explicitly requested.
 - Check git status before dispatch, collection, and integration decisions.
 
