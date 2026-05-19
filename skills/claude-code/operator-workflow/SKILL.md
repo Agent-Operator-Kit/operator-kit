@@ -73,7 +73,7 @@ inferred.
 
 - Do not rewrite git history.
 - Do not force-push.
-- Do not commit raw task packets, handoffs, pane captures, or transient notes.
+- Do not commit raw task packets, handoffs, pane captures, task working files, or transient notes.
 - Do not commit memory packs or generated operator memory.
 - Do not commit secrets.
 - Do not start deployments or production builds during setup.

@@ -6,7 +6,7 @@ Goals:
 
 - Use git worktrees for isolated agent lanes.
 - Use tmux for long-running Codex and Claude workers.
-- Keep task packets, handoffs, captures, and transient operator notes outside the repo.
+- Keep task packets, handoffs, captures, task working files, and transient operator notes outside the repo.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update `AGENTS.md`.
 - If Codex Desktop is relevant, explain the global `$operator` runtime skill install.

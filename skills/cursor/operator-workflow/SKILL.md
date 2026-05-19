@@ -68,7 +68,7 @@ feature-track facts. Do not commit generated memory files.
 - Do not rewrite git history.
 - Do not force-push.
 - Do not commit secrets.
-- Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit raw handoffs, task packets, pane captures, task working files, or transient notes.
 - Do not commit memory packs or generated operator memory.
 - Do not start deployments or production builds during setup.
 - Ask before destructive cleanup, credential/provider-console changes,

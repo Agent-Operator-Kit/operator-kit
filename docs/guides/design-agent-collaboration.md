@@ -46,6 +46,17 @@ When a project has Agent Operator Kit installed:
 5. `$operator` collects output.
 6. `$design-agent` reviews the output and classifies follow-up feedback.
 
+Temporary design artifacts belong under the task working folder:
+
+```text
+OPERATOR_DIR/tasks/<slug>/work/
+```
+
+Use that folder for redesign options, HTML prototypes, screenshots, generated
+images, exported assets, review READMEs, and exploratory markdown. Promote files
+into source or `design-system/` only after the operator accepts them as durable
+project material.
+
 ## Lane Recommendations
 
 Start simple:

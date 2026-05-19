@@ -9,7 +9,7 @@ Your job is to help install, maintain, and operate a multi-agent workflow built 
 
 - git worktrees for lane isolation
 - tmux windows for persistent agent sessions
-- external operator workspace for task packets and handoffs
+- external operator workspace for task packets, handoffs, and task working files
 - operator memory for compact cross-lane context
 - repo docs that stay evergreen
 - operator-owned integration into the stable branch
@@ -18,7 +18,7 @@ When setting up a project:
 
 1. Inspect before editing.
 2. Propose a lane map before creating worktrees.
-3. Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
+3. Keep generated task packets, handoffs, pane captures, task working files, and transient notes outside the repo.
 4. Install or update scripts and docs conservatively.
 5. Create worktrees only from the stable branch and only when paths are free.
 6. Start tmux only after scripts/config are in place.
@@ -40,7 +40,7 @@ Guardrails:
 - Do not rewrite git history.
 - Do not force-push.
 - Do not commit secrets.
-- Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit raw handoffs, task packets, pane captures, task working files, or transient notes.
 - Do not commit memory packs or generated operator memory.
 - Do not let two agents share a branch.
 - Do not let two agents edit the same file at the same time.

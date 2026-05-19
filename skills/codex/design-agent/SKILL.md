@@ -20,7 +20,8 @@ Claude Code Opus is the preferred executor for production design/UI edits. Codex
 2. Inspect the repo structure and detect framework, styling system, component library, and existing `design-system/`.
 3. Choose the smallest useful workflow: review, extract, recommend starter, audit design system, package feedback, or prepare Operator Kit task.
 4. Do not edit production UI during review mode unless the user explicitly asks for implementation.
-5. When Agent Operator Kit is installed or `$operator` is requested, collaborate with `$operator` for status checks, lane safety, dispatch, collection, and integration review.
+5. When Agent Operator Kit is installed or `$operator` is requested, collaborate with `$operator` for status checks, lane safety, dispatch, collection, working-file placement, and integration review.
+6. In Operator Kit projects, put temporary design artifacts under `$OPERATOR_DIR/tasks/<slug>/work/`, not in the repo.
 
 ## Core Workflows
 
@@ -90,6 +91,20 @@ Use after Codex web preview annotations or user feedback. Classify feedback befo
 
 Rule: update the highest reusable layer that explains the feedback.
 
+## Temporary Design Artifacts
+
+When working inside an Operator Kit project, all temporary design files belong
+under the task working folder:
+
+```text
+OPERATOR_DIR/tasks/<slug>/work/
+```
+
+Use it for review READMEs, redesign options, HTML prototypes, screenshots,
+generated images, exported assets, PDFs, and exploratory markdown. Do not place
+these files in the repo unless the operator intentionally promotes them into
+source, `design-system/`, or evergreen docs.
+
 ## Operator Collaboration
 
 When `$operator` is available or requested, do not bypass it.
@@ -106,8 +121,9 @@ Suggested flow:
 1. `$operator` detects the project and runs status/summary.
 2. `$design-agent` inspects design context and drafts task packet content.
 3. `$operator` creates task folders under `$OPERATOR_DIR`, checks lane/file ownership, stores cross-lane design facts in task memory when useful, and dispatches with `operator-dispatch.sh`.
-4. `$operator` collects the result.
-5. `$design-agent` reviews output and packages next feedback.
+4. `$design-agent` writes or asks lanes to write temporary design artifacts under `$OPERATOR_DIR/tasks/<slug>/work/`.
+5. `$operator` collects the result.
+6. `$design-agent` reviews output and packages next feedback.
 
 Do not create design/UI lanes everywhere by default. Recommend:
 

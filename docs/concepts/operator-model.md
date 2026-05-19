@@ -7,6 +7,7 @@ The operator owns:
 - lane assignment
 - branch and worktree policy
 - dispatching task packets
+- keeping temporary working files outside the repo
 - routing relevant memory into dispatch context packs
 - collecting handoffs
 - distilling lane episodes into durable task or project memory
@@ -23,6 +24,17 @@ Worker agents own:
 - respecting file and branch boundaries
 
 This model is intentionally conservative. It favors traceability and integration quality over agents freely editing the same branch.
+
+## Working Files
+
+Each task has a working folder at `OPERATOR_DIR/tasks/<slug>/work/`.
+Temporary artifacts belong there: scratch markdown, review notes, redesign
+options, HTML prototypes, screenshots, generated images, exported assets, PDFs,
+and proposal READMEs.
+
+The repo should receive only durable source, evergreen docs, or promoted
+design-system material. If a working artifact becomes durable, the operator
+promotes it intentionally and records that in the handoff or task memory.
 
 ## Feature-Track Autonomy
 

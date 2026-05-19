@@ -97,17 +97,19 @@ For new work:
 2. Clarify the target lane only if it cannot be inferred.
 3. Create the task folder with `operator-task.sh`.
 4. Use `$OPERATOR_DIR/tasks/<slug>/memory.md` for feature-track facts that should move across lanes.
-5. Write lane task packets under `$OPERATOR_DIR/tasks/<slug>/tasks/`, not inside the repo.
-6. Include:
+5. Keep temporary working files under `$OPERATOR_DIR/tasks/<slug>/work/`.
+6. Write lane task packets under `$OPERATOR_DIR/tasks/<slug>/tasks/`, not inside the repo.
+7. Include:
    - goal
    - context
    - owned files or modules
    - read-only files or modules
    - acceptance criteria
    - validation commands
+   - expected working files under `$OPERATOR_DIR/tasks/<slug>/work/`
    - expected handoff output
    - `## Memory Candidates` handoff requirements
-7. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
+8. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
 
 Before dispatch, check that no other active lane owns the same branch or file area.
 
@@ -124,6 +126,7 @@ When the user asks for design, UX, UI consistency, design-system extraction, vis
    - design-system extraction/audit,
    - annotation feedback classification,
    - acceptance criteria for design/UI tasks.
+   - temporary design artifacts under `$OPERATOR_DIR/tasks/<slug>/work/`.
 5. Keep `$operator` responsible for:
    - lane safety,
    - task folder creation under `$OPERATOR_DIR`,
@@ -140,6 +143,11 @@ Use $design-agent with $operator. Turn my annotations into a design follow-up ta
 ```
 
 Do not bypass `$operator` safety checks just because a task came from `$design-agent`. Do not let `design` and `ui` lanes edit the same files at the same time.
+
+Design mockups, alternate redesign options, HTML prototypes, screenshots,
+generated images, proposal READMEs, and other temporary design files belong in
+`$OPERATOR_DIR/tasks/<slug>/work/`. Promote only accepted, durable artifacts
+into source, `design-system/`, or evergreen docs.
 
 ## Incubation Collaboration
 
@@ -179,13 +187,14 @@ For collection:
 3. Inspect the lane worktree git status and diff.
 4. Summarize:
    - what changed
+   - working files created or reviewed
    - acceptance criteria met or missed
    - tests run and missing
    - memory candidates worth promoting
    - risks and blockers
    - integration recommendation
 
-Do not merge worker branches into the stable branch without operator review. Do not commit raw handoffs, task packets, captures, or transient notes.
+Do not merge worker branches into the stable branch without operator review. Do not commit raw handoffs, task packets, captures, task working files, or transient notes.
 
 ## Operator Memory
 
@@ -211,6 +220,20 @@ bash scripts/operator-memory.sh promote task <slug> "<feature-track fact>"
 ```
 
 Raw captures are evidence, not durable memory. If a memory fact should guide every contributor and agent by default, move it into evergreen repo docs instead.
+
+## Working Files
+
+Use `$OPERATOR_DIR/tasks/<slug>/work/` for all temporary task artifacts:
+
+- scratch markdown and review READMEs
+- redesign options and proposals
+- HTML prototypes and visual mockups
+- screenshots, generated images, exported assets, and PDFs
+- intermediate analysis that should not be committed
+
+Keep working files outside the repo. Promote a file into source, `design-system/`,
+or evergreen docs only when the operator intentionally accepts it as durable
+project material.
 
 ## Update To Latest
 
@@ -249,13 +272,14 @@ When the user says `$operator update to latest version from git` or similar:
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
 
-The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, captures, and all source code.
+The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, task working files, captures, and all source code.
 
 ## Guardrails
 
 - Do not let two agents share the same branch.
 - Do not let two lanes edit the same files at the same time.
 - Keep generated operator state under `OPERATOR_DIR`.
+- Keep temporary working files under `$OPERATOR_DIR/tasks/<slug>/work/`.
 - Distill durable facts into operator memory or evergreen repo docs.
 - Retrieve only context relevant to the current lane and task.
 - Do not deploy, force-push, rewrite history, or commit secrets unless explicitly requested.

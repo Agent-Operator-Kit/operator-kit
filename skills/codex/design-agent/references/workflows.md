@@ -22,6 +22,9 @@ design-system/
 design-system-adoption-plan.md
 ```
 
+In Operator Kit projects, keep temporary starter comparisons, HTML previews,
+screenshots, and proposal READMEs under `$OPERATOR_DIR/tasks/<slug>/work/`.
+
 ## Existing Codebase
 
 Use when an app exists but no explicit design system exists.
@@ -44,6 +47,9 @@ design-system-adoption-plan.md
 drift-report.md
 ```
 
+In Operator Kit projects, temporary extraction notes, screenshots, and
+unaccepted alternatives belong in `$OPERATOR_DIR/tasks/<slug>/work/`.
+
 ## Existing Design System
 
 Use when tokens/components/docs already exist.
@@ -63,6 +69,9 @@ design-system-audit.md
 design-system-improvement-plan.md
 ```
 
+In Operator Kit projects, audit drafts and visual evidence stay under
+`$OPERATOR_DIR/tasks/<slug>/work/` until promoted.
+
 ## Ideation First
 
 Use when product/UI direction is unclear.
@@ -77,6 +86,9 @@ brief
 ```
 
 The handoff preserves intent, not implementation. Placeholder color/type/copy should be reinterpreted inside the real design system.
+
+In Operator Kit projects, keep ideation sketches, option READMEs, and HTML
+prototypes under `$OPERATOR_DIR/tasks/<slug>/work/`.
 
 ## Figma Source
 

@@ -14,12 +14,12 @@ Core rules:
   necessary lane follow-ups until the feature is completed, integrated,
   validated, or blocked.
 - Worker agents use isolated git worktrees and branches.
-- Generated task packets, handoffs, pane captures, and transient notes live under `OPERATOR_DIR`, outside the repo.
+- Generated task packets, handoffs, pane captures, task working files, and transient notes live under `OPERATOR_DIR`, outside the repo.
 - Operator memory under `OPERATOR_DIR/memory/` carries compact project, task, and episode context across lanes.
 - Repo docs should stay evergreen.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
-- Do not commit raw handoffs, task packets, pane captures, or transient notes.
+- Do not commit raw handoffs, task packets, pane captures, task working files, or transient notes.
 - Do not commit memory packs or generated operator memory.
 - Do not rewrite git history or force-push unless the user explicitly asks.
 

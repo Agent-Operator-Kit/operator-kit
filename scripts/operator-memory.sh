@@ -62,6 +62,7 @@ It is split into:
 
 - `project.md` for durable project facts and decisions
 - `tasks/<slug>/memory.md` for feature-track memory
+- `tasks/<slug>/work/` for temporary task working files
 - `episodes/*.md` for distilled lane handoffs
 - `packs/` for optional generated context packs
 

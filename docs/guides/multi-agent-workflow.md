@@ -2,13 +2,14 @@
 
 1. Operator creates a task folder.
 2. Operator promotes or reviews task memory when prior lane context exists.
-3. Operator writes lane-specific task packets.
+3. Operator writes lane-specific task packets and names where temporary working
+   files should land under `OPERATOR_DIR/tasks/<slug>/work/`.
 4. Operator dispatches packets into tmux lanes, using `--with-memory` when a
    lane needs retrieved context.
 5. Worker agents execute within their worktree and branch.
 6. Operator collects handoffs; collection generates a distilled episode memory
    file.
-7. Operator reviews diffs, validation, and memory candidates.
+7. Operator reviews diffs, validation, working files, and memory candidates.
 8. If a handoff implies a necessary follow-up in another lane, the operator
    dispatches it and keeps monitoring the feature track.
 9. Operator integrates approved changes into the stable branch.

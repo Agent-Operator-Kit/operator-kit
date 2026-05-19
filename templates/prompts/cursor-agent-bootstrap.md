@@ -18,7 +18,7 @@ Use Cursor as the frontend operator surface. Keep the standard Agent Operator Ki
 
 - local worktrees for local agents
 - tmux for persistent local lanes
-- `OPERATOR_DIR` outside the repo for local task packets and handoffs
+- `OPERATOR_DIR` outside the repo for local task packets, handoffs, and task working files
 - Operator Memory Router for compact local project, task, and episode context
 - Cursor rules/skills for persistent Cursor guidance
 - Cursor Background Agents only for isolated remote branch tasks
@@ -54,7 +54,7 @@ Guardrails:
 
 - Do not rewrite git history.
 - Do not force-push.
-- Do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes.
+- Do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before destructive commands, deployments, production builds, or provider-console changes.

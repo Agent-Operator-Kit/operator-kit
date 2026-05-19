@@ -164,6 +164,19 @@ Task creation creates `OPERATOR_DIR/tasks/<slug>/memory.md`. Collection writes
 a distilled episode under `OPERATOR_DIR/memory/episodes/`. The operator should
 promote only relevant facts; raw captures and handoffs stay as evidence.
 
+## Working Files
+
+The `$operator` skill should keep temporary artifacts under the task:
+
+```text
+OPERATOR_DIR/tasks/<slug>/work/
+```
+
+Use this for scratch markdown, review READMEs, redesign proposals, HTML
+prototypes, screenshots, generated images, exported assets, PDFs, and other
+temporary files. Promote files into the repo only when they become durable
+source, evergreen docs, or accepted design-system material.
+
 ## Updating Operator Kit
 
 Use this when a project already has Operator Kit installed but may be behind the latest kit source:
@@ -188,7 +201,7 @@ The update must preserve:
 - `operator.config.env`
 - existing `AGENTS.md`, `CODEX.md`, and `CLAUDE.md`
 - existing `.claude/*` and `.cursor/*`
-- task packets, handoffs, captures, and transient operator state
+- task packets, handoffs, captures, task working files, and transient operator state
 - application source code
 
 The update refreshes evergreen scripts and installs missing templates only.
@@ -196,9 +209,9 @@ The update refreshes evergreen scripts and installs missing templates only.
 ## Operating Rules
 
 - Prefer `scripts/operator-*.sh` over raw tmux commands.
-- Keep task packets, captures, handoffs, and transient notes under `OPERATOR_DIR`.
+- Keep task packets, captures, handoffs, working files, and transient notes under `OPERATOR_DIR`.
 - Check git status before dispatch, collection, or integration.
 - Do not let two lanes share a branch.
 - Do not let two lanes edit the same files at the same time.
 - Do not merge worker branches into the stable branch without operator review.
-- Do not commit raw handoffs, task packets, pane captures, or secrets.
+- Do not commit raw handoffs, task packets, pane captures, task working files, or secrets.

@@ -13,4 +13,4 @@ Goals:
 - Create a smoke task.
 - If Codex Desktop is relevant, explain the global `$operator` runtime skill install.
 
-Do not commit generated task packets or handoffs.
+Do not commit generated task packets, handoffs, task working files, or memory packs.

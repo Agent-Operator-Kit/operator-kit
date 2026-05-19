@@ -52,7 +52,7 @@ inferred.
 
 ## Guardrails
 
-- Do not commit raw handoffs, pane captures, or task packets.
+- Do not commit raw handoffs, pane captures, task packets, or task working files.
 - Do not commit memory packs or generated operator memory.
 - Do not rewrite git history.
 - Do not let agents share branches.

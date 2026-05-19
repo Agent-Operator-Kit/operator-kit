@@ -29,6 +29,7 @@ TBD
 Report:
 
 - changed files
+- working files created under `OPERATOR_DIR/tasks/<slug>/work/`
 - commands run
 - test results
 - blockers

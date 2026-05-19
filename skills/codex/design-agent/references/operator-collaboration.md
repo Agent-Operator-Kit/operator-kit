@@ -22,15 +22,16 @@ $operator = lane safety, dispatch, collection, integration review
 2. `$design-agent` inspects UI/design-system context and drafts the task packet.
 3. `$operator` creates task folders under `$OPERATOR_DIR` using `operator-task.sh`.
 4. `$operator` writes/places task packet under `$OPERATOR_DIR/tasks/<slug>/tasks/` and adds design facts worth carrying across lanes to `$OPERATOR_DIR/tasks/<slug>/memory.md`.
-5. `$operator` dispatches the safe lane, using `--with-memory` when prior design context matters.
-6. `$operator` collects output.
-7. `$design-agent` reviews output and packages next feedback.
+5. Temporary design artifacts go under `$OPERATOR_DIR/tasks/<slug>/work/`.
+6. `$operator` dispatches the safe lane, using `--with-memory` when prior design context matters.
+7. `$operator` collects output.
+8. `$design-agent` reviews output and packages next feedback.
 
 ## Task Packet Types
 
 ### Design-System Extraction
 
-Expected output:
+Expected durable output, if accepted:
 
 ```text
 design-system/
@@ -39,23 +40,28 @@ design-system-adoption-plan.md
 drift-report.md
 ```
 
+Temporary extraction notes, alternate proposals, screenshots, and generated
+previews stay under `$OPERATOR_DIR/tasks/<slug>/work/`.
+
 ### UX Consistency Review
 
-Expected output:
+Expected temporary output:
 
 ```text
-design-agent-review.md
-ux-consistency-report.md
-next-task-recommendations.md
+$OPERATOR_DIR/tasks/<slug>/work/design-agent-review.md
+$OPERATOR_DIR/tasks/<slug>/work/ux-consistency-report.md
+$OPERATOR_DIR/tasks/<slug>/work/next-task-recommendations.md
 ```
 
 ### Design Mockup
 
-Expected output:
+Expected temporary output:
 
 ```text
-design-output/<slug>/index.html
-operator/tasks/<slug>/handoffs/design-001-output.md
+$OPERATOR_DIR/tasks/<slug>/work/design-options/
+$OPERATOR_DIR/tasks/<slug>/work/design-options/<option>/index.html
+$OPERATOR_DIR/tasks/<slug>/work/design-options/<option>/README.md
+$OPERATOR_DIR/tasks/<slug>/work/images/
 ```
 
 ### UI Implementation
@@ -75,5 +81,6 @@ validation results
 - Do not create design and UI lanes until the project needs that complexity.
 - Do not let design and UI lanes edit the same files at the same time.
 - Keep raw task state in `$OPERATOR_DIR`.
+- Keep temporary design files under `$OPERATOR_DIR/tasks/<slug>/work/`.
 - Keep generated operator memory under `$OPERATOR_DIR`; do not commit memory packs.
 - Commit durable design-system decisions only when the user is ready.

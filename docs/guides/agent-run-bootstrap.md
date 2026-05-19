@@ -28,7 +28,7 @@ Target project:
 Goals:
 - Use git worktrees for isolated agent lanes.
 - Use tmux for persistent Codex/Claude worker lanes.
-- Keep task packets, handoffs, captures, and transient operator notes outside the repo.
+- Keep task packets, handoffs, captures, task working files, and transient operator notes outside the repo.
 - Install Operator Memory Router for compact project, task, and lane episode context.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update AGENTS.md, CODEX.md, CLAUDE.md, and operator.config.env as needed.
@@ -70,7 +70,7 @@ Required behavior:
 Guardrails:
 - Do not rewrite git history.
 - Do not force-push.
-- Do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes.
+- Do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before starting destructive commands, deployments, production builds, or provider-console changes.
@@ -120,5 +120,5 @@ The exact names should come from `operator.config.env`.
 - Cursor rules, skill, and environment example are installed under `.cursor/` when relevant.
 - `OPERATOR_DIR` exists outside the repo.
 - smoke task output appears under `OPERATOR_DIR/tasks/<slug>`.
-- no raw task packets or handoffs are tracked by git.
+- no raw task packets, handoffs, or task working files are tracked by git.
 - `bash scripts/operator-status.sh` works.

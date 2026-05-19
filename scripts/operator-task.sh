@@ -10,7 +10,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-task.sh <slug> "<title>"
 
-Creates $OPERATOR_DIR/tasks/<slug>/ with task and handoff folders.
+Creates $OPERATOR_DIR/tasks/<slug>/ with task, handoff, work, and memory files.
 USAGE
 }
 
@@ -30,7 +30,7 @@ case "$slug" in
 esac
 
 task_dir="$OPERATOR_DIR/tasks/$slug"
-mkdir -p "$task_dir/tasks" "$task_dir/handoffs" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory"
+mkdir -p "$task_dir/tasks" "$task_dir/handoffs" "$task_dir/work" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory"
 
 brief="$task_dir/00-operator-brief.md"
 if [ ! -f "$brief" ]; then
@@ -52,6 +52,7 @@ if [ ! -f "$brief" ]; then
     printf '\n## Integration Checklist\n\n'
     printf '%s\n' '- Confirm each lane is on the expected branch before dispatch.'
     printf '%s\n' '- Dispatch scoped task packets from this external `tasks/` folder.'
+    printf '%s\n' '- Keep temporary working files in this task folder under `work/`.'
     printf '%s\n' '- Collect lane handoffs into this external `handoffs/` folder.'
     printf '%s\n' '- Distill durable facts into evergreen repo docs; do not commit raw handoffs.'
     printf '%s\n' '- Review diffs from the operator/main worktree before merging.'

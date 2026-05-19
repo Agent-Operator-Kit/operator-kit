@@ -35,4 +35,4 @@ Follow the agent-run bootstrap flow:
     - `bash scripts/operator-memory.sh status`
 11. Report installed files, `OPERATOR_DIR`, lane map, memory status, smoke results, git status, and whether the repo is ready to commit.
 
-Do not commit raw handoffs, task packets, pane captures, memory packs, or transient notes. Do not rewrite git history, force-push, deploy, or run production builds.
+Do not commit raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes. Do not rewrite git history, force-push, deploy, or run production builds.

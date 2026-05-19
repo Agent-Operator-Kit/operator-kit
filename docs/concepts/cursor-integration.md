@@ -16,9 +16,9 @@ In this mode, Cursor should:
 
 - read `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, and `.cursor/rules`
 - use `operator.config.env` as the lane map
-- keep generated task packets and handoffs under `OPERATOR_DIR`
+- keep generated task packets, handoffs, and task working files under `OPERATOR_DIR`
 - start or inspect tmux with `scripts/operator-tmux.sh`
-- avoid committing raw handoffs or task packets
+- avoid committing raw handoffs, task packets, or task working files
 
 This mode fits the standard Agent Operator Kit model best.
 

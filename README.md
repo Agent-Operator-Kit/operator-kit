@@ -1,8 +1,8 @@
 # Agent Operator Kit
 
-Agent Operator Kit is a lightweight operating model for coordinating coding agents across isolated git worktrees using tmux, external task handoffs, and an operator-owned integration flow.
+Agent Operator Kit is a lightweight operating model for coordinating coding agents across isolated git worktrees using tmux, external task handoffs, task working files, and an operator-owned integration flow.
 
-It is designed for teams or solo builders who want Codex, Claude Code, and similar agents to work in parallel without polluting the codebase with transient task packets, raw handoffs, pane captures, or session notes.
+It is designed for teams or solo builders who want Codex, Claude Code, and similar agents to work in parallel without polluting the codebase with transient task packets, raw handoffs, pane captures, mockups, screenshots, or session notes.
 
 Website:
 
@@ -16,7 +16,7 @@ https://agent-operator-kit.github.io/operator-kit/
 - Worker agents run in named lanes such as `backend`, `ui`, `release`, or `product`.
 - Each lane has its own git worktree and branch.
 - tmux keeps long-running agents visible and recoverable.
-- Task packets and handoffs live outside the repo in an operator workspace.
+- Task packets, handoffs, and temporary working files live outside the repo in an operator workspace.
 - The repo keeps only evergreen docs, reusable scripts, and source code.
 
 ## Layout
@@ -37,6 +37,10 @@ Recommended project layout:
         memory.md
         tasks/*.md
         handoffs/*.md
+        work/
+          README.md
+          *.html
+          images/
     captures/
     memory/
       project.md
@@ -102,13 +106,13 @@ Requirements:
 - create or verify worktrees without overwriting existing work
 - start or inspect tmux
 - create a smoke task
-- run the status and summary checks
-- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit
+- run the status, summary, and memory checks
+- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status, and whether the repo is ready to commit
 
 Guardrails:
 - do not rewrite git history
 - do not force-push
-- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes
+- do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes
 - do not deploy or run production builds during setup
 ```
 
@@ -271,6 +275,12 @@ bash scripts/operator-dispatch.sh --with-memory backend "$OPERATOR_DIR/tasks/aut
 
 Collection automatically writes an episode memory file from the raw pane handoff. Raw captures remain evidence; concise facts should be promoted into project or task memory only when they will help future work.
 
+## Working Files
+
+Every task folder includes `OPERATOR_DIR/tasks/<slug>/work/` for temporary artifacts: exploratory markdown, redesign proposals, HTML prototypes, screenshots, generated images, exported assets, PDFs, and review READMEs.
+
+Keep those files out of the repo by default. Promote an artifact into source, `design-system/`, or evergreen docs only when the operator intentionally decides it should become durable project material.
+
 ## Codex Desktop `$operator` Skill
 
 For Codex Desktop, install or refresh every bundled skill globally:
@@ -357,7 +367,7 @@ For updates, `scripts/operator-sync.sh` can refresh bundled Codex Desktop skills
 - Pause for user input before destructive cleanup, credential/provider changes,
   production deploys, release submissions, live-money enablement, or product
   decisions that cannot be safely inferred.
-- Do not commit raw handoffs, task packets, pane captures, or transient session notes.
+- Do not commit raw handoffs, task packets, pane captures, task working files, or transient session notes.
 - Keep generated operator state under `OPERATOR_DIR`.
 - Distill durable facts into operator memory or evergreen repo docs.
 

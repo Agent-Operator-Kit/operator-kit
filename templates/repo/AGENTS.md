@@ -9,7 +9,7 @@ When operating this project in Codex Desktop, use the global `$operator` skill b
 - The operator is the integrator and system owner.
 - Worker agents run in isolated git worktrees and branches.
 - The stable branch stays production-facing.
-- Task packets, handoffs, pane captures, and transient notes live outside the repo under `OPERATOR_DIR`.
+- Task packets, handoffs, pane captures, task working files, and transient notes live outside the repo under `OPERATOR_DIR`.
 - Repo docs are evergreen only.
 
 ## Commands
@@ -31,6 +31,7 @@ bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 - `AGENTS.md` is evergreen repo guidance.
 - `OPERATOR_DIR/memory/project.md` stores durable project facts.
 - `OPERATOR_DIR/tasks/<slug>/memory.md` stores feature-track facts shared across lanes.
+- `OPERATOR_DIR/tasks/<slug>/work/` stores temporary working files: scratch markdown, prototypes, screenshots, generated images, redesign options, and review READMEs.
 - `OPERATOR_DIR/memory/episodes/*.md` stores distilled lane handoffs.
 - Use `operator-dispatch.sh --with-memory` when prior context should be retrieved for a lane.
 - Raw captures and handoffs are evidence; promote only concise facts that will help future work.
@@ -40,6 +41,7 @@ bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 - Never let two agents work on the same branch.
 - Never let two agents edit the same file at the same time.
 - Never commit raw handoffs or task packets.
+- Never commit task working files unless the operator explicitly promotes them into durable source or docs.
 - Merge worker work only after operator review and validation.
 
 ## Operator Dispatch Rule

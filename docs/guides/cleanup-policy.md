@@ -16,6 +16,7 @@ Do not commit:
 - raw task packets
 - raw handoffs
 - tmux captures
+- task working files
 - one-off status notes
 - local screenshots
 - agent transcripts

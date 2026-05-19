@@ -37,7 +37,7 @@ Requirements:
 Guardrails:
 - do not rewrite git history
 - do not force-push
-- do not commit secrets, raw handoffs, task packets, pane captures, memory packs, or transient notes
+- do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes
 - do not deploy or run production builds during setup
 ```
 
@@ -51,7 +51,7 @@ git@github.com:Agent-Operator-Kit/operator-kit.git
 
 Use the agent-run bootstrap flow. Inspect first, propose the lane map, install the scripts/templates and Operator Memory Router, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
 
-Keep generated task packets, handoffs, pane captures, and transient notes outside the repo.
+Keep generated task packets, handoffs, pane captures, task working files, and transient notes outside the repo.
 ```
 
 For the full prompt, use:
@@ -116,7 +116,7 @@ Install the Claude Code project assets too:
 - .claude/commands/operator-status.md
 - .claude/agents/operator-workflow.md
 
-Keep generated task packets, handoffs, pane captures, memory packs, and transient notes outside the repo.
+Keep generated task packets, handoffs, pane captures, task working files, memory packs, and transient notes outside the repo.
 ```
 
 For Claude Code, the reusable assets are project slash commands and a project subagent. Agent Operator Kit stores those as templates so bootstrap can install them into the target repo.
@@ -154,7 +154,7 @@ Install the Cursor project assets too:
 - .cursor/skills/operator-workflow/SKILL.md
 - .cursor/environment.json.example
 
-Keep generated task packets, handoffs, pane captures, memory packs, and transient notes outside the repo.
+Keep generated task packets, handoffs, pane captures, task working files, memory packs, and transient notes outside the repo.
 ```
 
 For the full Cursor prompt, use:

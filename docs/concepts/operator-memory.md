@@ -36,6 +36,9 @@ OPERATOR_DIR/memory/project.md
 OPERATOR_DIR/tasks/<slug>/memory.md
   Feature-track memory shared by all lanes working on the same task.
 
+OPERATOR_DIR/tasks/<slug>/work/
+  Temporary working files, prototypes, screenshots, images, and proposals.
+
 OPERATOR_DIR/memory/episodes/*.md
   Distilled lane handoffs generated from collection.
 
@@ -45,6 +48,8 @@ OPERATOR_DIR/memory/packs/
 
 Raw pane captures and task handoffs are evidence. They are not memory by
 themselves. Promote only concise facts that should influence future dispatches.
+Working files are also outside-repo evidence until the operator explicitly
+promotes them into source, design-system docs, or evergreen repo docs.
 
 ## Commands
 
