@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Operator Kit</title>
+<meta name="description" content="Agent Operator Kit is an AI-agent-first operating model for Codex, Claude Code, Cursor, and other coding agents: worktree lanes, tmux sessions, operator memory, task work folders, and one-command upgrades.">
+<link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -35,6 +37,10 @@
     line-height: 1.6;
     overflow-x: hidden;
     max-width: 100vw;
+  }
+  code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   /* NOISE TEXTURE */
@@ -359,6 +365,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 2rem;
+    min-width: 0;
     transition: border-color 0.2s;
   }
   .how-card:hover { border-color: var(--border2); }
@@ -390,6 +397,9 @@
   .how-card:nth-child(2) .how-card-accent { background: var(--accent2); }
   .how-card:nth-child(3) .how-card-accent { background: var(--accent); }
   .how-card:nth-child(4) .how-card-accent { background: var(--accent2); }
+  .how-card:nth-child(5) .how-card-accent { background: var(--accent); }
+  .how-card:nth-child(6) .how-card-accent { background: var(--accent2); }
+  .how-card:nth-child(7) .how-card-accent { background: var(--accent); }
 
   /* FILE TREE */
   .filetree-wrap {
@@ -505,6 +515,7 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    min-width: 0;
     transition: border-color 0.2s, transform 0.2s;
   }
   .agent-card:hover { border-color: var(--border2); transform: translateY(-2px); }
@@ -781,6 +792,7 @@
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#codex-skill">Codex Skill</a></li>
+    <li><a href="#upgrade">Upgrade</a></li>
     <li><a href="#incubation">Incubation</a></li>
     <li><a href="#design-agent">Design Agent</a></li>
     <li><a href="#agents">Assets</a></li>
@@ -797,15 +809,14 @@
     <div class="hero-eyebrow fade-up fade-up-1">
       <span>v0.1</span>
       <span style="color:var(--fg3)">—</span>
-      <span>multi-agent operating model</span>
+      <span>AI-agent setup and operations</span>
     </div>
     <h1 class="hero-title fade-up fade-up-2">
-      Coordinate coding agents without <em>polluting</em> your repo.
+      The Operator model for specialized agents.
     </h1>
     <p class="hero-subtitle fade-up fade-up-3">
-      Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents
-      a shared operating model: isolated git worktrees, persistent tmux lanes,
-      external task handoffs, and clean evergreen docs.
+      Give Codex, Claude Code, Cursor, and domain skills one main operating
+      layer: isolated lanes, external handoffs, task memory, and working files kept out of source.
     </p>
     <div class="hero-ctas fade-up fade-up-4">
       <a class="btn-primary" href="#getting-started">
@@ -823,8 +834,12 @@
         <div class="hero-stat-val">Codex · Claude · Cursor + companions</div>
       </div>
       <div>
-        <div class="hero-stat-label">Setup Method</div>
-        <div class="hero-stat-val">Agent-run · Shell</div>
+        <div class="hero-stat-label">Primary Flow</div>
+        <div class="hero-stat-val">Paste prompt · Agent installs</div>
+      </div>
+      <div>
+        <div class="hero-stat-label">Refresh</div>
+        <div class="hero-stat-val">$operator --upgrade</div>
       </div>
     </div>
   </div>
@@ -837,23 +852,22 @@
           <div class="terminal-dot yellow"></div>
           <div class="terminal-dot green"></div>
         </div>
-        <span class="terminal-title">operator — tmux: acme</span>
+        <span class="terminal-title">operator — upgrade + memory</span>
       </div>
       <div class="terminal-body" id="terminal-body">
-        <div><span class="t-comment"># operator lane — main integration</span></div>
-        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-status.sh</span></div>
+        <div><span class="t-comment"># one command refreshes skills and installed projects</span></div>
+        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-upgrade.sh</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SESSION</span>   acme (4 panes active)</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      operator  →  app/main</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      backend   →  app-backend/codex/backend</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      ui        →  app-ui/claude/ui</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANE</span>      release   →  app/release  <span class="t-dim">(idle)</span></div>
+        <div><span class="t-success">✓</span> <span class="t-info">SKILLS</span>   $operator · $design-agent · $incubation</div>
+        <div><span class="t-success">✓</span> <span class="t-info">PROJECT</span>  ~/Projects/acme/code/app</div>
+        <div><span class="t-success">✓</span> <span class="t-info">SCRIPTS</span>  operator-memory.sh · operator-upgrade.sh</div>
+        <div><span class="t-success">✓</span> <span class="t-info">CHECKS</span>   status · summary · memory</div>
         <div>&nbsp;</div>
-        <div><span class="t-comment"># dispatching task to ui lane</span></div>
-        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-dispatch.sh ui tasks/ui-nav-001.md</span></div>
+        <div><span class="t-comment"># dispatch with relevant memory, keep scratch files outside repo</span></div>
+        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-dispatch.sh --with-memory ui $OPERATOR_DIR/tasks/nav-refresh/tasks/ui.md</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-success">✓</span> dispatched  <span class="t-info">ui-nav-001</span>  →  claude/ui</div>
-        <div><span class="t-dim">  pane capture saved to operator/captures/</span></div>
+        <div><span class="t-success">✓</span> context pack attached from operator memory</div>
+        <div><span class="t-dim">  prototypes and screenshots go to operator/tasks/nav-refresh/work/</span></div>
         <div>&nbsp;</div>
         <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ </span><span class="t-cursor"></span></div>
       </div>
@@ -902,7 +916,7 @@
 <section id="how-it-works">
   <div class="section-label">// model</div>
   <h2 class="section-title">One operator,<br>many isolated lanes.</h2>
-  <p class="section-sub">A lightweight operating model that keeps your codebase clean while agents run in parallel across named worktrees.</p>
+  <p class="section-sub">A lightweight operating model that lets agents install the workflow, run in parallel, retrieve only relevant memory, and keep scratch artifacts out of source control.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -920,8 +934,8 @@
     <div class="how-card">
       <div class="how-card-num">03 — HANDOFFS</div>
       <div class="how-card-accent"></div>
-      <h3>External Task Packets</h3>
-      <p>Task packets, pane captures, and raw handoffs live under an operator workspace outside the repo — delete or archive without touching git history.</p>
+      <h3>External Task State</h3>
+      <p>Task packets, pane captures, raw handoffs, screenshots, HTML prototypes, and other working files live under an operator workspace outside the repo.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — EVERGREEN</div>
@@ -934,6 +948,18 @@
       <div class="how-card-accent"></div>
       <h3>Feature Tracks</h3>
       <p>Once a feature is authorized, the operator keeps routing lane follow-ups until it is complete, validated, integrated, or blocked by a real user decision.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">06 — MEMORY</div>
+      <div class="how-card-accent"></div>
+      <h3>Relevant Context Packs</h3>
+      <p>Operator memory is file-first and retrieved per dispatch. Agents get project, task, and episode context only when it helps the lane.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">07 — UPGRADE</div>
+      <div class="how-card-accent"></div>
+      <h3>One Machine Refresh</h3>
+      <p><code>$operator --upgrade</code> refreshes global Codex skills, discovers installed projects, updates scripts/templates, and runs checks.</p>
     </div>
   </div>
 
@@ -949,7 +975,11 @@
         <div class="ft-indent"><span class="ft-dir">operator/</span></div>
         <div class="ft-indent2"><span class="ft-file">README.md</span></div>
         <div class="ft-indent2"><span class="ft-dir">tasks/</span></div>
+        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/memory.md</span></div>
+        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/</span>  <span class="ft-comment">html, images, notes</span></div>
+        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/handoffs/</span></div>
         <div class="ft-indent2"><span class="ft-dir">captures/</span></div>
+        <div class="ft-indent2"><span class="ft-dir">memory/</span></div>
       </div>
       <div>
         <div><span class="ft-comment">// installed into repo</span></div>
@@ -962,8 +992,10 @@
         <div class="ft-indent"><span class="ft-file">operator-tmux.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-memory.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-sync.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-upgrade.sh</span></div>
       </div>
     </div>
   </div>
@@ -974,8 +1006,8 @@
   <div class="gs-inner">
     <div>
       <div class="section-label">// getting started</div>
-      <h2 class="section-title">Agent-run setup.</h2>
-      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent handles the rest.</p>
+      <h2 class="section-title">AI-agent setup is the default.</h2>
+      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent inspects first, proposes lanes, installs the kit, and verifies the setup.</p>
 
       <div style="display:flex;flex-direction:column;gap:1.25rem;margin-top:2rem;">
         <div style="display:flex;gap:1rem;align-items:flex-start;">
@@ -989,14 +1021,14 @@
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
           <div>
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the bootstrap prompt</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">The agent will inspect your repo, propose a lane map, and install all assets.</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">The agent inspects the repo, proposes a lane map, and installs all reusable assets.</div>
           </div>
         </div>
         <div style="display:flex;gap:1rem;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">3</div>
           <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review and commit</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">Inspect installed files, confirm the lane map, and commit the evergreen assets.</div>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review the report</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">Check installed files, OPERATOR_DIR, lane map, smoke results, memory status, and git status.</div>
           </div>
         </div>
       </div>
@@ -1006,7 +1038,7 @@
         <div style="font-family:var(--font-mono);font-size:0.75rem;line-height:2;color:var(--fg2);">
           <div><span style="color:var(--fg3)">$</span> git clone git@github.com:Agent-Operator-Kit/operator-kit.git</div>
           <div><span style="color:var(--fg3)">$</span> cd operator-kit</div>
-          <div><span style="color:var(--fg3)">$</span> bash scripts/operator-bootstrap.sh /path/to/your/repo</div>
+          <div><span style="color:var(--fg3)">$</span> bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing</div>
         </div>
       </div>
     </div>
@@ -1038,15 +1070,16 @@
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
         <div><span class="p-comment">- create a smoke task</span></div>
-        <div><span class="p-comment">- run the status and summary checks</span></div>
-        <div><span class="p-comment">- report installed files, OPERATOR_DIR, lane map, smoke results, git status,</span></div>
+        <div><span class="p-comment">- run the status, summary, and memory checks</span></div>
+        <div><span class="p-comment">- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR</span></div>
+        <div><span class="p-comment">- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status,</span></div>
         <div><span class="p-comment">&nbsp;&nbsp;and whether the repo is ready to commit</span></div>
         <div>&nbsp;</div>
         <div><span class="p-req">Guardrails:</span></div>
         <div><span class="p-comment">- do not rewrite git history</span></div>
         <div><span class="p-comment">- do not force-push</span></div>
-        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets,</span></div>
-        <div><span class="p-comment">&nbsp;&nbsp;pane captures, or transient notes</span></div>
+        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets, pane captures,</span></div>
+        <div><span class="p-comment">&nbsp;&nbsp;task working files, memory packs, or transient notes</span></div>
         <div><span class="p-comment">- do not deploy or run production builds during setup</span></div>
       </div>
     </div>
@@ -1057,7 +1090,7 @@
 <section id="codex-skill">
   <div class="section-label">// codex desktop</div>
   <h2 class="section-title">Use <span style="color:var(--accent)">$operator</span><br>as the project cockpit.</h2>
-  <p class="section-sub">Install the runtime skill globally, then ask Codex to operate installed Operator Kit projects in natural language. The skill detects the kit first and uses the project-local scripts as source of truth.</p>
+  <p class="section-sub">Install the runtime skill globally, then ask Codex to operate installed Operator Kit projects in natural language. The skill detects the kit first, uses project-local scripts as source of truth, and understands upgrade commands.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1075,14 +1108,20 @@
     <div class="how-card">
       <div class="how-card-num">03 — OPERATE</div>
       <div class="how-card-accent"></div>
-      <h3>Status, Dispatch, Collect, Update</h3>
-      <p>For installed projects it reads config, runs status and summary, creates task packets under <code>OPERATOR_DIR</code>, dispatches lanes, reviews handoffs, and refreshes kit assets safely.</p>
+      <h3>Status, Dispatch, Collect</h3>
+      <p>For installed projects it reads config, runs status/summary/memory checks, creates task packets under <code>OPERATOR_DIR</code>, dispatches lanes, and reviews handoffs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — GUARD</div>
       <div class="how-card-accent"></div>
       <h3>No Unsafe Guessing</h3>
       <p>For partial or missing installs it reports what is missing and avoids tmux dispatch or collection until the Operator Kit install is repaired.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">05 — UPGRADE</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$operator --upgrade</code></h3>
+      <p>Refresh the global Codex skills and every installed Operator Kit project on the machine with one operator command.</p>
     </div>
   </div>
 
@@ -1102,15 +1141,76 @@
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project</div>
       <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)</div>
       <div>&nbsp;</div>
+      <div><span class="p-comment"># upgrade all installed projects and local skills</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh --dry-run</div>
+      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh</div>
+      <div><span class="p-val">Use $operator --upgrade.</span></div>
+      <div><span class="p-val">Use $operator /upgrade dry run.</span></div>
+      <div>&nbsp;</div>
       <div><span class="p-comment"># operate an installed project</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>
       <div><span class="p-val">Use $operator. Start tmux lanes.</span></div>
       <div><span class="p-val">Use $operator. Create a backend task for auth scaffolding.</span></div>
       <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
       <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
-      <div><span class="p-val">Use $operator. Update to latest version from git.</span></div>
+      <div><span class="p-val">Use $operator. Dispatch the auth task to backend with memory.</span></div>
       <div><span class="p-val">Use $incubation with $operator. Prepare an idea for promotion.</span></div>
       <div><span class="p-val">Use $design-agent with $operator. Package a UI follow-up task.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- UPGRADE -->
+<section id="upgrade">
+  <div class="section-label">// upgrade command</div>
+  <h2 class="section-title">Refresh every agent surface<br>with one command.</h2>
+  <p class="section-sub"><code>operator-upgrade.sh</code> refreshes bundled Codex Desktop skills, discovers installed Operator Kit projects, updates project scripts/templates, and runs checks.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — SKILLS</div>
+      <div class="how-card-accent"></div>
+      <h3>Codex Desktop</h3>
+      <p>Refreshes <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code>.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — DISCOVER</div>
+      <div class="how-card-accent"></div>
+      <h3>Installed projects</h3>
+      <p>Scans <code>~/Projects</code> by default for <code>operator.config.env</code>. Use <code>--target</code> or <code>--projects-root</code> to scope it.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — PRESERVE</div>
+      <div class="how-card-accent"></div>
+      <h3>Project state</h3>
+      <p>Preserves config, source code, handoffs, task packets, task working files, memory, captures, and existing project docs.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — VERIFY</div>
+      <div class="how-card-accent"></div>
+      <h3>Checks after update</h3>
+      <p>Runs syntax, lane status, summary, memory status, and git status checks for each updated project.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">upgrade examples</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/scripts/operator-upgrade.sh" target="_blank">Open script
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># preview changes</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh --dry-run</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># refresh this machine</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh</div>
+      <div><span class="p-val">Use $operator --upgrade.</span></div>
+      <div><span class="p-val">Use $operator /upgrade.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># on a machine without a local checkout</span></div>
+      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)</div>
     </div>
   </div>
 </section>
@@ -1175,7 +1275,7 @@
 <section id="design-agent">
   <div class="section-label">// design-agent companion</div>
   <h2 class="section-title">Add <span style="color:var(--accent)">$design-agent</span><br>for UX and design-system work.</h2>
-  <p class="section-sub">Use the optional Codex Desktop design-agent skill to review product UX, extract or recommend a design system, classify web-preview annotations, and shape Claude Code Opus or Operator Kit UI tasks.</p>
+  <p class="section-sub">Use the optional Codex Desktop design-agent skill to review product UX, extract or recommend a design system, classify web-preview annotations, and shape Claude Code Opus or Operator Kit UI tasks. Temporary design artifacts stay in the task work folder.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1202,6 +1302,12 @@
       <h3>Task shaping, not dispatch</h3>
       <p><code>$design-agent</code> owns design judgment and task content. <code>$operator</code> owns project detection, lane safety, dispatch, collection, and integration review.</p>
     </div>
+    <div class="how-card">
+      <div class="how-card-num">05 — WORK FILES</div>
+      <div class="how-card-accent"></div>
+      <h3>Temporary artifacts</h3>
+      <p>Design READMEs, HTML prototypes, screenshots, generated images, and redesign options go to <code>OPERATOR_DIR/tasks/&lt;slug&gt;/work/</code>.</p>
+    </div>
   </div>
 
   <div class="prompt-card" style="margin-top:1.5rem;">
@@ -1225,6 +1331,7 @@
       <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task for the dashboard refresh.</span></div>
       <div><span class="p-val">Use $design-agent with $operator. Turn my annotations into a design follow-up task and ask before dispatch.</span></div>
       <div><span class="p-val">Use $design-agent with $operator. Extract the design system, then package the safest next UI task.</span></div>
+      <div><span class="p-comment"># temporary files land under OPERATOR_DIR/tasks/&lt;slug&gt;/work/</span></div>
     </div>
   </div>
 </section>
@@ -1239,11 +1346,11 @@
     <div class="agent-card">
       <div class="agent-logo codex">CDEX</div>
       <div class="agent-name">Codex</div>
-      <p class="agent-desc">A global <code>$operator</code> runtime skill for Codex Desktop, plus setup and repair guidance for Codex-driven bootstrap.</p>
+      <p class="agent-desc">A global <code>$operator</code> runtime skill for Codex Desktop, plus setup, upgrade, memory, and repair guidance for Codex-driven operation.</p>
       <div class="agent-tags">
         <span class="agent-tag">$operator</span>
+        <span class="agent-tag">--upgrade</span>
         <span class="agent-tag">SKILL.md</span>
-        <span class="agent-tag">operator-workflow</span>
       </div>
       <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator" target="_blank">
         Open Codex Skill
@@ -1267,7 +1374,7 @@
     <div class="agent-card">
       <div class="agent-logo design">DSGN</div>
       <div class="agent-name">Design Agent</div>
-      <p class="agent-desc">An optional Codex Desktop companion skill for UX reviews, design-system extraction, starter recommendations, annotation classification, and UI task shaping.</p>
+      <p class="agent-desc">An optional Codex Desktop companion skill for UX reviews, design-system extraction, starter recommendations, annotation classification, and UI task shaping with temporary files routed to task work folders.</p>
       <div class="agent-tags">
         <span class="agent-tag">$design-agent</span>
         <span class="agent-tag">UX review</span>
@@ -1418,13 +1525,14 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',
     '- create a smoke task',
-    '- run the status and summary checks',
-    '- report installed files, OPERATOR_DIR, lane map, smoke results, git status, and whether the repo is ready to commit',
+    '- run the status, summary, and memory checks',
+    '- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR',
+    '- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status, and whether the repo is ready to commit',
     '',
     'Guardrails:',
     '- do not rewrite git history',
     '- do not force-push',
-    '- do not commit secrets, raw handoffs, task packets, pane captures, or transient notes',
+    '- do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes',
     '- do not deploy or run production builds during setup',
   ].join('\n');
   navigator.clipboard.writeText(promptLines).then(() => {

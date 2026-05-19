@@ -81,6 +81,44 @@ AGENTS.md
 operator.config.env
 ```
 
+## AI-Agent Setup
+
+The intended setup path is to let an AI agent install the kit. You give Codex,
+Claude Code, Cursor, or another coding agent the target repo and the source kit;
+the agent inspects the project, proposes lanes, installs scripts/templates,
+creates the external operator workspace, runs smoke checks, and reports what is
+ready to commit.
+
+Use this when you are inside the target project repo:
+
+```text
+Set up Agent Operator Kit for the current repo.
+
+Use this source kit:
+git@github.com:Agent-Operator-Kit/operator-kit.git
+
+First clone or read the kit, then follow its agent-run bootstrap guide:
+templates/prompts/agent-run-bootstrap.md
+docs/guides/agent-run-bootstrap.md
+
+Treat the current working directory as the target project repo.
+```
+
+The agent should:
+
+- inspect git status, default branch, remotes, stack, docs, and validation commands first
+- propose the lane map before creating worktrees
+- install reusable scripts, repo docs, Codex skills, Claude Code assets, and Cursor assets when relevant
+- keep task packets, handoffs, captures, memory, and task working files under `OPERATOR_DIR`
+- run `bash -n scripts/*.sh`, status, summary, memory, and smoke checks
+- report installed files, `OPERATOR_DIR`, lane map, memory status, smoke results, git status, and whether the repo is ready to commit
+
+The full prompt is maintained here:
+
+```text
+templates/prompts/agent-run-bootstrap.md
+```
+
 ## Getting Started
 
 Agent Operator Kit is optimized for agent-run setup. Open Codex, Claude Code, or Cursor in the target repo and paste:
@@ -285,6 +323,16 @@ On a machine without a local kit checkout:
 bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 ```
 
+In Codex Desktop, the `$operator` skill understands:
+
+```text
+$operator --upgrade
+$operator /upgrade
+```
+
+The upgrade flow preserves project-specific config, source code, handoffs,
+task packets, task working files, memory, captures, and existing project docs.
+
 ## Operator Memory
 
 Operator memory is a small file-first router for context that should survive lane changes, session compaction, and future handoffs without bloating every prompt.
@@ -382,7 +430,7 @@ The skill detects Operator Kit by walking upward from the current directory and 
 - `partial`: some files exist, but required scripts/config are missing or broken.
 - `not-installed`: no reliable Operator Kit signals were found.
 
-When installed, `$operator` reads `operator.config.env`, reads `AGENTS.md`, runs status and summary checks, and operates through the project-local scripts. When partial or missing, it reports what is missing and avoids unsafe dispatch/collect actions.
+When installed, `$operator` reads `operator.config.env`, reads `AGENTS.md`, runs status, summary, and memory checks, and operates through the project-local scripts. When partial or missing, it reports what is missing and avoids unsafe dispatch/collect actions.
 
 For updates, `scripts/operator-sync.sh` can refresh bundled Codex Desktop skills, detect the current Operator Kit project, update it from the latest kit source, and run validation checks. The lower-level `operator-update.sh` script refreshes evergreen `scripts/operator-*.sh` files, installs missing templates, preserves existing `operator.config.env`, `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, and `.cursor/*`, then prints a changed/preserved summary.
 
