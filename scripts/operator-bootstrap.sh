@@ -35,7 +35,7 @@ mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/oper
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules" "$repo_root/.cursor/skills/operator-workflow"
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-update.sh operator-sync.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
   chmod +x "$repo_root/scripts/$script"
 done

@@ -23,3 +23,10 @@ Use `memory/project.md` for durable project facts and `tasks/<slug>/memory.md` f
 Use `tasks/<slug>/work/` for temporary artifacts such as exploratory markdown, redesign options, HTML prototypes, screenshots, generated images, exported assets, PDFs, and review READMEs.
 
 Do not push raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes to the project repository.
+
+From the project repo or kit source, refresh this machine's Codex skills and
+installed Operator Kit projects with:
+
+```bash
+bash scripts/operator-upgrade.sh
+```

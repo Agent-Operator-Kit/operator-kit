@@ -55,7 +55,7 @@ Required behavior:
     - `bash scripts/operator-summary.sh`
     - `bash scripts/operator-memory.sh status`
 11. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
-12. Confirm `scripts/operator-memory.sh`, `scripts/operator-update.sh`, and `scripts/operator-sync.sh` are installed for future safe refreshes.
+12. Confirm `scripts/operator-memory.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
 13. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
 14. Show git status and list intended repo changes.
 

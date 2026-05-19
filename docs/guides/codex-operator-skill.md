@@ -96,6 +96,7 @@ scripts/operator-dispatch.sh
 scripts/operator-collect.sh
 scripts/operator-summary.sh
 scripts/operator-memory.sh
+scripts/operator-upgrade.sh
 ```
 
 If Codex starts inside a worker lane such as `code/app-backend`, the skill should also check sibling worktrees by walking upward and looking for immediate child directories with `operator.config.env`. If multiple candidate configs are found, it should ask which project root to operate.
@@ -144,7 +145,28 @@ Use $operator. Dispatch the auth task to backend with memory.
 Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.
 Use $operator. Search operator memory for auth migration notes.
 Use $operator. Review the ui lane diff and recommend whether to merge.
+Use $operator --upgrade.
+Use $operator /upgrade dry run.
 Use $operator. Update to latest version from git.
+```
+
+## Upgrade Command
+
+`$operator --upgrade`, `$operator /upgrade`, and natural-language upgrade
+requests should run:
+
+```bash
+bash scripts/operator-upgrade.sh
+```
+
+This refreshes bundled Codex Desktop skills, discovers installed Operator Kit
+projects under `~/Projects`, updates each project, and runs checks. Use:
+
+```bash
+bash scripts/operator-upgrade.sh --dry-run
+bash scripts/operator-upgrade.sh --target /path/to/project
+bash scripts/operator-upgrade.sh --projects-root /path/to/projects
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 ```
 
 ## Memory

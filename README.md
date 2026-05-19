@@ -75,6 +75,7 @@ scripts/
   operator-memory.sh
   operator-update.sh
   operator-sync.sh
+  operator-upgrade.sh
 
 AGENTS.md
 operator.config.env
@@ -254,6 +255,34 @@ bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/codex-skills-install.sh [--latest]
 bash scripts/operator-sync.sh [--target <repo>]
+bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
+```
+
+## Upgrade Everything
+
+Use the upgrade command when you want one operation to refresh this Codex
+Desktop instance and every installed Operator Kit project on the machine:
+
+```bash
+bash scripts/operator-upgrade.sh
+```
+
+Preview first:
+
+```bash
+bash scripts/operator-upgrade.sh --dry-run
+```
+
+The command refreshes bundled Codex Desktop skills, scans `~/Projects` for
+installed projects by finding `operator.config.env`, updates each project from
+the latest kit source, and runs project checks. Use `--target <repo>` to update
+one project or `--projects-root <path>` to scan a different folder.
+
+On a machine without a local kit checkout:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 ```
 
 ## Operator Memory

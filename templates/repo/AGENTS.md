@@ -24,6 +24,7 @@ bash scripts/operator-summary.sh
 bash scripts/operator-memory.sh status
 bash scripts/operator-memory.sh search <query>
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
+bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```
 
 ## Memory

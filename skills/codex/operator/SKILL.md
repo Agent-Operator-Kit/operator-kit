@@ -24,6 +24,7 @@ Before operator work, resolve the project root:
    - `scripts/operator-collect.sh`
    - `scripts/operator-summary.sh`
    - `scripts/operator-memory.sh`
+   - `scripts/operator-upgrade.sh`
 5. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 6. Read `operator.config.env`.
 7. Read `AGENTS.md` if present.
@@ -61,10 +62,49 @@ bash scripts/operator-memory.sh promote project "<fact>"
 bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
+bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
 ```
 
 Avoid sending arbitrary text directly into tmux panes unless the scripts do not cover the use case.
+
+## Upgrade Command
+
+When the user says `$operator --upgrade`, `$operator /upgrade`, `operator upgrade`, or `upgrade Operator Kit`, run the upgrade workflow.
+
+Preferred command from the kit source or an installed project:
+
+```bash
+bash scripts/operator-upgrade.sh
+```
+
+Use `--dry-run` when the user asks to preview changes:
+
+```bash
+bash scripts/operator-upgrade.sh --dry-run
+```
+
+Use `--target <repo>` for one project or `--projects-root <path>` for a project tree:
+
+```bash
+bash scripts/operator-upgrade.sh --target /path/to/project
+bash scripts/operator-upgrade.sh --projects-root /path/to/projects
+```
+
+If the current project does not have `scripts/operator-upgrade.sh`, run it from the local kit source when available:
+
+```bash
+bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-upgrade.sh
+```
+
+If no local source exists, use the latest GitHub source as the fallback:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
+```
+
+The upgrade command refreshes bundled Codex Desktop skills, discovers installed Operator Kit projects under `~/Projects` by default, refreshes each project's evergreen scripts/templates, and runs project checks. It preserves project-specific config, docs, handoffs, task packets, working files, memory, captures, and source code.
 
 ## Status And Summaries
 
@@ -268,6 +308,7 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-status.sh
    bash scripts/operator-summary.sh
    bash scripts/operator-memory.sh status
+   bash scripts/operator-upgrade.sh --dry-run --skip-skills --target <project-root>
    git status --short
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.

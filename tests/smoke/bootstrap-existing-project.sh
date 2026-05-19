@@ -30,6 +30,7 @@ test -d "$tmp_root/operator/memory/episodes"
 test -f "$tmp_root/operator/README.md"
 test -f "$tmp_root/code/app/scripts/operator-memory.sh"
 test -f "$tmp_root/code/app/scripts/operator-update.sh"
+test -f "$tmp_root/code/app/scripts/operator-upgrade.sh"
 test -f "$tmp_root/code/app/.claude/commands/operator-bootstrap.md"
 test -f "$tmp_root/code/app/.claude/commands/operator-status.md"
 test -f "$tmp_root/code/app/.claude/agents/operator-workflow.md"
@@ -70,5 +71,13 @@ EOF
 bash scripts/operator-memory.sh ingest backend smoke-001 "$task_dir/handoffs/backend-capture-test.md" >/dev/null
 bash scripts/operator-memory.sh search "disposable smoke" >/dev/null
 test "$(find "$tmp_root/operator/memory/episodes" -type f -name '*.md' | wc -l | tr -d ' ')" = "1"
+
+bash "$KIT_ROOT/scripts/operator-upgrade.sh" \
+  --source "$KIT_ROOT" \
+  --projects-root "$tmp_root" \
+  --skip-skills \
+  --dry-run \
+  --no-fetch \
+  --skip-checks >/dev/null
 
 printf 'smoke ok: %s\n' "$tmp_root"

@@ -81,6 +81,13 @@ To update from the latest kit source first:
 bash scripts/operator-sync.sh --skip-project
 ```
 
+To refresh this Codex Desktop instance and every installed Operator Kit project
+on the machine:
+
+```bash
+bash scripts/operator-upgrade.sh
+```
+
 Restart or reopen Codex Desktop, then operate installed projects with prompts like:
 
 ```text
