@@ -18,7 +18,7 @@ The local flow:
 2. Read `operator.config.env`.
 3. Confirm lane map and expected branches.
 4. Keep generated state under `OPERATOR_DIR`.
-5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, and `scripts/operator-memory.sh`.
+5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, and `scripts/operator-feedback.sh`.
 6. Commit only evergreen repo changes.
 
 Once the user authorizes a feature track, keep dispatching necessary follow-up
@@ -62,6 +62,15 @@ relevant context explicitly in the prompt or task packet.
 Local Cursor operator work can use `operator-dispatch.sh --with-memory` to add
 a compact context pack. Use project memory for durable facts and task memory for
 feature-track facts. Do not commit generated memory files.
+
+## Roadmap And Feedback
+
+Keep local roadmap, backlog, feedback intake, and planning views under
+`OPERATOR_DIR/roadmap/`. Do not commit raw feedback annotations or local planning
+views into the app repo; use PR/commit trace references instead.
+
+For Codex Desktop projects, use `$operator-feedback` for intake,
+`$operator-planner` for planning, and `$operator` for execution.
 
 ## Guardrails
 

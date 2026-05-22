@@ -17,7 +17,8 @@ https://agent-operator-kit.github.io/operator-kit/
 - Each lane has its own git worktree and branch.
 - tmux keeps long-running agents visible and recoverable.
 - Task packets, handoffs, and temporary working files live outside the repo in an operator workspace.
-- The repo keeps only evergreen docs, reusable scripts, and source code.
+- Local roadmap, backlog, feedback, and prioritization live outside the repo under `OPERATOR_DIR/roadmap`.
+- The repo keeps evergreen docs, reusable scripts, source code, and lightweight PR/commit trace references.
 
 ## Layout
 
@@ -31,6 +32,10 @@ Recommended project layout:
     app-ui/           # optional worker worktree
   operator/
     README.md
+    roadmap/
+      items/*.md
+      inbox/
+      views/*.md
     tasks/
       <slug>/
         00-operator-brief.md
@@ -39,6 +44,9 @@ Recommended project layout:
         handoffs/*.md
         work/
           README.md
+          feedback/
+            captures/
+            annotations.json
           *.html
           images/
     captures/
@@ -73,6 +81,8 @@ scripts/
   operator-collect.sh
   operator-summary.sh
   operator-memory.sh
+  operator-roadmap.sh
+  operator-feedback.sh
   operator-update.sh
   operator-sync.sh
   operator-upgrade.sh
@@ -184,6 +194,8 @@ Codex-specific reusable guidance:
 ```text
 skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
+skills/codex/operator-feedback/SKILL.md
+skills/codex/operator-planner/SKILL.md
 skills/codex/design-agent/SKILL.md
 skills/codex/incubation/SKILL.md
 ```
@@ -194,6 +206,7 @@ Companion skill guides:
 docs/guides/design-agent-collaboration.md
 docs/guides/incubation-collaboration.md
 docs/concepts/operator-memory.md
+docs/concepts/operator-roadmap.md
 ```
 
 Install or refresh every bundled Codex Desktop skill from this kit:
@@ -203,7 +216,9 @@ bash scripts/codex-skills-install.sh
 bash scripts/codex-skills-install.sh --latest
 ```
 
-Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
+Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for execution in installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
+
+Use `skills/codex/operator-feedback/SKILL.md` for feedback intake and `skills/codex/operator-planner/SKILL.md` for roadmap/backlog planning. The older `skills/codex/product-manager/SKILL.md` remains as a compatibility alias.
 
 Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
 
@@ -290,6 +305,8 @@ bash scripts/operator-memory.sh status
 bash scripts/operator-memory.sh search <query>
 bash scripts/operator-memory.sh promote project "<fact>"
 bash scripts/operator-memory.sh promote task <slug> "<fact>"
+bash scripts/operator-roadmap.sh status
+bash scripts/operator-feedback.sh detect
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/codex-skills-install.sh [--latest]
 bash scripts/operator-sync.sh [--target <repo>]
@@ -358,6 +375,42 @@ Every task folder includes `OPERATOR_DIR/tasks/<slug>/work/` for temporary artif
 
 Keep those files out of the repo by default. Promote an artifact into source, `design-system/`, or evergreen docs only when the operator intentionally decides it should become durable project material.
 
+## Local Roadmap And Feedback
+
+Operator Kit keeps roadmap, backlog, prioritization, and raw feedback outside
+the app repo by default:
+
+```text
+OPERATOR_DIR/roadmap/items/
+OPERATOR_DIR/roadmap/inbox/
+OPERATOR_DIR/roadmap/views/
+```
+
+Use lightweight IDs in PRs or commits for traceability:
+
+```markdown
+Roadmap: RM-0007
+Feedback: FB-0014, FB-0015
+Operator task: mobile-feedback-20260522
+Why: short rationale
+Validation: commands or manual checks
+```
+
+The feedback workflow can capture iOS Simulator screenshots/videos into an
+Operator task and open a local browser review UI for annotation:
+
+```bash
+bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
+bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"
+bash scripts/operator-feedback.sh review mobile-feedback-20260522
+bash scripts/operator-feedback.sh triage mobile-feedback-20260522
+```
+
+Use `$operator-feedback` to capture feedback intake, then `$operator-planner`
+to triage, prioritize local roadmap items, and shape ready-for-execution plans.
+`$operator` still owns task creation, dispatch, collection, and integration
+review.
+
 ## Codex Desktop `$operator` Skill
 
 For Codex Desktop, install or refresh every bundled skill globally:
@@ -383,6 +436,36 @@ Use $operator. Collect backend lane result for auth-001 and tell me if it is rea
 Use $operator. Summarize blockers across all lanes.
 Use $operator. Update to latest version from git.
 ```
+
+## Operator Feedback, Planning, And Execution Skills
+
+The install script also refreshes explicit companion mode skills:
+
+```bash
+bash scripts/codex-skills-install.sh --skill operator-feedback --skill operator-planner
+```
+
+Then open or restart Codex Desktop and use:
+
+```text
+Use $operator-feedback with $design-agent. Capture these annotations.
+Use $operator-feedback. Start a mobile feedback review for today's simulator testing.
+Use $operator-planner. Review the feedback inbox and propose now/next/later.
+Use $operator-planner. Promote the top feedback group into roadmap candidates.
+Use $operator-planner. Draft a PR trace note for RM-0007 and FB-0014.
+Use $operator. Execute the approved RM-0007 mobile-ui task.
+```
+
+The mode split is:
+
+```text
+$operator-feedback = capture evidence, classify feedback, write FB-* intake
+$operator-planner  = prioritize, group, promote to roadmap/backlog
+$operator          = create tasks, dispatch lanes, collect, integrate
+```
+
+The compatibility `$product-manager` skill remains available for older prompts,
+but new workflows should use `$operator-feedback` and `$operator-planner`.
 
 ## Optional Codex Desktop `$design-agent` Skill
 

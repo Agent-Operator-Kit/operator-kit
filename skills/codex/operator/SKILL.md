@@ -1,6 +1,6 @@
 ---
 name: operator
-description: "Manage Agent Operator Kit projects in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit, operator lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, design-agent collaboration, incubation promotion, or when working in a promoted project that has operator.config.env and scripts/operator-*.sh."
+description: "Manage Agent Operator Kit execution in Codex Desktop. Use when the user mentions $operator, Agent Operator Kit execution, lanes, tmux lanes, task packets, dispatch, collect, handoffs, lane status, worktree agents, updating Operator Kit, or working in a promoted project that has operator.config.env and scripts/operator-*.sh. Use $operator-feedback for feedback intake and $operator-planner for roadmap planning."
 ---
 
 # Operator
@@ -8,6 +8,18 @@ description: "Manage Agent Operator Kit projects in Codex Desktop. Use when the 
 Use this skill as the Codex Desktop operating wrapper for an installed Agent Operator Kit project. The project-local `operator.config.env` and `scripts/operator-*.sh` files are the source of truth.
 
 Do not treat this as direct tmux chat. Operate through status checks, task packets, dispatch, collection, summaries, and reviewed integration.
+
+This is execution mode:
+
+```text
+$operator-feedback = capture evidence, classify feedback, write FB-* intake
+$operator-planner  = prioritize, group, promote to roadmap/backlog
+$operator          = create tasks, dispatch lanes, collect, integrate
+```
+
+When the user is only testing, annotating, collecting observations, or
+prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
+Use `$operator` when work is ready to become execution.
 
 ## Detect The Project
 
@@ -60,6 +72,8 @@ bash scripts/operator-memory.sh status
 bash scripts/operator-memory.sh search <query>
 bash scripts/operator-memory.sh promote project "<fact>"
 bash scripts/operator-memory.sh promote task <slug> "<fact>"
+bash scripts/operator-roadmap.sh status
+bash scripts/operator-feedback.sh detect
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
@@ -179,7 +193,8 @@ Suggested combined requests:
 ```text
 Use $design-agent with $operator. Do a comprehensive UX and consistency review.
 Use $design-agent with $operator. Extract a design system and prepare a UI lane task.
-Use $design-agent with $operator. Turn my annotations into a design follow-up task.
+Use $design-agent with $operator-feedback. Capture my annotations as feedback.
+Use $operator-planner with $operator. Turn ready design feedback into an execution plan.
 ```
 
 Do not bypass `$operator` safety checks just because a task came from `$design-agent`. Do not let `design` and `ui` lanes edit the same files at the same time.
@@ -274,6 +289,33 @@ Use `$OPERATOR_DIR/tasks/<slug>/work/` for all temporary task artifacts:
 Keep working files outside the repo. Promote a file into source, `design-system/`,
 or evergreen docs only when the operator intentionally accepts it as durable
 project material.
+
+## Local Roadmap And Feedback
+
+Use `scripts/operator-roadmap.sh` and `scripts/operator-feedback.sh` for local
+roadmap, backlog, feedback intake, simulator captures, and browser-based
+annotation review. This state lives under `OPERATOR_DIR`, not the app repo.
+
+Use `$operator-feedback` for feedback intake and `$operator-planner` for triage,
+prioritization, rationale, and ready-for-execution shaping. Keep `$operator`
+responsible for lane safety, task folder creation, dispatch, collection, and
+integration review.
+
+For mobile feedback, the default evidence model is:
+
+```text
+screenshot/video + screen + coordinates or testID + comment
+```
+
+Use lightweight trace references in PRs or commits:
+
+```markdown
+Roadmap: RM-0007
+Feedback: FB-0014, FB-0015
+Operator task: mobile-feedback-20260522
+Why: short rationale
+Validation: commands or manual checks
+```
 
 ## Update To Latest
 

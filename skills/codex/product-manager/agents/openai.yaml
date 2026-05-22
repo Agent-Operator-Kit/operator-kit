@@ -1,0 +1,4 @@
+interface:
+  display_name: "Product Manager"
+  short_description: "Compatibility alias"
+  default_prompt: "Prefer $operator-feedback for intake and $operator-planner for planning. If $product-manager is invoked, treat it as planning mode and leave dispatch and integration to $operator."

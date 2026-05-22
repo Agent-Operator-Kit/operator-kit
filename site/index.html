@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Operator Kit</title>
-<meta name="description" content="Agent Operator Kit is an AI-agent-first operating model for Codex, Claude Code, Cursor, and other coding agents: worktree lanes, tmux sessions, operator memory, task work folders, and one-command upgrades.">
+<meta name="description" content="Agent Operator Kit is an AI-agent-first operating model for Codex, Claude Code, Cursor, and other coding agents: feedback intake, roadmap planning, execution lanes, tmux sessions, operator memory, task work folders, and one-command upgrades.">
 <link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -791,10 +791,11 @@
   <ul class="nav-links">
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
-    <li><a href="#codex-skill">Codex Skill</a></li>
+    <li><a href="#codex-skill">Codex</a></li>
+    <li><a href="#operator-modes">Modes</a></li>
     <li><a href="#upgrade">Upgrade</a></li>
     <li><a href="#incubation">Incubation</a></li>
-    <li><a href="#design-agent">Design Agent</a></li>
+    <li><a href="#design-agent">Design</a></li>
     <li><a href="#agents">Assets</a></li>
     <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -815,8 +816,9 @@
       The Operator model for specialized agents.
     </h1>
     <p class="hero-subtitle fade-up fade-up-3">
-      Give Codex, Claude Code, Cursor, and domain skills one main operating
-      layer: isolated lanes, external handoffs, task memory, and working files kept out of source.
+      Give Codex, Claude Code, Cursor, and domain skills one operating layer:
+      feedback intake, roadmap planning, isolated execution lanes, task memory,
+      and working files kept out of source.
     </p>
     <div class="hero-ctas fade-up fade-up-4">
       <a class="btn-primary" href="#getting-started">
@@ -852,24 +854,24 @@
           <div class="terminal-dot yellow"></div>
           <div class="terminal-dot green"></div>
         </div>
-        <span class="terminal-title">operator — upgrade + memory</span>
+        <span class="terminal-title">operator — feedback → planning → execution</span>
       </div>
       <div class="terminal-body" id="terminal-body">
         <div><span class="t-comment"># one command refreshes skills and installed projects</span></div>
         <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-upgrade.sh</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SKILLS</span>   $operator · $design-agent · $incubation</div>
+        <div><span class="t-success">✓</span> <span class="t-info">SKILLS</span>   $operator-feedback · $operator-planner · $operator</div>
         <div><span class="t-success">✓</span> <span class="t-info">PROJECT</span>  ~/Projects/acme/code/app</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SCRIPTS</span>  operator-memory.sh · operator-upgrade.sh</div>
-        <div><span class="t-success">✓</span> <span class="t-info">CHECKS</span>   status · summary · memory</div>
+        <div><span class="t-success">✓</span> <span class="t-info">SCRIPTS</span>  operator-feedback.sh · operator-roadmap.sh</div>
+        <div><span class="t-success">✓</span> <span class="t-info">CHECKS</span>   status · summary · roadmap · memory</div>
         <div>&nbsp;</div>
-        <div><span class="t-comment"># dispatch with relevant memory, keep scratch files outside repo</span></div>
-        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ bash scripts/operator-dispatch.sh --with-memory ui $OPERATOR_DIR/tasks/nav-refresh/tasks/ui.md</span></div>
+        <div><span class="t-comment"># capture feedback first, then promote only approved work</span></div>
+        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-success">✓</span> context pack attached from operator memory</div>
-        <div><span class="t-dim">  prototypes and screenshots go to operator/tasks/nav-refresh/work/</span></div>
+        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator-planner. Propose now/next/later.</span></div>
+        <div><span class="t-success">✓</span> ready-for-execution: RM-0007 · FB-0014</div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">operator:~/acme/code/app</span> <span class="t-cmd">$ </span><span class="t-cursor"></span></div>
+        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator. Execute the approved mobile-ui task.</span><span class="t-cursor"></span></div>
       </div>
     </div>
 
@@ -961,6 +963,12 @@
       <h3>One Machine Refresh</h3>
       <p><code>$operator --upgrade</code> refreshes global Codex skills, discovers installed projects, updates scripts/templates, and runs checks.</p>
     </div>
+    <div class="how-card">
+      <div class="how-card-num">08 — ROADMAP</div>
+      <div class="how-card-accent"></div>
+      <h3>Feedback To Execution</h3>
+      <p>Testing notes and annotations become <code>FB-*</code> intake first, planner work promotes selected items into <code>RM-*</code>, and only then does <code>$operator</code> dispatch implementation.</p>
+    </div>
   </div>
 
   <div class="filetree-wrap">
@@ -977,7 +985,11 @@
         <div class="ft-indent2"><span class="ft-dir">tasks/</span></div>
         <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/memory.md</span></div>
         <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/</span>  <span class="ft-comment">html, images, notes</span></div>
+        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/feedback/</span>  <span class="ft-comment">captures, annotations</span></div>
         <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/handoffs/</span></div>
+        <div class="ft-indent2"><span class="ft-dir">roadmap/</span></div>
+        <div class="ft-indent2"><span class="ft-file">roadmap/inbox/FB-*.md</span></div>
+        <div class="ft-indent2"><span class="ft-file">roadmap/items/RM-*.md</span></div>
         <div class="ft-indent2"><span class="ft-dir">captures/</span></div>
         <div class="ft-indent2"><span class="ft-dir">memory/</span></div>
       </div>
@@ -992,6 +1004,8 @@
         <div class="ft-indent"><span class="ft-file">operator-tmux.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-feedback.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-roadmap.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-memory.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-sync.sh</span></div>
@@ -1090,14 +1104,14 @@
 <section id="codex-skill">
   <div class="section-label">// codex desktop</div>
   <h2 class="section-title">Use <span style="color:var(--accent)">$operator</span><br>as the project cockpit.</h2>
-  <p class="section-sub">Install the runtime skill globally, then ask Codex to operate installed Operator Kit projects in natural language. The skill detects the kit first, uses project-local scripts as source of truth, and understands upgrade commands.</p>
+  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, or execute approved tasks in natural language. The skills detect the kit first and use project-local scripts as source of truth.</p>
 
   <div class="how-grid">
     <div class="how-card">
       <div class="how-card-num">01 — INSTALL</div>
       <div class="how-card-accent"></div>
-      <h3>Global Codex Skill</h3>
-      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so bundled skills such as <code>$operator</code>, <code>$incubation</code>, and <code>$design-agent</code> are available.</p>
+      <h3>Global Codex Skills</h3>
+      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, and companion skills are available.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — DETECT</div>
@@ -1108,8 +1122,8 @@
     <div class="how-card">
       <div class="how-card-num">03 — OPERATE</div>
       <div class="how-card-accent"></div>
-      <h3>Status, Dispatch, Collect</h3>
-      <p>For installed projects it reads config, runs status/summary/memory checks, creates task packets under <code>OPERATOR_DIR</code>, dispatches lanes, and reviews handoffs.</p>
+      <h3>Feedback, Plan, Execute</h3>
+      <p>For installed projects Codex can capture feedback under <code>OPERATOR_DIR</code>, promote roadmap work, create task packets, dispatch lanes, and review handoffs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — GUARD</div>
@@ -1123,6 +1137,12 @@
       <h3><code>$operator --upgrade</code></h3>
       <p>Refresh the global Codex skills and every installed Operator Kit project on the machine with one operator command.</p>
     </div>
+    <div class="how-card">
+      <div class="how-card-num">06 — TRACE</div>
+      <div class="how-card-accent"></div>
+      <h3>Lightweight PR References</h3>
+      <p>Code changes link back with <code>Roadmap: RM-0007</code>, <code>Feedback: FB-0014</code>, and an operator task slug instead of committing the whole planning ledger to the app repo.</p>
+    </div>
   </div>
 
   <div class="prompt-card" style="margin-top:1.5rem;">
@@ -1135,6 +1155,7 @@
     <div class="prompt-body">
       <div><span class="p-comment"># install once from the kit repo</span></div>
       <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill operator-feedback --skill operator-planner --skill operator</div>
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --skip-project</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># update an existing Operator Kit project</span></div>
@@ -1148,14 +1169,90 @@
       <div><span class="p-val">Use $operator /upgrade dry run.</span></div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># operate an installed project</span></div>
+      <div><span class="p-val">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
+      <div><span class="p-val">Use $operator-feedback. Start a mobile feedback review for simulator testing.</span></div>
+      <div><span class="p-val">Use $operator-planner. Review the feedback inbox and propose now/next/later.</span></div>
+      <div><span class="p-val">Use $operator-planner. Promote the top feedback group into roadmap candidates.</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>
       <div><span class="p-val">Use $operator. Start tmux lanes.</span></div>
       <div><span class="p-val">Use $operator. Create a backend task for auth scaffolding.</span></div>
+      <div><span class="p-val">Use $operator. Execute the approved RM-0007 mobile-ui task.</span></div>
       <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
       <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
       <div><span class="p-val">Use $operator. Dispatch the auth task to backend with memory.</span></div>
       <div><span class="p-val">Use $incubation with $operator. Prepare an idea for promotion.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator. Package a UI follow-up task.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator-feedback. Package UI observations as feedback.</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- OPERATOR MODES -->
+<section id="operator-modes">
+  <div class="section-label">// feedback planning execution</div>
+  <h2 class="section-title">Separate observation<br>from implementation.</h2>
+  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion and operator approval.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — FEEDBACK MODE</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$operator-feedback</code></h3>
+      <p>Captures testing notes, browser annotations, mobile screenshots, videos, coordinates, <code>testID</code>s, severity, type, and expected behavior as structured <code>FB-*</code> intake.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — PLANNING MODE</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$operator-planner</code></h3>
+      <p>Reviews feedback, groups duplicates, prioritizes now/next/later, promotes selected work into <code>RM-*</code> roadmap items, and writes ready-for-execution plans.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — EXECUTION MODE</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$operator</code></h3>
+      <p>Creates task folders, checks lane and file ownership, dispatches scoped packets, collects handoffs, reviews diffs, and integrates approved implementation work.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — MOBILE LOOP</div>
+      <div class="how-card-accent"></div>
+      <h3>Simulator Review</h3>
+      <p>Capture iOS Simulator screenshots or recordings into a feedback task, open the local review UI, click screenshot locations, annotate, then triage into the feedback inbox.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">05 — LOCAL FIRST</div>
+      <div class="how-card-accent"></div>
+      <h3>Roadmap Outside Repo</h3>
+      <p>Roadmap, backlog, prioritization views, and raw feedback live under <code>OPERATOR_DIR/roadmap</code>. The app repo carries only lightweight trace IDs.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">06 — TEAM PATH</div>
+      <div class="how-card-accent"></div>
+      <h3>Promote When Needed</h3>
+      <p>Solo work stays local. When more developers join, the same <code>FB-*</code> and <code>RM-*</code> contracts can sync to a separate planning repo or tracker.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">mode examples</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-roadmap.md" target="_blank">Roadmap concept
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># feedback is observation, not execution</span></div>
+      <div><span class="p-val">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"</div>
+      <div><span class="p-key">bash</span> scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"</div>
+      <div><span class="p-key">bash</span> scripts/operator-feedback.sh review mobile-feedback-20260522</div>
+      <div><span class="p-key">bash</span> scripts/operator-feedback.sh triage mobile-feedback-20260522</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># planning decides what should become work</span></div>
+      <div><span class="p-val">Use $operator-planner. Review FB-* items and propose now/next/later.</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Coach chat input polish" --type bug --priority P1 --areas mobile</div>
+      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh pr-note RM-0007 --feedback FB-0014 --task mobile-chat-input-polish</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># execution starts after approval</span></div>
+      <div><span class="p-val">Use $operator. Execute RM-0007 / FB-0014 with the approved mobile-ui task.</span></div>
     </div>
   </div>
 </section>
@@ -1171,7 +1268,7 @@
       <div class="how-card-num">01 — SKILLS</div>
       <div class="how-card-accent"></div>
       <h3>Codex Desktop</h3>
-      <p>Refreshes <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code>.</p>
+      <p>Refreshes <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code>.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — DISCOVER</div>
@@ -1329,7 +1426,8 @@
       <div>&nbsp;</div>
       <div><span class="p-comment"># design-agent with operator lanes</span></div>
       <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task for the dashboard refresh.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator. Turn my annotations into a design follow-up task and ask before dispatch.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator-feedback. Classify my annotations as local feedback.</span></div>
+      <div><span class="p-val">Use $operator-planner with $design-agent. Turn ready feedback into a UI execution plan.</span></div>
       <div><span class="p-val">Use $design-agent with $operator. Extract the design system, then package the safest next UI task.</span></div>
       <div><span class="p-comment"># temporary files land under OPERATOR_DIR/tasks/&lt;slug&gt;/work/</span></div>
     </div>
@@ -1346,14 +1444,44 @@
     <div class="agent-card">
       <div class="agent-logo codex">CDEX</div>
       <div class="agent-name">Codex</div>
-      <p class="agent-desc">A global <code>$operator</code> runtime skill for Codex Desktop, plus setup, upgrade, memory, and repair guidance for Codex-driven operation.</p>
+      <p class="agent-desc">Global Codex Desktop skills for feedback intake, planning, execution, setup, upgrade, memory, and repair guidance.</p>
       <div class="agent-tags">
         <span class="agent-tag">$operator</span>
+        <span class="agent-tag">$operator-feedback</span>
+        <span class="agent-tag">$operator-planner</span>
         <span class="agent-tag">--upgrade</span>
         <span class="agent-tag">SKILL.md</span>
       </div>
       <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator" target="_blank">
         Open Codex Skill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
+      <div class="agent-logo codex">FDBK</div>
+      <div class="agent-name">Operator Feedback</div>
+      <p class="agent-desc">A Codex Desktop mode for testing notes, screenshots, videos, browser/mobile annotations, severity, type, coordinates, and <code>FB-*</code> intake.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">$operator-feedback</span>
+        <span class="agent-tag">FB-*</span>
+        <span class="agent-tag">annotations</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-feedback" target="_blank">
+        Open Feedback Skill
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="agent-card">
+      <div class="agent-logo cursor">PLAN</div>
+      <div class="agent-name">Operator Planner</div>
+      <p class="agent-desc">A Codex Desktop mode for feedback review, duplicate grouping, roadmap promotion, prioritization, and ready-for-execution task shaping.</p>
+      <div class="agent-tags">
+        <span class="agent-tag">$operator-planner</span>
+        <span class="agent-tag">RM-*</span>
+        <span class="agent-tag">now/next/later</span>
+      </div>
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-planner" target="_blank">
+        Open Planner Skill
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
     </div>

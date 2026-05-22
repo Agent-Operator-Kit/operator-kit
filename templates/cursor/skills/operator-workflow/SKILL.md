@@ -22,7 +22,8 @@ Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-memory.sh status`
-10. Report installed files, lane map, smoke results, memory status, dirty files, and whether the repo is ready to commit.
+   - `bash scripts/operator-roadmap.sh status`
+10. Report installed files, lane map, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
 
 Once the user authorizes a feature track, keep dispatching necessary follow-up
 tasks to the appropriate lanes until the feature is completed, integrated,
@@ -46,6 +47,15 @@ For Background Agent tasks:
 Use `scripts/operator-memory.sh` for local cross-lane context. Dispatch with
 `--with-memory` when a lane needs retrieved context. Promote concise project or
 task facts; do not commit generated memory files.
+
+## Roadmap And Feedback
+
+Use `scripts/operator-roadmap.sh` and `scripts/operator-feedback.sh` for local
+roadmap, backlog, feedback intake, and screenshot/video annotation workflows.
+Keep this state under `OPERATOR_DIR`, not in the app repo.
+
+For Codex Desktop projects, use `$operator-feedback` for intake,
+`$operator-planner` for planning, and `$operator` for execution.
 
 ## Guardrails
 

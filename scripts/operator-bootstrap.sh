@@ -31,11 +31,11 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 [ -n "$default_branch" ] || default_branch="$(git -C "$repo_root" branch --show-current)"
 [ -n "$default_branch" ] || default_branch="main"
 
-mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory"
+mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules" "$repo_root/.cursor/skills/operator-workflow"
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
   chmod +x "$repo_root/scripts/$script"
 done
@@ -95,6 +95,20 @@ if [ ! -f "$project_root/operator/README.md" ]; then
   cp "$KIT_ROOT/templates/operator-workspace/README.md" "$project_root/operator/README.md"
 fi
 
+for roadmap_file in \
+  "roadmap/README.md" \
+  "roadmap/items/_template.md" \
+  "roadmap/inbox/_feedback-template.md" \
+  "roadmap/views/ready.md" \
+  "roadmap/views/blocked.md" \
+  "roadmap/views/now-next-later.md" \
+  "roadmap/views/shipped.md"; do
+  if [ ! -f "$project_root/operator/$roadmap_file" ]; then
+    mkdir -p "$(dirname "$project_root/operator/$roadmap_file")"
+    cp "$KIT_ROOT/templates/operator-workspace/$roadmap_file" "$project_root/operator/$roadmap_file"
+  fi
+done
+
 if ! grep -q 'Agent Operator Kit generated state' "$repo_root/.gitignore" 2>/dev/null; then
   {
     printf '\n'
@@ -103,6 +117,8 @@ if ! grep -q 'Agent Operator Kit generated state' "$repo_root/.gitignore" 2>/dev
 fi
 
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-memory.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-roadmap.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feedback.sh" init >/dev/null
 
 printf 'Installed Agent Operator Kit into: %s\n' "$repo_root"
 printf 'Operator workspace: %s\n' "$project_root/operator"

@@ -2,7 +2,7 @@
 
 This project uses Agent Operator Kit.
 
-When operating this project in Codex Desktop, use the global `$operator` skill by default unless the user explicitly says otherwise. `operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, and Operator Kit updates.
+When operating this project in Codex Desktop, use `$operator-feedback` for feedback intake, `$operator-planner` for roadmap/backlog planning, and `$operator` for execution unless the user explicitly says otherwise. `operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, and Operator Kit updates.
 
 ## Operating Model
 
@@ -11,6 +11,7 @@ When operating this project in Codex Desktop, use the global `$operator` skill b
 - The stable branch stays production-facing.
 - Task packets, handoffs, pane captures, task working files, and transient notes live outside the repo under `OPERATOR_DIR`.
 - Repo docs are evergreen only.
+- Feedback is not execution: annotations and testing notes become `FB-*` intake first, planner work promotes selected items into `RM-*`, and only `$operator` dispatches implementation.
 
 ## Commands
 
@@ -23,6 +24,8 @@ bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
 bash scripts/operator-memory.sh status
 bash scripts/operator-memory.sh search <query>
+bash scripts/operator-roadmap.sh status
+bash scripts/operator-feedback.sh detect
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```
@@ -33,6 +36,7 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 - `OPERATOR_DIR/memory/project.md` stores durable project facts.
 - `OPERATOR_DIR/tasks/<slug>/memory.md` stores feature-track facts shared across lanes.
 - `OPERATOR_DIR/tasks/<slug>/work/` stores temporary working files: scratch markdown, prototypes, screenshots, generated images, redesign options, and review READMEs.
+- `OPERATOR_DIR/roadmap/` stores local roadmap, backlog, feedback, prioritization views, and PR/commit trace IDs.
 - `OPERATOR_DIR/memory/episodes/*.md` stores distilled lane handoffs.
 - Use `operator-dispatch.sh --with-memory` when prior context should be retrieved for a lane.
 - Raw captures and handoffs are evidence; promote only concise facts that will help future work.
@@ -43,6 +47,7 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 - Never let two agents edit the same file at the same time.
 - Never commit raw handoffs or task packets.
 - Never commit task working files unless the operator explicitly promotes them into durable source or docs.
+- Never commit raw roadmap inbox items, local feedback annotations, or planning views unless explicitly promoted into evergreen docs.
 - Merge worker work only after operator review and validation.
 
 ## Operator Dispatch Rule

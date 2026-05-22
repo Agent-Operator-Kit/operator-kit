@@ -42,12 +42,12 @@ Use the operator-workflow subagent to set up Agent Operator Kit for this repo.
 1. Inspect the repo and git status.
 2. Identify default branch, remotes, package manager, and validation commands.
 3. Propose a lane map.
-4. Install scripts/templates, including `scripts/operator-memory.sh`.
-5. Create the external operator workspace and memory folders.
+4. Install scripts/templates, including `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, and `scripts/operator-feedback.sh`.
+5. Create the external operator workspace, memory folders, and local roadmap/feedback workspace.
 6. Create or verify worktrees.
 7. Start tmux.
 8. Create a smoke task.
-9. Run status, summary, and memory status checks.
+9. Run status, summary, memory status, and roadmap status checks.
 10. Report whether the repo is ready to commit.
 
 ## Memory
@@ -56,6 +56,15 @@ Use `scripts/operator-memory.sh` for cross-lane context that should survive
 Claude Code compaction. Dispatch with `--with-memory` when a lane needs
 retrieved project, task, or episode context. Promote only concise facts; raw
 handoffs and captures remain evidence under `OPERATOR_DIR`.
+
+## Roadmap And Feedback
+
+Use `scripts/operator-roadmap.sh` and `scripts/operator-feedback.sh` for local
+roadmap, backlog, feedback intake, screenshot/video annotations, and planning
+views. Keep this state under `OPERATOR_DIR`, not in the app repo.
+
+In Codex Desktop, the matching explicit modes are `$operator-feedback` for
+intake, `$operator-planner` for planning, and `$operator` for execution.
 
 ## Operating Feature Tracks
 

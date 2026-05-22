@@ -30,6 +30,7 @@ Goals:
 - Use tmux for persistent Codex/Claude worker lanes.
 - Keep task packets, handoffs, captures, task working files, and transient operator notes outside the repo.
 - Install Operator Memory Router for compact project, task, and lane episode context.
+- Initialize the local Operator roadmap and feedback workspace.
 - Keep only reusable scripts and evergreen docs inside the repo.
 - Generate or update AGENTS.md, CODEX.md, CLAUDE.md, and operator.config.env as needed.
 - If Codex Desktop is relevant, explain how to install bundled global skills with scripts/codex-skills-install.sh; do not write to ~/.codex unless I explicitly ask.
@@ -62,8 +63,9 @@ Required behavior:
    - bash scripts/operator-status.sh
    - bash scripts/operator-summary.sh
    - bash scripts/operator-memory.sh status
+   - bash scripts/operator-roadmap.sh status
 10. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
-11. Confirm scripts/operator-memory.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
+11. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
 12. Confirm AGENTS.md points Codex users to the global $operator skill when available.
 13. Show git status and list intended repo changes.
 

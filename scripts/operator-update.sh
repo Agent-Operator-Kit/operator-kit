@@ -193,7 +193,7 @@ source "$TARGET_REPO/operator.config.env"
 : "${OPERATOR_DIR:?OPERATOR_DIR is required in operator.config.env}"
 
 mkdir -p "$TARGET_REPO/scripts"
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_refresh "$SOURCE_PATH/scripts/$script" "$TARGET_REPO/scripts/$script" "scripts/$script"
 done
 
@@ -209,11 +209,20 @@ if [ ! -f "$TARGET_REPO/.cursor/environment.json" ]; then
   install_missing "$SOURCE_PATH/templates/cursor/environment.json.example" "$TARGET_REPO/.cursor/environment.json.example" ".cursor/environment.json.example"
 fi
 
-mkdir -p "$OPERATOR_DIR/tasks" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory"
+mkdir -p "$OPERATOR_DIR/tasks" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory" "$OPERATOR_DIR/roadmap/items" "$OPERATOR_DIR/roadmap/inbox" "$OPERATOR_DIR/roadmap/views"
 if [ "$DRY_RUN" -eq 0 ]; then
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-memory.sh" init >/dev/null
+  OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-roadmap.sh" init >/dev/null
+  OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-feedback.sh" init >/dev/null
 fi
 install_missing "$SOURCE_PATH/templates/operator-workspace/README.md" "$OPERATOR_DIR/README.md" "OPERATOR_DIR/README.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/README.md" "$OPERATOR_DIR/roadmap/README.md" "OPERATOR_DIR/roadmap/README.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/items/_template.md" "$OPERATOR_DIR/roadmap/items/_template.md" "OPERATOR_DIR/roadmap/items/_template.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/inbox/_feedback-template.md" "$OPERATOR_DIR/roadmap/inbox/_feedback-template.md" "OPERATOR_DIR/roadmap/inbox/_feedback-template.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/views/ready.md" "$OPERATOR_DIR/roadmap/views/ready.md" "OPERATOR_DIR/roadmap/views/ready.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/views/blocked.md" "$OPERATOR_DIR/roadmap/views/blocked.md" "OPERATOR_DIR/roadmap/views/blocked.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/views/now-next-later.md" "$OPERATOR_DIR/roadmap/views/now-next-later.md" "OPERATOR_DIR/roadmap/views/now-next-later.md"
+install_missing "$SOURCE_PATH/templates/operator-workspace/roadmap/views/shipped.md" "$OPERATOR_DIR/roadmap/views/shipped.md" "OPERATOR_DIR/roadmap/views/shipped.md"
 append_gitignore_snippet
 
 print_section() {
@@ -259,4 +268,5 @@ printf '  - bash -n scripts/*.sh\n'
 printf '  - bash scripts/operator-status.sh\n'
 printf '  - bash scripts/operator-summary.sh\n'
 printf '  - bash scripts/operator-memory.sh status\n'
+printf '  - bash scripts/operator-roadmap.sh status\n'
 printf '  - git status --short\n'

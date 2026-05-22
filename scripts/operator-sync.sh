@@ -264,6 +264,7 @@ run_project_checks() {
     bash scripts/operator-status.sh
     bash scripts/operator-summary.sh
     bash scripts/operator-memory.sh status
+    bash scripts/operator-roadmap.sh status
     git status --short
   )
 }

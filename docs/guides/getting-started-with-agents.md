@@ -26,6 +26,7 @@ Requirements:
 - install the scripts/templates
 - install Codex, Claude Code, and Cursor project assets when relevant
 - install Operator Memory Router and verify memory status
+- initialize the local Operator roadmap and feedback workspace
 - explain how to install bundled Codex Desktop skills when relevant
 - create the external operator workspace outside the repo
 - create or verify worktrees without overwriting existing work
@@ -65,6 +66,8 @@ For Codex skill-style guidance, use:
 ```text
 skills/codex/operator/SKILL.md
 skills/codex/operator-workflow/SKILL.md
+skills/codex/operator-feedback/SKILL.md
+skills/codex/operator-planner/SKILL.md
 skills/codex/design-agent/SKILL.md
 skills/codex/incubation/SKILL.md
 ```
@@ -96,6 +99,8 @@ Use $operator. Create a backend task for auth scaffolding.
 Use $operator. Dispatch the backend task with memory.
 Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.
 Use $operator. Update to latest version from git.
+Use $operator-feedback with $design-agent. Capture these annotations as feedback.
+Use $operator-planner. Review local feedback and propose the next lane schedule.
 Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.
 Use $design-agent with $operator. Prepare a UX follow-up task for the UI lane.
 ```

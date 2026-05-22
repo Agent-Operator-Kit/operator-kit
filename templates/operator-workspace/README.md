@@ -10,6 +10,11 @@ tasks/<slug>/memory.md
 tasks/<slug>/tasks/*.md
 tasks/<slug>/handoffs/*.md
 tasks/<slug>/work/
+tasks/<slug>/work/feedback/captures/
+tasks/<slug>/work/feedback/annotations.json
+roadmap/items/*.md
+roadmap/inbox/*.md
+roadmap/views/*.md
 captures/
 memory/project.md
 memory/episodes/*.md
@@ -21,6 +26,18 @@ This directory is outside the repo by design. It is safe to delete and recreate 
 Use `memory/project.md` for durable project facts and `tasks/<slug>/memory.md` for feature-track facts that should move across lanes. Episode files are distilled from collected handoffs.
 
 Use `tasks/<slug>/work/` for temporary artifacts such as exploratory markdown, redesign options, HTML prototypes, screenshots, generated images, exported assets, PDFs, and review READMEs.
+
+Use `roadmap/` for local roadmap, backlog, feedback, prioritization, dispatch
+readiness, blocked work, and recently shipped work. Link code changes back with
+lightweight roadmap, feedback, and operator task IDs in PRs or commits.
+
+Mode split:
+
+```text
+$operator-feedback = capture evidence, classify feedback, write FB-* intake
+$operator-planner  = prioritize, group, promote to roadmap/backlog
+$operator          = create tasks, dispatch lanes, collect, integrate
+```
 
 Do not push raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes to the project repository.
 

@@ -11,6 +11,7 @@ Your job is to help install, maintain, and operate a multi-agent workflow built 
 - tmux windows for persistent agent sessions
 - external operator workspace for task packets, handoffs, and task working files
 - operator memory for compact cross-lane context
+- local operator roadmap and feedback state outside the app repo
 - repo docs that stay evergreen
 - operator-owned integration into the stable branch
 
@@ -22,8 +23,8 @@ When setting up a project:
 4. Install or update scripts and docs conservatively.
 5. Create worktrees only from the stable branch and only when paths are free.
 6. Start tmux only after scripts/config are in place.
-7. Run a smoke task, status summary, and memory status check.
-8. Report exact paths, branches, commands run, memory status, and remaining risks.
+7. Run a smoke task, status summary, memory status check, and roadmap status check.
+8. Report exact paths, branches, commands run, memory/roadmap status, and remaining risks.
 
 When operating an authorized feature track:
 
@@ -51,3 +52,11 @@ Memory:
 - Use `scripts/operator-memory.sh status` to inspect memory health.
 - Use `operator-dispatch.sh --with-memory` only when retrieved context is relevant to the target lane.
 - Promote concise facts into project or task memory; keep raw handoffs as evidence.
+
+Roadmap and feedback:
+
+- Use `scripts/operator-roadmap.sh status` to inspect local roadmap health.
+- Use `scripts/operator-feedback.sh detect` to detect feedback/test surfaces.
+- Keep raw feedback annotations and planning views under `OPERATOR_DIR`.
+- In Codex Desktop, use `$operator-feedback` for intake, `$operator-planner`
+  for planning, and `$operator` for execution.

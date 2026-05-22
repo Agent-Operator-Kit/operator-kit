@@ -6,7 +6,9 @@ The setup skill and the runtime skill have different jobs:
 
 ```text
 operator-workflow -> setup, bootstrap, repair
-operator          -> daily operation in an installed project
+operator-feedback -> feedback intake in an installed project
+operator-planner  -> roadmap/backlog planning in an installed project
+operator          -> execution in an installed project
 ```
 
 ## Install Globally
@@ -17,7 +19,7 @@ From this kit repo:
 bash scripts/codex-skills-install.sh
 ```
 
-This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, `$design-agent`, and `$incubation`.
+This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, `$operator-feedback`, `$operator-planner`, `$design-agent`, and `$incubation`.
 
 To fast-forward the kit source first, then refresh skills:
 
@@ -28,6 +30,39 @@ bash scripts/operator-sync.sh --skip-project
 Restart or reopen Codex Desktop so the skill list refreshes.
 
 Codex skills are not background daemons. Invoke the skill explicitly with `$operator`, or use language that clearly refers to Operator Kit lanes, task packets, dispatch, collection, or handoffs.
+
+## Operator Feedback And Planner Companions
+
+Install `$operator-feedback` and `$operator-planner` when you want explicit
+feedback and planning modes before `$operator` execution.
+
+From this kit repo:
+
+```bash
+bash scripts/codex-skills-install.sh --skill operator-feedback --skill operator-planner
+```
+
+Use the skills together:
+
+```text
+Use $operator-feedback with $design-agent. Capture these annotations.
+Use $operator-feedback. Start a mobile feedback review for simulator testing.
+Use $operator-planner. Review the feedback inbox and propose now/next/later.
+Use $operator-planner. Promote the top feedback group into roadmap candidates.
+Use $operator-planner. Draft a PR trace note for RM-0007 and FB-0014.
+Use $operator. Execute the approved RM-0007 mobile-ui task.
+```
+
+Role split:
+
+```text
+$operator-feedback -> evidence capture, classification, FB-* intake
+$operator-planner  -> roadmap, prioritization, ready-for-execution planning
+$operator          -> task creation, lane safety, dispatch, collection, integration review
+```
+
+The older `$product-manager` skill remains available as a compatibility alias,
+but new prompts should use `$operator-feedback` or `$operator-planner`.
 
 ## Optional Design Agent Companion
 
@@ -96,6 +131,8 @@ scripts/operator-dispatch.sh
 scripts/operator-collect.sh
 scripts/operator-summary.sh
 scripts/operator-memory.sh
+scripts/operator-roadmap.sh
+scripts/operator-feedback.sh
 scripts/operator-upgrade.sh
 ```
 
@@ -186,6 +223,25 @@ Task creation creates `OPERATOR_DIR/tasks/<slug>/memory.md`. Collection writes
 a distilled episode under `OPERATOR_DIR/memory/episodes/`. The operator should
 promote only relevant facts; raw captures and handoffs stay as evidence.
 
+## Local Roadmap And Feedback
+
+The `$operator` skill can use local roadmap and feedback scripts when planning
+state should stay outside the app repo:
+
+```bash
+bash scripts/operator-roadmap.sh status
+bash scripts/operator-roadmap.sh ready
+bash scripts/operator-feedback.sh detect
+bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
+bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"
+bash scripts/operator-feedback.sh review mobile-feedback-20260522
+bash scripts/operator-feedback.sh triage mobile-feedback-20260522
+```
+
+Use `$operator-feedback` for intake and `$operator-planner` for triage and
+prioritization. `$operator` should still create task folders, check lane safety,
+dispatch, collect, and integrate.
+
 ## Working Files
 
 The `$operator` skill should keep temporary artifacts under the task:
@@ -215,8 +271,8 @@ Codex should:
 4. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
 5. Run `scripts/operator-update.sh` against the project.
 6. Run syntax, status, summary, and git status checks.
-7. Run `scripts/operator-memory.sh status`.
-8. Summarize updated files, installed missing files, preserved project-specific files, validation results, memory status, and follow-up.
+7. Run `scripts/operator-memory.sh status` and `scripts/operator-roadmap.sh status`.
+8. Summarize updated files, installed missing files, preserved project-specific files, validation results, memory/roadmap status, and follow-up.
 
 The update must preserve:
 
