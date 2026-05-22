@@ -1103,8 +1103,8 @@
 <!-- CODEX SKILL -->
 <section id="codex-skill">
   <div class="section-label">// codex desktop</div>
-  <h2 class="section-title">Use <span style="color:var(--accent)">$operator</span><br>as the project cockpit.</h2>
-  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, or execute approved tasks in natural language. The skills detect the kit first and use project-local scripts as source of truth.</p>
+  <h2 class="section-title">Use Codex skills<br>as operating modes.</h2>
+  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, execute approved tasks, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1143,6 +1143,18 @@
       <h3>Lightweight PR References</h3>
       <p>Code changes link back with <code>Roadmap: RM-0007</code>, <code>Feedback: FB-0014</code>, and an operator task slug instead of committing the whole planning ledger to the app repo.</p>
     </div>
+    <div class="how-card">
+      <div class="how-card-num">07 — DESIGN</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$design-agent</code></h3>
+      <p>Runs UX and consistency reviews, extracts or recommends design systems, classifies annotations, and packages UI/design work without bypassing Operator lane safety.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">08 — INCUBATION</div>
+      <div class="how-card-accent"></div>
+      <h3><code>$incubation</code></h3>
+      <p>Frames rough product ideas, captures durable idea files, critiques assumptions, manages promotion readiness, and hands only promoted projects to <code>$operator</code>.</p>
+    </div>
   </div>
 
   <div class="prompt-card" style="margin-top:1.5rem;">
@@ -1156,6 +1168,7 @@
       <div><span class="p-comment"># install once from the kit repo</span></div>
       <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
       <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill operator-feedback --skill operator-planner --skill operator</div>
+      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill design-agent --skill incubation</div>
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --skip-project</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># update an existing Operator Kit project</span></div>
@@ -1180,6 +1193,13 @@
       <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
       <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
       <div><span class="p-val">Use $operator. Dispatch the auth task to backend with memory.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># design and idea companion skills</span></div>
+      <div><span class="p-val">Use $design-agent. Do a comprehensive UX and consistency review.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator-feedback. Classify these annotations as feedback.</span></div>
+      <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task.</span></div>
+      <div><span class="p-val">Use $incubation. Frame this idea and capture the next experiment.</span></div>
+      <div><span class="p-val">Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.</span></div>
       <div><span class="p-val">Use $incubation with $operator. Prepare an idea for promotion.</span></div>
       <div><span class="p-val">Use $design-agent with $operator-feedback. Package UI observations as feedback.</span></div>
     </div>
