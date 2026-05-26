@@ -1,6 +1,6 @@
-# Agent-Run Bootstrap Prompt
+# Agent-Run Install Or Initialize Prompt
 
-Set up Agent Operator Kit for this project.
+Install, initialize, or upgrade Agent Operator Kit for this project.
 
 Source kit:
 
@@ -38,33 +38,59 @@ Goals:
   - `.cursor/environment.json.example`
 - Create the external operator workspace beside the project root unless I specify another path.
 
+Lane requirements:
+
+```text
+<describe the lanes this project needs. If omitted, infer a conservative lane
+map from the repo and ask before creating worktrees.>
+```
+
 Required behavior:
 
 1. Inspect the repo first: git status, default branch, remotes, package manager, validation commands, and current docs.
-2. Propose a lane map before creating worktrees.
-3. Use conservative defaults:
+2. Detect install state:
+   - installed: `operator.config.env` exists and `scripts/operator-status.sh` runs;
+   - partial: some Operator Kit files exist but required scripts/config are missing or status fails;
+   - missing: no reliable Operator Kit files exist.
+3. If installed, run an upgrade/refresh with `scripts/operator-sync.sh` from the installed project or source kit; do not re-bootstrap.
+4. If partial, repair by syncing from the source kit while preserving existing `operator.config.env`, `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
+5. If missing, run `operator-sync.sh --bootstrap-if-missing` from the source kit or remote entry point.
+6. Propose a lane map before creating worktrees unless the user already supplied explicit lane requirements.
+7. Use conservative defaults:
    - `operator`: current repo worktree on the stable branch
    - `backend`: Codex CLI on `codex/backend`
    - `ui`: Claude Code on `claude/ui`
    - `release`: Codex CLI only if the project has release work
    - `product`: Codex CLI only if product or research work is useful
    - for Cursor-first environments without Codex, use `--profile cursor` and prefer Cursor IDE as operator, Cursor CLI as a local worker, and Claude Code as an optional UI lane
-4. After approval, or if the lane map is obvious, clone/install the kit and run its bootstrap script.
-5. Edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
-6. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
-7. Start the tmux session.
-8. Create a smoke task under the external operator workspace.
-9. Dispatch with `--no-enter` to one lane if safe, then collect a smoke handoff.
-10. Run script checks:
+8. After install/update, edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
+9. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
+10. Start the tmux session.
+11. Create a smoke task under the external operator workspace.
+12. Dispatch with `--no-enter` to one lane if safe, then collect a smoke handoff.
+13. Run script checks:
     - `bash -n scripts/*.sh`
     - `bash scripts/operator-status.sh`
     - `bash scripts/operator-summary.sh`
     - `bash scripts/operator-memory.sh status`
     - `bash scripts/operator-roadmap.sh status`
-11. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
-12. Confirm `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
-13. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
-14. Show git status and list intended repo changes.
+14. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
+15. Confirm `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
+16. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
+17. Show git status and list intended repo changes.
+
+If starting from only the GitHub URL, clone the kit or use the remote entry
+point, then run:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing
+```
+
+or, when remote shell execution is allowed:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh) --target /path/to/repo --bootstrap-if-missing
+```
 
 Guardrails:
 

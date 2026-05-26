@@ -36,6 +36,24 @@ worker lane, and Claude Code lanes only where Claude is available.
 
 Use Cursor IDE Agent or Cursor CLI when Cursor should operate the local worktrees and tmux lanes.
 
+For first-time or repeat setup, prefer install-or-initialize behavior:
+
+1. Inspect the repo and git status.
+2. Detect install state:
+   - installed: `operator.config.env` exists and `scripts/operator-status.sh`
+     runs;
+   - partial: some Operator Kit files exist but required scripts/config are
+     missing or status fails;
+   - missing: no reliable Operator Kit files exist.
+3. If installed, refresh with `scripts/operator-sync.sh` from the installed
+   project or source kit.
+4. If partial, repair from the source kit while preserving `operator.config.env`,
+   `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
+5. If missing, install with `operator-sync.sh --bootstrap-if-missing
+   --bootstrap-profile cursor --skip-skills`.
+6. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+   are unclear, propose the lane map before creating worktrees.
+
 The local flow:
 
 1. Inspect the repo and git status.

@@ -15,7 +15,30 @@ This guide focuses on the Cursor cockpit setup.
 
 ## Cursor-First Shape
 
-For teams without Codex, bootstrap with the Cursor profile:
+The preferred first-time UX is agent-run install: open Cursor Agent in the
+target repo and point it at the kit URL.
+
+```text
+Install or initialize Agent Operator Kit for this project from:
+https://github.com/Agent-Operator-Kit/operator-kit.git
+
+Use Cursor as the operator cockpit. Detect whether Operator Kit is already
+installed. If it is installed, upgrade/refresh it. If it is missing, install it
+with the Cursor bootstrap profile. Configure these lanes:
+- operator: Cursor IDE on the stable branch
+- web: web app lane
+- agents-api: optional lane for agent/API integration work
+
+Always use the operator skill for this project unless I explicitly ask for
+feedback, planning, design, setup, or non-operator work.
+```
+
+The agent should inspect first, detect installed/partial/missing state, then run
+the appropriate install or refresh path. If the lane requirements are clear, it
+can write `operator.config.env`; otherwise it should propose the lane map before
+creating worktrees.
+
+For teams without Codex, the underlying command is the Cursor profile:
 
 ```bash
 bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
@@ -38,6 +61,16 @@ ui|Claude Code|app-ui|claude/ui|claude --dangerously-skip-permissions --permissi
 Review `operator.config.env` before creating worktrees or starting workers. Some
 machines expose the local agent as `cursor agent`; others provide
 `cursor-agent`.
+
+For a web app plus agent/API lane, a typical Cursor lane map is:
+
+```text
+OPERATOR_LANES='
+operator|Cursor IDE|app|main|
+web|Cursor CLI|app-web|cursor/web|cursor agent
+agents-api|Cursor CLI|app-agents-api|cursor/agents-api|cursor agent
+'
+```
 
 ## Cursor Primitives
 

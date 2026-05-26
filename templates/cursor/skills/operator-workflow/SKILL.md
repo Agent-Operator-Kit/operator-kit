@@ -31,20 +31,33 @@ fill remaining lanes from the agents you have.
 ## Local Cursor Operator Flow
 
 1. Inspect the repo and git status.
-2. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
-3. Confirm the stable branch and lane map.
-4. Install or update Agent Operator Kit scripts/templates if needed.
-5. Ensure `OPERATOR_DIR` is outside the repo.
-6. Create or verify lane worktrees.
-7. Start or inspect tmux.
-8. Create a smoke task under `OPERATOR_DIR`.
-9. Run:
+2. Detect install state:
+   - installed: `operator.config.env` exists and `scripts/operator-status.sh`
+     runs;
+   - partial: some Operator Kit files exist but required scripts/config are
+     missing or status fails;
+   - missing: no reliable Operator Kit files exist.
+3. If installed, refresh with `scripts/operator-sync.sh` from the installed
+   project or source kit.
+4. If partial, repair from the source kit while preserving `operator.config.env`,
+   `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
+5. If missing, install with `operator-sync.sh --bootstrap-if-missing
+   --bootstrap-profile cursor --skip-skills`.
+6. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+   are unclear, propose the lane map before creating worktrees.
+7. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
+8. Confirm the stable branch and lane map.
+9. Ensure `OPERATOR_DIR` is outside the repo.
+10. Create or verify lane worktrees.
+11. Start or inspect tmux.
+12. Create a smoke task under `OPERATOR_DIR`.
+13. Run:
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-memory.sh status`
    - `bash scripts/operator-roadmap.sh status`
-10. Report installed files, lane map, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
+14. Report installed files, lane map, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
 
 For first-time setup without Codex, use the Cursor bootstrap profile:
 

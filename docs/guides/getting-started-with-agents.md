@@ -156,10 +156,19 @@ Use the operator-workflow subagent to inspect this repo and set up Agent Operato
 Start Cursor Agent or Cursor CLI in or near the target repo and paste:
 
 ```text
-Set up Agent Operator Kit for this project using:
-git@github.com:Agent-Operator-Kit/operator-kit.git
+Install or initialize Agent Operator Kit for this project from:
+https://github.com/Agent-Operator-Kit/operator-kit.git
 
-Use Cursor as the frontend operator surface. Inspect first, propose the lane map, install the scripts/templates and Operator Memory Router, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+Use Cursor as the frontend operator surface. Inspect first, detect whether
+Operator Kit is already installed, then install, repair, or upgrade as needed.
+Configure the lane map from the lanes I describe below, create or verify
+worktrees, start or inspect tmux, run a smoke task, and report whether the repo
+is ready to commit.
+
+Lane requirements:
+- operator: Cursor IDE on the stable branch
+- web: web app lane
+- agents-api: optional lane for agent/API integration work
 
 Install the Cursor project assets too:
 - .cursor/rules/operator-workflow.mdc
@@ -172,6 +181,13 @@ Install the Cursor project assets too:
 
 Keep generated task packets, handoffs, pane captures, task working files, memory packs, and transient notes outside the repo.
 ```
+
+That prompt is intentionally install-or-upgrade. The agent should classify the
+project as installed, partial, or missing:
+
+- installed: run `operator-sync.sh` to refresh scripts/templates and keep config/state.
+- partial: repair from the kit source without overwriting `operator.config.env` or `OPERATOR_DIR`.
+- missing: run `operator-sync.sh --bootstrap-if-missing`, then write the requested lane map.
 
 For the full Cursor prompt, use:
 

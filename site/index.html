@@ -1064,21 +1064,27 @@
         <button class="copy-btn" id="copy-prompt-btn">copy</button>
       </div>
       <div class="prompt-body" id="prompt-text">
-        <div>Set up Agent Operator Kit for the current repo.</div>
+        <div>Install or initialize Agent Operator Kit for the current repo.</div>
         <div>&nbsp;</div>
         <div><span class="p-key">Use this source kit:</span></div>
         <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
         <div>&nbsp;</div>
-        <div><span class="p-key">First clone or read the kit, then follow its agent-run bootstrap guide:</span></div>
+        <div><span class="p-key">First clone or read the kit, then follow its install-or-initialize guide:</span></div>
         <div><span class="p-val">templates/prompts/agent-run-bootstrap.md</span></div>
         <div><span class="p-val">docs/guides/agent-run-bootstrap.md</span></div>
         <div>&nbsp;</div>
         <div>Treat the current working directory as the target project repo.</div>
         <div>&nbsp;</div>
+        <div><span class="p-req">Lane requirements:</span></div>
+        <div><span class="p-comment">- operator: Cursor IDE on the stable branch</span></div>
+        <div><span class="p-comment">- web: web app lane</span></div>
+        <div><span class="p-comment">- agents-api: optional lane for agent/API integration work</span></div>
+        <div>&nbsp;</div>
         <div><span class="p-req">Requirements:</span></div>
         <div><span class="p-comment">- inspect the repo first</span></div>
-        <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
-        <div><span class="p-comment">- install the scripts/templates</span></div>
+        <div><span class="p-comment">- detect whether Operator Kit is installed, partial, or missing</span></div>
+        <div><span class="p-comment">- upgrade installed projects, repair partial installs, bootstrap missing projects</span></div>
+        <div><span class="p-comment">- configure lanes from the project requirements before creating worktrees</span></div>
         <div><span class="p-comment">- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)</span></div>
         <div><span class="p-comment">- install IDE-specific assets only when that IDE is available</span></div>
         <div><span class="p-comment">- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable</span></div>
@@ -1727,21 +1733,27 @@ ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTwea
 // Copy prompt button
 document.getElementById('copy-prompt-btn').addEventListener('click', function() {
   const promptLines = [
-    'Set up Agent Operator Kit for the current repo.',
+    'Install or initialize Agent Operator Kit for the current repo.',
     '',
     'Use this source kit:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'First clone or read the kit, then follow its Cursor bootstrap guide:',
+    'First clone or read the kit, then follow its Cursor install-or-initialize guide:',
     'templates/prompts/cursor-agent-bootstrap.md',
     'docs/guides/cursor-operator-workflow.md',
     '',
     'Treat the current working directory as the target project repo.',
     '',
+    'Lane requirements:',
+    '- operator: Cursor IDE on the stable branch',
+    '- web: web app lane',
+    '- agents-api: optional lane for agent/API integration work',
+    '',
     'Requirements:',
     '- inspect the repo first',
-    '- propose the lane map before creating worktrees',
-    '- install the scripts/templates',
+    '- detect whether Operator Kit is installed, partial, or missing',
+    '- upgrade installed projects, repair partial installs, bootstrap missing projects',
+    '- configure lanes from the project requirements before creating worktrees',
     '- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)',
     '- install IDE-specific assets only when that IDE is available',
     '- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable',

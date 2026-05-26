@@ -171,6 +171,28 @@ Full copy/paste prompt:
 templates/prompts/agent-run-bootstrap.md
 ```
 
+Cursor agent install/init prompt:
+
+```text
+Install or initialize Agent Operator Kit for this project from:
+https://github.com/Agent-Operator-Kit/operator-kit.git
+
+Use Cursor as the operator cockpit. Detect whether Operator Kit is already
+installed. If it is installed, upgrade/refresh it. If it is missing, install it
+with the Cursor bootstrap profile. Configure these lanes:
+- operator: Cursor IDE on the stable branch
+- web: web app lane
+- agents-api: optional lane for agent/API integration work
+
+Always use the operator skill for this project unless I explicitly ask for
+feedback, planning, design, setup, or non-operator work.
+```
+
+The agent should inspect first, classify the project as installed, partial, or
+missing, then run `operator-sync.sh` to refresh or install. If the user supplies
+lane requirements in the prompt, the agent should write `operator.config.env`
+for that lane map instead of leaving the default profile untouched.
+
 Getting started guide:
 
 ```text
