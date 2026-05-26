@@ -32,6 +32,10 @@ Required setup:
 4. Install Cursor project assets:
    - `.cursor/rules/operator-workflow.mdc`
    - `.cursor/skills/operator-workflow/SKILL.md`
+   - `.cursor/skills/operator/SKILL.md`
+   - `.cursor/skills/operator-planner/SKILL.md`
+   - `.cursor/skills/operator-feedback/SKILL.md`
+   - `.cursor/skills/design-agent/SKILL.md`
    - `.cursor/environment.json.example`
 5. Edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
 6. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.

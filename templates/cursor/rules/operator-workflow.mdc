@@ -35,4 +35,18 @@ Pause for user input before destructive cleanup, credential/provider-console
 changes, production deploys, release submissions, live-money enablement, or
 product decisions that cannot be safely inferred.
 
-For setup or maintenance tasks, use the operator workflow skill in `.cursor/skills/operator-workflow/SKILL.md`.
+Skill routing:
+
+- For day-to-day execution, lane status, task packets, dispatch, collection, and
+  integration, use `.cursor/skills/operator/SKILL.md`.
+- For setup, bootstrap, repair, or upgrade, use
+  `.cursor/skills/operator-workflow/SKILL.md`.
+- For feedback intake, use `.cursor/skills/operator-feedback/SKILL.md`.
+- For roadmap/backlog planning, use `.cursor/skills/operator-planner/SKILL.md`.
+- For UX, design-system, visual review, or UI task shaping, use
+  `.cursor/skills/design-agent/SKILL.md`.
+
+If the user says to "always use operator" for this project or session, treat
+`operator` as the default Cursor skill for future execution requests unless the
+user explicitly asks for feedback, planning, design, setup, or a non-operator
+task.

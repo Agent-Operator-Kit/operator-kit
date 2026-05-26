@@ -35,7 +35,9 @@ test -f "$tmp_root/code/app/.claude/commands/operator-bootstrap.md"
 test -f "$tmp_root/code/app/.claude/commands/operator-status.md"
 test -f "$tmp_root/code/app/.claude/agents/operator-workflow.md"
 test -f "$tmp_root/code/app/.cursor/rules/operator-workflow.mdc"
-test -f "$tmp_root/code/app/.cursor/skills/operator-workflow/SKILL.md"
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent; do
+  test -f "$tmp_root/code/app/.cursor/skills/$cursor_skill/SKILL.md"
+done
 test -f "$tmp_root/code/app/.cursor/environment.json.example"
 test ! -d "$tmp_root/code/app/operator"
 

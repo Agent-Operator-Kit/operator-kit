@@ -135,12 +135,23 @@ Agent Operator Kit installs these project assets:
   rules/
     operator-workflow.mdc
   skills/
+    operator/
+      SKILL.md
+    operator-planner/
+      SKILL.md
+    operator-feedback/
+      SKILL.md
+    design-agent/
+      SKILL.md
     operator-workflow/
       SKILL.md
   environment.json.example
 ```
 
-The rule gives Cursor persistent project guidance. The skill is the procedural setup and operations playbook. The environment example is a starting point for Cloud Agents and should be adapted per project before being renamed to `.cursor/environment.json`.
+The rule gives Cursor persistent project guidance. The skills provide explicit
+operator modes: execution, planning, feedback intake, design/UX shaping, and
+setup/repair. The environment example is a starting point for Cloud Agents and
+should be adapted per project before being renamed to `.cursor/environment.json`.
 
 ## References
 

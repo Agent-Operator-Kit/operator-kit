@@ -244,9 +244,17 @@ Cursor reusable assets:
 ```text
 templates/cursor/rules/operator-workflow.mdc
 templates/cursor/skills/operator-workflow/SKILL.md
+templates/cursor/skills/operator/SKILL.md
+templates/cursor/skills/operator-planner/SKILL.md
+templates/cursor/skills/operator-feedback/SKILL.md
+templates/cursor/skills/design-agent/SKILL.md
 templates/cursor/environment.json.example
 templates/prompts/cursor-agent-bootstrap.md
 skills/cursor/operator-workflow/SKILL.md
+skills/cursor/operator/SKILL.md
+skills/cursor/operator-planner/SKILL.md
+skills/cursor/operator-feedback/SKILL.md
+skills/cursor/design-agent/SKILL.md
 docs/guides/cursor-operator-workflow.md
 ```
 
@@ -278,6 +286,21 @@ before starting workers.
 Use Cursor subagents for temporary specialist work such as review, research,
 debugging, and validation. Use Operator Kit lanes for durable worktree, branch,
 and process boundaries.
+
+Invoke Cursor modes deliberately:
+
+```text
+Use the operator skill. Dispatch the approved backend task.
+Use the operator-planner skill. Promote ready feedback into roadmap items.
+Use the operator-feedback skill. Capture these testing notes as FB-* intake.
+Use the design-agent skill with operator. Shape this UI issue into a lane task.
+```
+
+For a Cursor project/session where execution should default to Operator Kit,
+say: "Always use the operator skill for this project unless I explicitly ask
+for feedback, planning, design, setup, or non-operator work." Codex Desktop uses
+the same convention with `$operator`, `$operator-planner`, `$operator-feedback`,
+and `$design-agent`.
 
 For an existing project:
 

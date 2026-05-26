@@ -164,6 +164,10 @@ Use Cursor as the frontend operator surface. Inspect first, propose the lane map
 Install the Cursor project assets too:
 - .cursor/rules/operator-workflow.mdc
 - .cursor/skills/operator-workflow/SKILL.md
+- .cursor/skills/operator/SKILL.md
+- .cursor/skills/operator-planner/SKILL.md
+- .cursor/skills/operator-feedback/SKILL.md
+- .cursor/skills/design-agent/SKILL.md
 - .cursor/environment.json.example
 
 Keep generated task packets, handoffs, pane captures, task working files, memory packs, and transient notes outside the repo.
@@ -180,6 +184,25 @@ After installation, Cursor uses:
 ```text
 .cursor/rules/operator-workflow.mdc
 .cursor/skills/operator-workflow/SKILL.md
+.cursor/skills/operator/SKILL.md
+.cursor/skills/operator-planner/SKILL.md
+.cursor/skills/operator-feedback/SKILL.md
+.cursor/skills/design-agent/SKILL.md
+```
+
+Invoke the Cursor skills explicitly:
+
+```text
+Use the operator skill. Execute the approved backend task.
+Use the operator-planner skill. Prioritize the feedback inbox.
+Use the operator-feedback skill. Capture these testing notes.
+Use the design-agent skill with operator. Shape a UI lane task.
+```
+
+To keep Operator Kit as the default in Cursor, tell the agent:
+
+```text
+Always use the operator skill for this project unless I explicitly ask for feedback, planning, design, setup, or non-operator work.
 ```
 
 Cursor Cloud Agents, formerly Background Agents, should be treated as remote

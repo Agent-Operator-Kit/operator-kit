@@ -31,6 +31,10 @@ Goals:
 - Install Cursor project assets when using Cursor:
   - `.cursor/rules/operator-workflow.mdc`
   - `.cursor/skills/operator-workflow/SKILL.md`
+  - `.cursor/skills/operator/SKILL.md`
+  - `.cursor/skills/operator-planner/SKILL.md`
+  - `.cursor/skills/operator-feedback/SKILL.md`
+  - `.cursor/skills/design-agent/SKILL.md`
   - `.cursor/environment.json.example`
 - Create the external operator workspace beside the project root unless I specify another path.
 

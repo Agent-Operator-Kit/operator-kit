@@ -31,6 +31,16 @@ Restart or reopen Codex Desktop so the skill list refreshes.
 
 Codex skills are not background daemons. Invoke the skill explicitly with `$operator`, or use language that clearly refers to Operator Kit lanes, task packets, dispatch, collection, or handoffs.
 
+To keep Operator Kit as the default for a Codex project/session, say:
+
+```text
+Always use $operator for this project unless I explicitly ask for feedback, planning, design, setup, or non-operator work.
+```
+
+`CODEX.md` and `AGENTS.md` carry the same routing convention for installed
+projects, while `$operator-feedback`, `$operator-planner`, and `$design-agent`
+remain the deliberate modes for observation, planning, and design work.
+
 ## Operator Feedback And Planner Companions
 
 Install `$operator-feedback` and `$operator-planner` when you want explicit

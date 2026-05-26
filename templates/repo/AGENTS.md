@@ -4,9 +4,15 @@ This project uses Agent Operator Kit.
 
 `operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, and Operator Kit updates.
 
-When operating from Cursor, read `.cursor/rules/operator-workflow.mdc` and use `.cursor/skills/operator-workflow/SKILL.md` for setup, status, dispatch, collection, and repair workflows. In Cursor-first environments without Codex, use Cursor IDE as the operator lane, Cursor CLI as a local worker lane when available, and Claude Code as an optional scoped worker.
+When operating from Cursor, read `.cursor/rules/operator-workflow.mdc`. Use `.cursor/skills/operator/SKILL.md` for day-to-day execution, `.cursor/skills/operator-planner/SKILL.md` for roadmap/backlog planning, `.cursor/skills/operator-feedback/SKILL.md` for feedback intake, `.cursor/skills/design-agent/SKILL.md` for UX/design work, and `.cursor/skills/operator-workflow/SKILL.md` for setup, status, dispatch, collection, and repair workflows. In Cursor-first environments without Codex, use Cursor IDE as the operator lane, Cursor CLI as a local worker lane when available, and Claude Code as an optional scoped worker.
 
 When operating from Codex Desktop, use `$operator-feedback` for feedback intake, `$operator-planner` for roadmap/backlog planning, and `$operator` for execution unless the user explicitly says otherwise.
+
+If the user says to always use operator for the current project or session, make
+operator mode the default for future execution requests in Cursor and Codex.
+Still route observation-only work to feedback mode, prioritization to planner
+mode, and UX/design-system work to design-agent mode unless the user asks for
+execution.
 
 ## Operating Model
 

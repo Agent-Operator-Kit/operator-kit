@@ -53,6 +53,38 @@ machines expose the local agent as `cursor agent`; others provide
 Treat subagents as temporary specialist contexts. Treat operator lanes as
 durable worktree, branch, and process boundaries.
 
+## Explicit Cursor Skills
+
+Installed projects include Cursor-native skills that mirror the Codex operator
+modes:
+
+```text
+operator          -> execution, task packets, dispatch, collect, integration
+operator-feedback -> feedback intake and FB-* capture
+operator-planner  -> roadmap/backlog planning and ready-for-execution plans
+design-agent      -> UX/design-system review and UI task shaping
+operator-workflow -> setup, bootstrap, repair, upgrade, and general operations
+```
+
+Invoke them deliberately in Cursor Agent:
+
+```text
+Use the operator skill. Run status and summary, then create a task packet for the backend lane.
+Use the operator-planner skill. Review feedback and propose now/next/later.
+Use the operator-feedback skill. Capture these simulator notes as FB-* intake.
+Use the design-agent skill with operator. Review the UI and prepare a lane-ready task.
+```
+
+To make operator mode the default for a project or session, say:
+
+```text
+Always use the operator skill for this project unless I explicitly ask for feedback, planning, design, setup, or non-operator work.
+```
+
+The installed always-applied Cursor rule records the routing convention, so new
+Cursor chats in the same project should prefer the operator skill for execution
+requests.
+
 ## Local Operating Loop
 
 Start from the operator lane in Cursor:

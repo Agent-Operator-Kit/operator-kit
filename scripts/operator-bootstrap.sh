@@ -74,7 +74,10 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
-mkdir -p "$repo_root/.cursor/rules" "$repo_root/.cursor/skills/operator-workflow"
+mkdir -p "$repo_root/.cursor/rules"
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent; do
+  mkdir -p "$repo_root/.cursor/skills/$cursor_skill"
+done
 
 for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
@@ -141,9 +144,11 @@ if [ ! -f "$repo_root/.cursor/rules/operator-workflow.mdc" ]; then
   cp "$KIT_ROOT/templates/cursor/rules/operator-workflow.mdc" "$repo_root/.cursor/rules/operator-workflow.mdc"
 fi
 
-if [ ! -f "$repo_root/.cursor/skills/operator-workflow/SKILL.md" ]; then
-  cp "$KIT_ROOT/templates/cursor/skills/operator-workflow/SKILL.md" "$repo_root/.cursor/skills/operator-workflow/SKILL.md"
-fi
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent; do
+  if [ ! -f "$repo_root/.cursor/skills/$cursor_skill/SKILL.md" ]; then
+    cp "$KIT_ROOT/templates/cursor/skills/$cursor_skill/SKILL.md" "$repo_root/.cursor/skills/$cursor_skill/SKILL.md"
+  fi
+done
 
 if [ ! -f "$repo_root/.cursor/environment.json.example" ] && [ ! -f "$repo_root/.cursor/environment.json" ]; then
   cp "$KIT_ROOT/templates/cursor/environment.json.example" "$repo_root/.cursor/environment.json.example"
