@@ -182,7 +182,20 @@ After installation, Cursor uses:
 .cursor/skills/operator-workflow/SKILL.md
 ```
 
-Cursor Background Agents should be treated as remote branch workers. Put the full task packet in the Background Agent prompt and require the final response or PR description to include the handoff.
+Cursor Cloud Agents, formerly Background Agents, should be treated as remote
+branch workers. Put the full task packet in the Cloud Agent prompt and require
+the final response or PR description to include the handoff.
+
+For Cursor-first environments without Codex, bootstrap with the Cursor profile:
+
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+This generates a default lane map with Cursor IDE as the operator, Cursor CLI as
+the local worker lane, and Claude Code as the UI lane when available. Review
+`operator.config.env` before starting workers; some machines expose the local
+agent command as `cursor agent`, while others provide `cursor-agent`.
 
 ## What The Agent Should Return
 

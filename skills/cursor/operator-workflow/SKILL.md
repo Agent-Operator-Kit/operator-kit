@@ -1,12 +1,34 @@
 # Cursor Operator Workflow Skill
 
-Use this skill when setting up or operating Agent Operator Kit from Cursor IDE, Cursor CLI, or Cursor Background Agents.
+Use this skill when setting up or operating Agent Operator Kit from Cursor IDE, Cursor CLI, or Cursor Cloud Agents.
 
 Cursor integration has three layers:
 
 - `.cursor/rules/operator-workflow.mdc` for persistent project guidance.
 - `.cursor/skills/operator-workflow/SKILL.md` for procedural setup and operations.
-- `.cursor/environment.json.example` as a starting point for Background Agent environments.
+- `.cursor/environment.json.example` as a starting point for Cloud Agent environments.
+
+Operator Kit integrates with whichever coding agents are available. When Cursor
+is available, Cursor IDE makes a natural operator cockpit; when Codex Desktop
+is available, Codex `$operator-*` skills can be the cockpit instead; Claude
+Code can fill UI or scoped lanes regardless. Pick the cockpit per project and
+fill remaining lanes from the agents you have.
+
+In environments without Codex, prefer a Cursor IDE operator lane, a Cursor CLI
+worker lane, and Claude Code lanes only where Claude is available.
+
+## Cursor Primitives
+
+- Rules are persistent project instructions. Keep lane boundaries, external
+  state policy, and safety guardrails in `.cursor/rules/*.mdc`.
+- Skills are reusable procedures. Keep setup, status, dispatch, collection, and
+  repair workflows in `.cursor/skills/<name>/SKILL.md`.
+- Prompt templates are copy/paste entry points for bootstrapping or Background
+  Agent tasks. They live under `templates/prompts/` in the kit source.
+- Cursor CLI is a local terminal agent surface. Some installs expose it as
+  `cursor agent`; others provide `cursor-agent`.
+- Cursor Cloud Agents, formerly Background Agents, are remote branch workers. They cannot rely on local
+  tmux sessions, simulators, or `OPERATOR_DIR`.
 
 ## Local Cursor Operator
 
@@ -21,6 +43,23 @@ The local flow:
 5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, and `scripts/operator-feedback.sh`.
 6. Commit only evergreen repo changes.
 
+For first-time setup without Codex, use the Cursor bootstrap profile:
+
+```bash
+bash scripts/operator-bootstrap.sh --profile cursor /path/to/repo
+```
+
+or:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+Review the generated `operator.config.env` before running `operator-tmux.sh
+start-workers`. Choose the GPT-5.5 model through Cursor's configured model
+picker or company policy; do not hard-code model flags unless the local Cursor
+CLI documents and supports them.
+
 Once the user authorizes a feature track, keep dispatching necessary follow-up
 tasks to the appropriate lanes until the feature is completed, integrated,
 validated, or blocked. Do not ask the user to approve every obvious
@@ -28,25 +67,26 @@ handoff-to-handoff transition.
 
 ## Cursor CLI
 
-Cursor CLI uses `cursor-agent`.
+Cursor CLI uses `cursor agent` or `cursor-agent`, depending on how the CLI is
+installed.
 
 Useful commands:
 
 ```bash
-cursor-agent
+cursor agent
+cursor agent "Set up Agent Operator Kit for this repo"
 cursor-agent "Set up Agent Operator Kit for this repo"
-cursor-agent -p "Review this branch for operator workflow regressions" --output-format text
 ```
 
 Use non-interactive mode carefully because it can have write access depending on flags and configuration.
 
-## Cursor Background Agents
+## Cursor Cloud Agents
 
-Background Agents run remotely, clone from GitHub, work on a separate branch, and push back to the repo.
+Cloud Agents run remotely, clone from GitHub, work on a separate branch, and push back to the repo.
 
 Use them for isolated branch work. Do not assume access to local tmux sessions, local simulators, or local `OPERATOR_DIR`.
 
-For every Background Agent prompt, include:
+For every Cloud Agent prompt, include:
 
 - branch name
 - task scope
@@ -54,7 +94,7 @@ For every Background Agent prompt, include:
 - validation commands
 - handoff requirements
 
-Do not assume Background Agents can access local Operator Memory. Include the
+Do not assume Cloud Agents can access local Operator Memory. Include the
 relevant context explicitly in the prompt or task packet.
 
 ## Memory

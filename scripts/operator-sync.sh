@@ -22,11 +22,14 @@ Options:
   --skip-project            Do not update a project repo.
   --skip-checks             Do not run project validation checks.
   --bootstrap-if-missing    Bootstrap target repo if operator.config.env is missing.
+  --bootstrap-profile <name> Profile to use with --bootstrap-if-missing.
+                            Valid profiles: default, cursor.
   -h, --help                Show this help.
 
 Examples:
   bash scripts/operator-sync.sh
   bash scripts/operator-sync.sh --target /path/to/project
+  bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
   bash /path/to/operator-kit/scripts/operator-sync.sh --target "$PWD"
   bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
 USAGE
@@ -46,6 +49,7 @@ SKIP_SKILLS=0
 SKIP_PROJECT=0
 SKIP_CHECKS=0
 BOOTSTRAP_IF_MISSING=0
+BOOTSTRAP_PROFILE="${OPERATOR_BOOTSTRAP_PROFILE:-default}"
 TMP_ROOT=""
 
 cleanup() {
@@ -93,6 +97,10 @@ while [ "$#" -gt 0 ]; do
       BOOTSTRAP_IF_MISSING=1
       shift
       ;;
+    --bootstrap-profile)
+      BOOTSTRAP_PROFILE="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -104,6 +112,15 @@ while [ "$#" -gt 0 ]; do
       ;;
   esac
 done
+
+case "$BOOTSTRAP_PROFILE" in
+  default|cursor) ;;
+  *)
+    printf 'Unknown bootstrap profile: %s\n' "$BOOTSTRAP_PROFILE" >&2
+    printf 'Valid profiles: default, cursor\n' >&2
+    exit 1
+    ;;
+esac
 
 print_section() {
   printf '\n## %s\n' "$1"
@@ -316,15 +333,18 @@ if [ ! -f "$TARGET_REPO/operator.config.env" ]; then
     print_section "Project Bootstrap"
     if [ "$DRY_RUN" -eq 1 ]; then
       printf 'Would bootstrap Operator Kit into: %s\n' "$TARGET_REPO"
+      printf 'Bootstrap profile: %s\n' "$BOOTSTRAP_PROFILE"
       exit 0
     fi
-    bash "$SOURCE_PATH/scripts/operator-bootstrap.sh" "$TARGET_REPO"
+    bash "$SOURCE_PATH/scripts/operator-bootstrap.sh" --profile "$BOOTSTRAP_PROFILE" "$TARGET_REPO"
   else
     print_section "Project Update"
     printf 'Target is a git repo but does not look like an installed Operator Kit project.\n'
     printf 'Missing: operator.config.env\n'
     printf 'To bootstrap intentionally, run:\n'
     printf '  bash %s/scripts/operator-sync.sh --target %s --bootstrap-if-missing\n' "$SOURCE_PATH" "$TARGET_REPO"
+    printf 'For Cursor-first projects without Codex, run:\n'
+    printf '  bash %s/scripts/operator-sync.sh --target %s --bootstrap-if-missing --bootstrap-profile cursor --skip-skills\n' "$SOURCE_PATH" "$TARGET_REPO"
     exit 0
   fi
 fi

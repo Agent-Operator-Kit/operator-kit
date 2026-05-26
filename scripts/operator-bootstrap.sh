@@ -2,20 +2,61 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET_REPO="${1:-}"
+BOOTSTRAP_PROFILE="${OPERATOR_BOOTSTRAP_PROFILE:-default}"
+TARGET_REPO=""
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/operator-bootstrap.sh /path/to/repo
+Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
 Installs Agent Operator Kit scripts/templates into an existing git repository.
+
+Profiles:
+  default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
+  cursor   Cursor IDE operator, Cursor CLI worker, Claude Code UI.
 USAGE
 }
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --profile)
+      BOOTSTRAP_PROFILE="${2:-}"
+      shift 2
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    -*)
+      printf 'Unknown argument: %s\n\n' "$1" >&2
+      usage >&2
+      exit 1
+      ;;
+    *)
+      if [ -n "$TARGET_REPO" ]; then
+        printf 'Unexpected extra argument: %s\n\n' "$1" >&2
+        usage >&2
+        exit 1
+      fi
+      TARGET_REPO="$1"
+      shift
+      ;;
+  esac
+done
 
 if [ -z "$TARGET_REPO" ]; then
   usage >&2
   exit 1
 fi
+
+case "$BOOTSTRAP_PROFILE" in
+  default|cursor) ;;
+  *)
+    printf 'Unknown bootstrap profile: %s\n' "$BOOTSTRAP_PROFILE" >&2
+    printf 'Valid profiles: default, cursor\n' >&2
+    exit 1
+    ;;
+esac
 
 TARGET_REPO="$(cd "$TARGET_REPO" && pwd)"
 if ! git -C "$TARGET_REPO" rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -41,7 +82,23 @@ for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.
 done
 
 if [ ! -f "$repo_root/operator.config.env" ]; then
-  cat > "$repo_root/operator.config.env" <<EOF
+  if [ "$BOOTSTRAP_PROFILE" = "cursor" ]; then
+    cat > "$repo_root/operator.config.env" <<EOF
+PROJECT_NAME="$repo_name"
+PROJECT_ROOT="$project_root"
+CODE_DIR="$code_dir"
+OPERATOR_DIR="$project_root/operator"
+TMUX_SESSION="$repo_name"
+DEFAULT_BRANCH="$default_branch"
+
+OPERATOR_LANES='
+operator|Cursor IDE|$repo_name|$default_branch|
+cursor|Cursor CLI|$repo_name-cursor|cursor/operator|cursor agent
+ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+'
+EOF
+  else
+    cat > "$repo_root/operator.config.env" <<EOF
 PROJECT_NAME="$repo_name"
 PROJECT_ROOT="$project_root"
 CODE_DIR="$code_dir"
@@ -55,6 +112,7 @@ backend|Codex CLI|$repo_name-backend|codex/backend|codex --dangerously-bypass-ap
 ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
 '
 EOF
+  fi
 fi
 
 if [ ! -f "$repo_root/AGENTS.md" ]; then

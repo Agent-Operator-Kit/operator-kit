@@ -44,6 +44,7 @@ Required behavior:
    - `ui`: Claude Code on `claude/ui`
    - `release`: Codex CLI only if the project has release work
    - `product`: Codex CLI only if product or research work is useful
+   - for Cursor-first environments without Codex, use `--profile cursor` and prefer Cursor IDE as operator, Cursor CLI as a local worker, and Claude Code as an optional UI lane
 4. After approval, or if the lane map is obvious, clone/install the kit and run its bootstrap script.
 5. Edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
 6. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.

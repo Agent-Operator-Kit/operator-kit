@@ -12,6 +12,12 @@ git clone git@github.com:Agent-Operator-Kit/operator-kit.git "$HOME/Projects/ope
 bash "$HOME/Projects/operator-kit/scripts/operator-bootstrap.sh" "$PWD"
 ```
 
+For a Cursor-first project without Codex, use:
+
+```bash
+bash "$HOME/Projects/operator-kit/scripts/operator-bootstrap.sh" --profile cursor "$PWD"
+```
+
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.
 
 For Codex Desktop operation after install, add or refresh the bundled global skills:

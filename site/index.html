@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Operator Kit</title>
-<meta name="description" content="Agent Operator Kit is an AI-agent-first operating model for Codex, Claude Code, Cursor, and other coding agents: feedback intake, roadmap planning, execution lanes, tmux sessions, operator memory, task work folders, and one-command upgrades.">
+<meta name="description" content="Agent Operator Kit is an operating model for coordinating coding agents that integrates with Cursor, Codex, Claude Code, and domain skills: pick the operator cockpit per setup, plus isolated worktree lanes, tmux sessions, operator memory, feedback intake, roadmap planning, handoffs, and one-command upgrades.">
 <link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -791,6 +791,7 @@
   <ul class="nav-links">
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
+    <li><a href="#cursor-operator">Cursor</a></li>
     <li><a href="#codex-skill">Codex</a></li>
     <li><a href="#operator-modes">Modes</a></li>
     <li><a href="#upgrade">Upgrade</a></li>
@@ -816,9 +817,9 @@
       The Operator model for specialized agents.
     </h1>
     <p class="hero-subtitle fade-up fade-up-3">
-      Give Codex, Claude Code, Cursor, and domain skills one operating layer:
-      feedback intake, roadmap planning, isolated execution lanes, task memory,
-      and working files kept out of source.
+      One operating layer for the agents you already use. Operator Kit
+      integrates with Cursor, Codex, Claude Code, and domain skills, and adapts
+      its cockpit role to whichever IDE you have available.
     </p>
     <div class="hero-ctas fade-up fade-up-4">
       <a class="btn-primary" href="#getting-started">
@@ -832,8 +833,8 @@
     </div>
     <div class="hero-stats fade-up fade-up-5">
       <div>
-        <div class="hero-stat-label">Agents Supported</div>
-        <div class="hero-stat-val">Codex · Claude · Cursor + companions</div>
+        <div class="hero-stat-label">Operator Cockpit</div>
+        <div class="hero-stat-val">Cursor · Codex · Claude</div>
       </div>
       <div>
         <div class="hero-stat-label">Primary Flow</div>
@@ -841,7 +842,7 @@
       </div>
       <div>
         <div class="hero-stat-label">Refresh</div>
-        <div class="hero-stat-val">$operator --upgrade</div>
+        <div class="hero-stat-val">operator-upgrade.sh</div>
       </div>
     </div>
   </div>
@@ -857,21 +858,21 @@
         <span class="terminal-title">operator — feedback → planning → execution</span>
       </div>
       <div class="terminal-body" id="terminal-body">
-        <div><span class="t-comment"># one command refreshes skills and installed projects</span></div>
-        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-upgrade.sh</span></div>
+        <div><span class="t-comment"># pick your IDE; Operator Kit is the lane map for any of them</span></div>
+        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Set up Agent Operator Kit with the Cursor profile.</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SKILLS</span>   $operator-feedback · $operator-planner · $operator</div>
-        <div><span class="t-success">✓</span> <span class="t-info">PROJECT</span>  ~/Projects/acme/code/app</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SCRIPTS</span>  operator-feedback.sh · operator-roadmap.sh</div>
-        <div><span class="t-success">✓</span> <span class="t-info">CHECKS</span>   status · summary · roadmap · memory</div>
+        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing --bootstrap-profile cursor --skip-skills</span></div>
+        <div><span class="t-success">✓</span> <span class="t-info">CURSOR</span>  .cursor/rules · .cursor/skills · environment example</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANES</span>   Cursor IDE · Cursor CLI · Claude Code</div>
+        <div><span class="t-success">✓</span> <span class="t-info">STATE</span>   OPERATOR_DIR/tasks · memory · roadmap · feedback</div>
         <div>&nbsp;</div>
-        <div><span class="t-comment"># capture feedback first, then promote only approved work</span></div>
-        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
+        <div><span class="t-comment"># use Composer for integration, scripts for state</span></div>
+        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Run operator-status and summarize lane health.</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator-planner. Propose now/next/later.</span></div>
+        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Create a task packet and dispatch it to the Cursor CLI lane with memory.</span></div>
         <div><span class="t-success">✓</span> ready-for-execution: RM-0007 · FB-0014</div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">codex</span> <span class="t-cmd">Use $operator. Execute the approved mobile-ui task.</span><span class="t-cursor"></span></div>
+        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Collect the handoff, review the branch, and integrate approved source changes.</span><span class="t-cursor"></span></div>
       </div>
     </div>
 
@@ -883,15 +884,15 @@
           <div class="lane-status"></div>
         </div>
         <div class="lane-branch">app / main</div>
-        <div class="lane-agent">Codex Desktop</div>
+        <div class="lane-agent">Cursor IDE</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
-          <span class="lane-name">backend</span>
+          <span class="lane-name">cursor</span>
           <div class="lane-status"></div>
         </div>
-        <div class="lane-branch">app-backend / codex/backend</div>
-        <div class="lane-agent">Codex CLI</div>
+        <div class="lane-branch">app-cursor / cursor/operator</div>
+        <div class="lane-agent">Cursor CLI</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
@@ -1078,8 +1079,9 @@
         <div><span class="p-comment">- inspect the repo first</span></div>
         <div><span class="p-comment">- propose the lane map before creating worktrees</span></div>
         <div><span class="p-comment">- install the scripts/templates</span></div>
-        <div><span class="p-comment">- install Codex, Claude Code, and Cursor project assets when relevant</span></div>
-        <div><span class="p-comment">- explain how to install bundled Codex Desktop skills when relevant</span></div>
+        <div><span class="p-comment">- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)</span></div>
+        <div><span class="p-comment">- install IDE-specific assets only when that IDE is available</span></div>
+        <div><span class="p-comment">- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable</span></div>
         <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
@@ -1099,6 +1101,77 @@
     </div>
   </div>
 </div>
+
+<!-- CURSOR OPERATOR -->
+<section id="cursor-operator">
+  <div class="section-label">// cursor operator</div>
+  <h2 class="section-title">Operator Kit adapts<br>to your IDE stack.</h2>
+  <p class="section-sub">The cockpit role goes to whichever IDE you have. With Cursor available, Cursor Composer or Agent fits naturally; with Codex Desktop, Codex skills fit; with Claude Code, Claude can fill UI or scoped lanes. Operator Kit manages the lane map, worktrees, tmux sessions, task packets, memory, roadmap, feedback, and handoffs around the cockpit you choose.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — COCKPIT</div>
+      <div class="how-card-accent"></div>
+      <h3>Cursor · Codex · Claude</h3>
+      <p>Pick the cockpit per project. Cursor Composer, Codex Desktop, or Claude Code can each own review, integration, validation, and what lands on the stable branch.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — RULES</div>
+      <div class="how-card-accent"></div>
+      <h3><code>.cursor/rules</code></h3>
+      <p>Project rules keep lane boundaries, external state policy, and safety guardrails available to every Cursor session.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — SKILLS</div>
+      <div class="how-card-accent"></div>
+      <h3><code>.cursor/skills</code></h3>
+      <p>Cursor skills provide repeatable operator procedures for setup, status, dispatch, collection, feedback, roadmap, and repair workflows.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — SUBAGENTS</div>
+      <div class="how-card-accent"></div>
+      <h3>Specialist Contexts</h3>
+      <p>Use Cursor subagents for temporary research, debugging, review, and validation. Use Operator lanes for durable branch and worktree ownership.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">05 — LOCAL LANES</div>
+      <div class="how-card-accent"></div>
+      <h3>Cursor CLI + tmux</h3>
+      <p>Run Cursor CLI workers in tmux lanes when you need persistent local execution that can receive task packets and produce handoffs.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">06 — CLOUD AGENTS</div>
+      <div class="how-card-accent"></div>
+      <h3>Remote Branch Work</h3>
+      <p>Use Cursor Cloud Agents, formerly Background Agents, for isolated remote tasks. Include the full task packet and memory context because they do not share local <code>OPERATOR_DIR</code>.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">cursor-first setup</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">Full guide
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># bootstrap a project without Codex</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># generated lane shape</span></div>
+      <div><span class="p-val">operator|Cursor IDE|app|main|</span></div>
+      <div><span class="p-val">cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent</span></div>
+      <div><span class="p-val">ui|Claude Code|app-ui|claude/ui|claude ...</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># local operator loop</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-status.sh</div>
+      <div><span class="p-key">bash</span> scripts/operator-task.sh auth-001 "Auth scaffolding"</div>
+      <div><span class="p-key">bash</span> scripts/operator-dispatch.sh --with-memory cursor "$OPERATOR_DIR/tasks/auth-001/tasks/cursor.md"</div>
+      <div><span class="p-key">bash</span> scripts/operator-collect.sh cursor auth-001</div>
+      <div><span class="p-comment"># Cursor reviews the handoff and integrates only approved source changes</span></div>
+    </div>
+  </div>
+</section>
 
 <!-- CODEX SKILL -->
 <section id="codex-skill">
@@ -1281,14 +1354,14 @@
 <section id="upgrade">
   <div class="section-label">// upgrade command</div>
   <h2 class="section-title">Refresh every agent surface<br>with one command.</h2>
-  <p class="section-sub"><code>operator-upgrade.sh</code> refreshes bundled Codex Desktop skills, discovers installed Operator Kit projects, updates project scripts/templates, and runs checks.</p>
+  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
 
   <div class="how-grid">
     <div class="how-card">
       <div class="how-card-num">01 — SKILLS</div>
       <div class="how-card-accent"></div>
-      <h3>Codex Desktop</h3>
-      <p>Refreshes <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code>.</p>
+      <h3>Optional Codex Desktop</h3>
+      <p>Refreshes <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code> when Codex is part of your stack.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — DISCOVER</div>
@@ -1550,14 +1623,16 @@
     <div class="agent-card">
       <div class="agent-logo cursor">CRS</div>
       <div class="agent-name">Cursor</div>
-      <p class="agent-desc">Project rules, a Cursor skill, and a Background Agent environment starter with full operator workflow support.</p>
+      <p class="agent-desc">When Cursor is available, Cursor Composer or Agent makes a natural operator cockpit. Project rules, skills, CLI lanes, subagents, and Cloud Agent prompts connect it to the Operator Kit lane and handoff model.</p>
       <div class="agent-tags">
         <span class="agent-tag">.mdc rules</span>
+        <span class="agent-tag">Composer</span>
+        <span class="agent-tag">cursor agent</span>
         <span class="agent-tag">environment.json</span>
         <span class="agent-tag">SKILL.md</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/cursor" target="_blank">
-        Open Cursor Assets
+      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">
+        Open Cursor Guide
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
     </div>
@@ -1657,9 +1732,9 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     'Use this source kit:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'First clone or read the kit, then follow its agent-run bootstrap guide:',
-    'templates/prompts/agent-run-bootstrap.md',
-    'docs/guides/agent-run-bootstrap.md',
+    'First clone or read the kit, then follow its Cursor bootstrap guide:',
+    'templates/prompts/cursor-agent-bootstrap.md',
+    'docs/guides/cursor-operator-workflow.md',
     '',
     'Treat the current working directory as the target project repo.',
     '',
@@ -1667,8 +1742,9 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- inspect the repo first',
     '- propose the lane map before creating worktrees',
     '- install the scripts/templates',
-    '- install Codex, Claude Code, and Cursor project assets when relevant',
-    '- explain how to install bundled Codex Desktop skills when relevant',
+    '- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)',
+    '- install IDE-specific assets only when that IDE is available',
+    '- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable',
     '- create the external operator workspace outside the repo',
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',

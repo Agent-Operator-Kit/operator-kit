@@ -183,6 +183,12 @@ Full bootstrap guide:
 docs/guides/agent-run-bootstrap.md
 ```
 
+Cursor operator guide:
+
+```text
+docs/guides/cursor-operator-workflow.md
+```
+
 GitHub Pages guide:
 
 ```text
@@ -241,7 +247,37 @@ templates/cursor/skills/operator-workflow/SKILL.md
 templates/cursor/environment.json.example
 templates/prompts/cursor-agent-bootstrap.md
 skills/cursor/operator-workflow/SKILL.md
+docs/guides/cursor-operator-workflow.md
 ```
+
+Operator Kit is the operating layer: lane map, task packets, worktrees, tmux
+sessions, feedback intake, roadmap promotion, memory routing, handoffs, and
+integration review. The operator cockpit depends on the available stack:
+
+- With Cursor available, Cursor Composer or Agent is the operator cockpit.
+- With Codex Desktop available, Codex `$operator-*` skills can be the cockpit.
+- With both, you can mix: Cursor as operator, Codex CLI or Claude Code as
+  worker lanes, or vice versa.
+- With Claude Code available, Claude can fill UI or scoped implementation
+  lanes regardless of which IDE owns the operator.
+
+The bootstrap profiles align with these setups: `--profile default` for a
+Codex-led setup, `--profile cursor` for a Cursor-led setup. In every case the
+external `OPERATOR_DIR`, scripts, lanes, and memory router stay the same.
+
+For Cursor-first environments without Codex, bootstrap with the Cursor profile:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+This generates a lane map with Cursor IDE as operator, Cursor CLI as a local
+worker lane, and Claude Code as an optional UI lane. Review `operator.config.env`
+before starting workers.
+
+Use Cursor subagents for temporary specialist work such as review, research,
+debugging, and validation. Use Operator Kit lanes for durable worktree, branch,
+and process boundaries.
 
 For an existing project:
 

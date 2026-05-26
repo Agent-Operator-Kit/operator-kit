@@ -23,6 +23,16 @@ If the repo has never had Operator Kit installed, bootstrap intentionally:
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing
 ```
 
+For Cursor-first environments without Codex, use the Cursor bootstrap profile
+and skip global Codex skill installation:
+
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+This keeps Cursor IDE as the operator lane, adds a Cursor CLI worker lane, and
+keeps Claude Code as an optional UI lane when available.
+
 ## Codex Desktop Operation
 
 After installation, Codex Desktop can use the bundled global skills:

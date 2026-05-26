@@ -21,7 +21,8 @@ Use Cursor as the frontend operator surface. Keep the standard Agent Operator Ki
 - `OPERATOR_DIR` outside the repo for local task packets, handoffs, and task working files
 - Operator Memory Router for compact local project, task, and episode context
 - Cursor rules/skills for persistent Cursor guidance
-- Cursor Background Agents only for isolated remote branch tasks
+- Cursor Cloud Agents, formerly Background Agents, only for isolated remote branch tasks
+- Codex is optional; if Codex is unavailable, use the Cursor bootstrap profile and make Cursor CLI / Claude Code the local worker lanes
 
 Required setup:
 
@@ -43,12 +44,37 @@ Required setup:
    - `bash scripts/operator-memory.sh status`
 10. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
 
-Cursor Background Agent policy:
+Cursor-first lane defaults when Codex is unavailable:
 
-- Treat Background Agents as remote branch workers, not local tmux lanes.
+```text
+operator|Cursor IDE|app|main|
+cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent
+ui|Claude Code|app-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+```
+
+Use:
+
+```bash
+bash scripts/operator-bootstrap.sh --profile cursor /path/to/repo
+```
+
+or:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+If the local machine exposes Cursor Agent as `cursor-agent` instead of `cursor
+agent`, update the lane invocation accordingly. Select GPT-5.5 through Cursor's
+configured model picker or company policy; do not invent unsupported CLI model
+flags.
+
+Cursor Cloud Agent policy:
+
+- Treat Cloud Agents as remote branch workers, not local tmux lanes.
 - Put full task packets and relevant memory context in their prompt because they may not have local operator state.
 - Require a final handoff in the response, branch commits, or pull request description.
-- Do not use Background Agents for deploys, provider consoles, local simulators, or local-device validation unless the environment is explicitly configured.
+- Do not use Cloud Agents for deploys, provider consoles, local simulators, or local-device validation unless the environment is explicitly configured.
 
 Guardrails:
 

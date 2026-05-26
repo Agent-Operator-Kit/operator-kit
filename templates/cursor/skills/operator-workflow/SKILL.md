@@ -7,6 +7,25 @@ description: Use when setting up or operating Agent Operator Kit, tmux lanes, gi
 
 Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
 
+Operator Kit integrates with whichever coding agents are available. When Cursor
+is available, Cursor IDE makes a natural operator cockpit; when Codex Desktop
+is available, Codex `$operator-*` skills can be the cockpit instead; Claude
+Code can fill UI or scoped lanes regardless. Pick the cockpit per project and
+fill remaining lanes from the agents you have.
+
+## Cursor Primitives
+
+- Rules are persistent project instructions. Keep lane boundaries, external
+  state policy, and safety guardrails in `.cursor/rules/*.mdc`.
+- Skills are reusable procedures. Keep setup, status, dispatch, collection, and
+  repair workflows in `.cursor/skills/<name>/SKILL.md`.
+- Prompt templates are copy/paste entry points for bootstrapping or Background
+  Agent tasks. Operator Kit keeps these under `templates/prompts/`.
+- Cursor CLI is a local terminal agent surface. Some installs expose it as
+  `cursor agent`; others provide `cursor-agent`.
+- Cursor Cloud Agents, formerly Background Agents, are remote branch workers. They cannot rely on local
+  tmux sessions, simulators, or `OPERATOR_DIR`.
+
 ## Local Cursor Operator Flow
 
 1. Inspect the repo and git status.
@@ -25,22 +44,39 @@ Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
    - `bash scripts/operator-roadmap.sh status`
 10. Report installed files, lane map, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
 
+For first-time setup without Codex, use the Cursor bootstrap profile:
+
+```bash
+bash scripts/operator-bootstrap.sh --profile cursor /path/to/repo
+```
+
+or:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
+```
+
+Review the generated `operator.config.env` before running `operator-tmux.sh
+start-workers`. Choose the GPT-5.5 model through Cursor's configured model
+picker or company policy; do not hard-code model flags unless the local Cursor
+CLI documents and supports them.
+
 Once the user authorizes a feature track, keep dispatching necessary follow-up
 tasks to the appropriate lanes until the feature is completed, integrated,
 validated, or blocked. Do not ask the user to approve every obvious
 handoff-to-handoff transition.
 
-## Cursor Background Agent Flow
+## Cursor Cloud Agent Flow
 
-Cursor Background Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR` or local Operator Memory.
+Cursor Cloud Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR` or local Operator Memory.
 
-For Background Agent tasks:
+For Cloud Agent tasks:
 
 1. Put the full task packet in the prompt.
 2. Include branch name, scope, read-only areas, validation commands, and handoff requirements.
 3. Require a final handoff that names changed files, commands run, tests, blockers, and follow-up needs.
-4. Do not use Background Agents for provider-console changes, production deploys, or tasks that require local device/simulator state unless the environment is explicitly configured.
-5. Include relevant operator memory explicitly in the prompt when a Background Agent needs it.
+4. Do not use Cloud Agents for provider-console changes, production deploys, or tasks that require local device/simulator state unless the environment is explicitly configured.
+5. Include relevant operator memory explicitly in the prompt when a Cloud Agent needs it.
 
 ## Memory
 
