@@ -177,6 +177,7 @@ Install the Cursor project assets too:
 - .cursor/skills/operator-planner/SKILL.md
 - .cursor/skills/operator-feedback/SKILL.md
 - .cursor/skills/design-agent/SKILL.md
+- .cursor/skills/incubation/SKILL.md
 - .cursor/environment.json.example
 
 Keep generated task packets, handoffs, pane captures, task working files, memory packs, and transient notes outside the repo.
@@ -204,6 +205,7 @@ After installation, Cursor uses:
 .cursor/skills/operator-planner/SKILL.md
 .cursor/skills/operator-feedback/SKILL.md
 .cursor/skills/design-agent/SKILL.md
+.cursor/skills/incubation/SKILL.md
 ```
 
 Invoke the Cursor skills explicitly:
@@ -213,6 +215,7 @@ Use the operator skill. Execute the approved backend task.
 Use the operator-planner skill. Prioritize the feedback inbox.
 Use the operator-feedback skill. Capture these testing notes.
 Use the design-agent skill with operator. Shape a UI lane task.
+Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 
 To keep Operator Kit as the default in Cursor, tell the agent:

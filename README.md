@@ -270,6 +270,7 @@ templates/cursor/skills/operator/SKILL.md
 templates/cursor/skills/operator-planner/SKILL.md
 templates/cursor/skills/operator-feedback/SKILL.md
 templates/cursor/skills/design-agent/SKILL.md
+templates/cursor/skills/incubation/SKILL.md
 templates/cursor/environment.json.example
 templates/prompts/cursor-agent-bootstrap.md
 skills/cursor/operator-workflow/SKILL.md
@@ -277,6 +278,7 @@ skills/cursor/operator/SKILL.md
 skills/cursor/operator-planner/SKILL.md
 skills/cursor/operator-feedback/SKILL.md
 skills/cursor/design-agent/SKILL.md
+skills/cursor/incubation/SKILL.md
 docs/guides/cursor-operator-workflow.md
 ```
 
@@ -316,13 +318,14 @@ Use the operator skill. Dispatch the approved backend task.
 Use the operator-planner skill. Promote ready feedback into roadmap items.
 Use the operator-feedback skill. Capture these testing notes as FB-* intake.
 Use the design-agent skill with operator. Shape this UI issue into a lane task.
+Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 
 For a Cursor project/session where execution should default to Operator Kit,
 say: "Always use the operator skill for this project unless I explicitly ask
-for feedback, planning, design, setup, or non-operator work." Codex Desktop uses
+for feedback, planning, design, incubation, setup, or non-operator work." Codex Desktop uses
 the same convention with `$operator`, `$operator-planner`, `$operator-feedback`,
-and `$design-agent`.
+`$design-agent`, and `$incubation`.
 
 For an existing project:
 

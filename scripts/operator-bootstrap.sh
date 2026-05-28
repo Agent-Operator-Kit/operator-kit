@@ -75,7 +75,7 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules"
-for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent; do
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation; do
   mkdir -p "$repo_root/.cursor/skills/$cursor_skill"
 done
 
@@ -144,7 +144,7 @@ if [ ! -f "$repo_root/.cursor/rules/operator-workflow.mdc" ]; then
   cp "$KIT_ROOT/templates/cursor/rules/operator-workflow.mdc" "$repo_root/.cursor/rules/operator-workflow.mdc"
 fi
 
-for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent; do
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation; do
   if [ ! -f "$repo_root/.cursor/skills/$cursor_skill/SKILL.md" ]; then
     cp "$KIT_ROOT/templates/cursor/skills/$cursor_skill/SKILL.md" "$repo_root/.cursor/skills/$cursor_skill/SKILL.md"
   fi

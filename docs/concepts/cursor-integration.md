@@ -143,15 +143,18 @@ Agent Operator Kit installs these project assets:
       SKILL.md
     design-agent/
       SKILL.md
+    incubation/
+      SKILL.md
     operator-workflow/
       SKILL.md
   environment.json.example
 ```
 
 The rule gives Cursor persistent project guidance. The skills provide explicit
-operator modes: execution, planning, feedback intake, design/UX shaping, and
-setup/repair. The environment example is a starting point for Cloud Agents and
-should be adapted per project before being renamed to `.cursor/environment.json`.
+operator modes: execution, planning, feedback intake, design/UX shaping, idea
+incubation, and setup/repair. The environment example is a starting point for
+Cloud Agents and should be adapted per project before being renamed to
+`.cursor/environment.json`.
 
 ## References
 

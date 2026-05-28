@@ -45,6 +45,7 @@ Goals:
   - .cursor/skills/operator-planner/SKILL.md
   - .cursor/skills/operator-feedback/SKILL.md
   - .cursor/skills/design-agent/SKILL.md
+  - .cursor/skills/incubation/SKILL.md
   - .cursor/environment.json.example
 - Create the external operator workspace beside the project root unless I specify another path.
 
