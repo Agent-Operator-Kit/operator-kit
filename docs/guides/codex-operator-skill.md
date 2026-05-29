@@ -128,6 +128,51 @@ $design-agent -> UX/design-system reasoning and task content
 
 Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`; initialize it only after promotion into `/Users/norbert/Projects/<product-slug>/code/app`.
 
+## Codex Main Operator With Cursor Lanes
+
+Cursor support does not require changing the core operator model. The important
+decision is which surface owns integration for the project or session.
+
+When Codex Desktop is the main operator, keep the `operator` lane Codex-led and
+use Cursor as worker lanes:
+
+```text
+OPERATOR_LANES='
+operator|Codex Desktop|app|main|
+cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent
+ui|Claude Code|app-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+'
+```
+
+For a web app plus agent/API split, Cursor worker lanes can be named by scope:
+
+```text
+OPERATOR_LANES='
+operator|Codex Desktop|app|main|
+web|Cursor CLI|app-web|cursor/web|cursor agent
+agents-api|Cursor CLI|app-agents-api|cursor/agents-api|cursor agent
+'
+```
+
+If a project was bootstrapped with the Cursor profile, the lane map starts with
+`operator|Cursor IDE|...`. That is correct for Cursor-first projects, but Codex
+should call out the cockpit mismatch before dispatching implementation work as
+the main operator. Either operate from Codex in status/review mode, or make the
+lane map explicitly Codex-led before Codex starts integrating worker output.
+
+Local Cursor CLI lanes still use the same task packet, dispatch, collect, and
+review flow:
+
+```bash
+bash scripts/operator-dispatch.sh --with-memory cursor "$OPERATOR_DIR/tasks/<slug>/tasks/cursor.md"
+bash scripts/operator-collect.sh cursor <slug>
+```
+
+Cursor Cloud Agents are different: they are remote branch workers and cannot
+rely on local `OPERATOR_DIR`, tmux, local memory, simulators, or device state.
+Put the task packet, relevant memory, validation commands, and handoff
+requirements directly into the Cloud Agent prompt or PR context.
+
 ## Detection
 
 The skill detects an Operator Kit project by walking upward from the current directory and checking for:

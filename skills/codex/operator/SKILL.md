@@ -167,6 +167,46 @@ For new work:
 
 Before dispatch, check that no other active lane owns the same branch or file area.
 
+## Cursor Collaboration
+
+When Cursor is part of the project but Codex Desktop is acting as the main
+operator, keep exactly one active operator cockpit for integration decisions.
+
+Use `operator.config.env` as the binding lane map:
+
+- If Codex is the integrator, the `operator` lane should normally be
+  `operator|Codex Desktop|<repo>|<default-branch>|`.
+- Use Cursor as named worker lanes such as `cursor`, `web`, or `agents-api`,
+  each with its own worktree, branch, and command such as `cursor agent`.
+- If the project was bootstrapped with the Cursor profile and says
+  `operator|Cursor IDE|...`, call out the cockpit mismatch before dispatching
+  implementation work from Codex. Either operate in status/review mode or make
+  the lane map explicitly Codex-led before Codex starts integrating.
+
+For local Cursor CLI lanes, use the normal Operator Kit dispatch flow:
+
+```bash
+bash scripts/operator-dispatch.sh [--with-memory] cursor "$OPERATOR_DIR/tasks/<slug>/tasks/cursor.md"
+bash scripts/operator-collect.sh cursor <slug>
+```
+
+In Cursor lane task packets, tell the worker to read
+`.cursor/rules/operator-workflow.mdc` and the relevant
+`.cursor/skills/<mode>/SKILL.md`. Keep the packet self-contained enough that the
+Cursor lane can produce a normal handoff without relying on Codex chat history.
+
+Cursor Cloud Agents are remote branch workers, not local tmux lanes. Do not
+assume they can read local `OPERATOR_DIR`, local Operator Memory, simulators, or
+tmux panes. Put the task packet, relevant memory, validation commands, and
+handoff requirements directly into the Cloud Agent prompt or PR context; collect
+their work through the pushed branch or pasted handoff rather than local
+`operator-collect.sh` unless a matching local worktree exists.
+
+Preserve project-specific `.cursor/*` files during update and integration. Do
+not let Cursor project rules weaken Operator Kit lane safety: one branch per
+lane, no overlapping file ownership, no raw handoffs committed, and no
+unreviewed worker merge into the stable branch.
+
 ## Design-Agent Collaboration
 
 When the user asks for design, UX, UI consistency, design-system extraction, visual review, web-preview annotations, or starter-system recommendation:
