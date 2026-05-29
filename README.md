@@ -271,6 +271,8 @@ templates/cursor/skills/operator-planner/SKILL.md
 templates/cursor/skills/operator-feedback/SKILL.md
 templates/cursor/skills/design-agent/SKILL.md
 templates/cursor/skills/incubation/SKILL.md
+templates/cursor/skills/ux-auditor/SKILL.md
+templates/cursor/skills/user-journey/SKILL.md
 templates/cursor/environment.json.example
 templates/prompts/cursor-agent-bootstrap.md
 skills/cursor/operator-workflow/SKILL.md
@@ -279,6 +281,8 @@ skills/cursor/operator-planner/SKILL.md
 skills/cursor/operator-feedback/SKILL.md
 skills/cursor/design-agent/SKILL.md
 skills/cursor/incubation/SKILL.md
+skills/cursor/ux-auditor/SKILL.md
+skills/cursor/user-journey/SKILL.md
 docs/guides/cursor-operator-workflow.md
 ```
 
