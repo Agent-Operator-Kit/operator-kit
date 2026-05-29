@@ -322,12 +322,14 @@ Use the operator skill. Dispatch the approved backend task.
 Use the operator-planner skill. Promote ready feedback into roadmap items.
 Use the operator-feedback skill. Capture these testing notes as FB-* intake.
 Use the design-agent skill with operator. Shape this UI issue into a lane task.
+Use the ux-auditor skill. Score this flow against the target ICP.
+Use the user-journey skill. Map the first-run journey and service blueprint.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 
 For a Cursor project/session where execution should default to Operator Kit,
 say: "Always use the operator skill for this project unless I explicitly ask
-for feedback, planning, design, incubation, setup, or non-operator work." Codex Desktop uses
+for feedback, planning, design, UX audit, user journey, incubation, setup, or non-operator work." Codex Desktop uses
 the same convention with `$operator`, `$operator-planner`, `$operator-feedback`,
 `$design-agent`, and `$incubation`.
 

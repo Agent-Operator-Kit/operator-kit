@@ -51,6 +51,8 @@ Required setup:
    - `.cursor/skills/operator-planner/SKILL.md`
    - `.cursor/skills/operator-feedback/SKILL.md`
    - `.cursor/skills/design-agent/SKILL.md`
+   - `.cursor/skills/ux-auditor/SKILL.md`
+   - `.cursor/skills/user-journey/SKILL.md`
    - `.cursor/skills/incubation/SKILL.md`
    - `.cursor/environment.json.example`
 8. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.

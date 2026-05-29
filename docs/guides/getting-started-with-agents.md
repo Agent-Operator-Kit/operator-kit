@@ -177,6 +177,8 @@ Install the Cursor project assets too:
 - .cursor/skills/operator-planner/SKILL.md
 - .cursor/skills/operator-feedback/SKILL.md
 - .cursor/skills/design-agent/SKILL.md
+- .cursor/skills/ux-auditor/SKILL.md
+- .cursor/skills/user-journey/SKILL.md
 - .cursor/skills/incubation/SKILL.md
 - .cursor/environment.json.example
 
@@ -205,6 +207,8 @@ After installation, Cursor uses:
 .cursor/skills/operator-planner/SKILL.md
 .cursor/skills/operator-feedback/SKILL.md
 .cursor/skills/design-agent/SKILL.md
+.cursor/skills/ux-auditor/SKILL.md
+.cursor/skills/user-journey/SKILL.md
 .cursor/skills/incubation/SKILL.md
 ```
 
@@ -215,6 +219,8 @@ Use the operator skill. Execute the approved backend task.
 Use the operator-planner skill. Prioritize the feedback inbox.
 Use the operator-feedback skill. Capture these testing notes.
 Use the design-agent skill with operator. Shape a UI lane task.
+Use the ux-auditor skill. Score this flow against the target ICP.
+Use the user-journey skill. Map the new-user journey and service blueprint.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 

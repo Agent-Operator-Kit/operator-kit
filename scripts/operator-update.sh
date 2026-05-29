@@ -204,7 +204,7 @@ install_missing "$SOURCE_PATH/templates/claude/commands/operator-bootstrap.md" "
 install_missing "$SOURCE_PATH/templates/claude/commands/operator-status.md" "$TARGET_REPO/.claude/commands/operator-status.md" ".claude/commands/operator-status.md"
 install_missing "$SOURCE_PATH/templates/claude/agents/operator-workflow.md" "$TARGET_REPO/.claude/agents/operator-workflow.md" ".claude/agents/operator-workflow.md"
 install_missing "$SOURCE_PATH/templates/cursor/rules/operator-workflow.mdc" "$TARGET_REPO/.cursor/rules/operator-workflow.mdc" ".cursor/rules/operator-workflow.mdc"
-for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation; do
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   install_missing "$SOURCE_PATH/templates/cursor/skills/$cursor_skill/SKILL.md" "$TARGET_REPO/.cursor/skills/$cursor_skill/SKILL.md" ".cursor/skills/$cursor_skill/SKILL.md"
 done
 if [ ! -f "$TARGET_REPO/.cursor/environment.json" ]; then

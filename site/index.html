@@ -400,6 +400,7 @@
   .how-card:nth-child(5) .how-card-accent { background: var(--accent); }
   .how-card:nth-child(6) .how-card-accent { background: var(--accent2); }
   .how-card:nth-child(7) .how-card-accent { background: var(--accent); }
+  .how-card:nth-child(8) .how-card-accent { background: var(--accent2); }
 
   /* FILE TREE */
   .filetree-wrap {
@@ -792,6 +793,7 @@
     <li><a href="#getting-started">Getting Started</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#cursor-operator">Cursor</a></li>
+    <li><a href="#scenario-map">Scenarios</a></li>
     <li><a href="#codex-skill">Codex</a></li>
     <li><a href="#operator-modes">Modes</a></li>
     <li><a href="#upgrade">Upgrade</a></li>
@@ -1131,7 +1133,7 @@
       <div class="how-card-num">03 — SKILLS</div>
       <div class="how-card-accent"></div>
       <h3><code>.cursor/skills</code></h3>
-      <p>Cursor skills provide explicit modes: <code>operator</code>, <code>operator-planner</code>, <code>operator-feedback</code>, <code>design-agent</code>, <code>incubation</code>, and <code>operator-workflow</code>.</p>
+      <p>Cursor skills provide explicit modes: <code>operator</code>, <code>operator-planner</code>, <code>operator-feedback</code>, <code>design-agent</code>, <code>ux-auditor</code>, <code>user-journey</code>, <code>incubation</code>, and <code>operator-workflow</code>.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — SUBAGENTS</div>
@@ -1175,6 +1177,96 @@
       <div><span class="p-key">bash</span> scripts/operator-dispatch.sh --with-memory cursor "$OPERATOR_DIR/tasks/auth-001/tasks/cursor.md"</div>
       <div><span class="p-key">bash</span> scripts/operator-collect.sh cursor auth-001</div>
       <div><span class="p-comment"># Cursor reviews the handoff and integrates only approved source changes</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENARIO MAP -->
+<section id="scenario-map">
+  <div class="section-label">// skill and agent scenario map</div>
+  <h2 class="section-title">Choose the mode<br>by the job to be done.</h2>
+  <p class="section-sub">Cursor slash skills, Codex skills, subagents, local tmux lanes, and Cloud Agents each have a different job. Use skills for operating modes, subagents for temporary specialist context, and lanes for durable branch/worktree ownership.</p>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-card-num">01 — INSTALL / REPAIR</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/operator-workflow</code> · <code>operator-workflow</code></h3>
+      <p>Use for first-time setup, install-or-initialize, partial install repair, project refresh, Cursor asset checks, and upgrade verification. This mode should detect installed, partial, or missing state before changing files.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">02 — EXECUTION</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/operator</code> · <code>$operator</code></h3>
+      <p>Use once the project is installed. It runs status, creates task packets, checks lane ownership, dispatches workers, collects handoffs, reviews diffs, and integrates only approved source changes.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">03 — OBSERVATION</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/operator-feedback</code> · <code>$operator-feedback</code></h3>
+      <p>Use for testing notes, screenshots, videos, web/mobile annotations, bug reports, UX observations, and <code>FB-*</code> intake. Feedback mode should not dispatch implementation work.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">04 — PLANNING</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/operator-planner</code> · <code>$operator-planner</code></h3>
+      <p>Use to group feedback, decide now/next/later, promote <code>FB-*</code> into <code>RM-*</code>, draft acceptance criteria, and prepare lane-ready plans before execution starts.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">05 — UX / DESIGN</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/design-agent</code> · <code>$design-agent</code></h3>
+      <p>Use for UX reviews, design-system extraction, starter recommendations, visual consistency audits, annotation classification, and UI task shaping. It owns design judgment; operator owns dispatch and integration.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">06 — IDEATION</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/incubation</code> · <code>$incubation</code></h3>
+      <p>Use before a project deserves lanes: frame ideas, critique assumptions, capture durable idea files, design small experiments, archive weak ideas, and promote only ready ideas into Operator Kit projects.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">07 — UX AUDIT</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/ux-auditor</code></h3>
+      <p>Use for scored product UX reviews against persona, ICP, journey risk, usability, and business fit. It produces prioritized recommendations before operator turns work into lane tasks.</p>
+    </div>
+    <div class="how-card">
+      <div class="how-card-num">08 — JOURNEY ARTIFACTS</div>
+      <div class="how-card-accent"></div>
+      <h3><code>/user-journey</code></h3>
+      <p>Use for personas, ICPs, journey maps, service blueprints, storyboards, and Canvas or HTML artifacts that feed design reviews, UX audits, or implementation plans.</p>
+    </div>
+  </div>
+
+  <div class="prompt-card" style="margin-top:1.5rem;">
+    <div class="prompt-card-bar">
+      <span class="prompt-card-title">scenario prompts</span>
+      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">Cursor guide
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+    <div class="prompt-body">
+      <div><span class="p-comment"># setup and health</span></div>
+      <div><span class="p-val">/operator-workflow Install or initialize Operator Kit from the GitHub URL and configure web + agents-api lanes.</span></div>
+      <div><span class="p-val">/operator Run status, summary, and memory status for this project.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># feedback → planning → execution</span></div>
+      <div><span class="p-val">/operator-feedback Capture these testing notes as FB-* intake. Do not create implementation tasks.</span></div>
+      <div><span class="p-val">/operator-planner Review the feedback inbox and propose now/next/later with ready-for-execution candidates.</span></div>
+      <div><span class="p-val">/operator Execute the approved RM-0007 task on the web lane with memory.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># design and ideation</span></div>
+      <div><span class="p-val">/design-agent Review the web app UX and shape a lane-ready UI task for operator.</span></div>
+      <div><span class="p-val">/ux-auditor Score the onboarding flow against the target ICP and prioritize fixes.</span></div>
+      <div><span class="p-val">/user-journey Map the new-user journey and create a service blueprint.</span></div>
+      <div><span class="p-val">/incubation Frame this idea, critique assumptions, and capture the next experiment.</span></div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># choosing an agent surface</span></div>
+      <div><span class="p-val">Use a Cursor subagent for temporary review, research, debugging, or validation.</span></div>
+      <div><span class="p-val">Use a local tmux lane for durable work that needs a branch, worktree, task packet, and handoff.</span></div>
+      <div><span class="p-val">Use Cursor Cloud Agents for isolated remote branch work when local OPERATOR_DIR is not required.</span></div>
+      <div><span class="p-val">Use Claude Code for focused UI implementation lanes when it is available.</span></div>
+      <div><span class="p-val">Use Codex CLI or Cursor CLI for backend, API, knowledge, release, or long-running worker lanes.</span></div>
     </div>
   </div>
 </section>
