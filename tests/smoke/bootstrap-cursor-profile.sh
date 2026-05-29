@@ -27,7 +27,7 @@ if grep -q 'Codex CLI' operator.config.env; then
 fi
 
 test -f ".cursor/rules/operator-workflow.mdc"
-for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation; do
+for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   test -f ".cursor/skills/$cursor_skill/SKILL.md"
 done
 test -f ".cursor/environment.json.example"

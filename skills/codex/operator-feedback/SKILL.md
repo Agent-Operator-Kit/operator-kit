@@ -43,7 +43,8 @@ Capture and classify:
 - mobile screenshots and screen recordings;
 - simulator or TestFlight observations;
 - verbal testing notes;
-- design/UX observations from `$design-agent`;
+- design/UX observations from `$design-agent`, `$ux-auditor`, or
+  `$user-journey`;
 - evidence links and reproduction context.
 
 Create or update feedback intake items with this contract:

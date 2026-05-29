@@ -8,6 +8,8 @@ The setup skill and the runtime skill have different jobs:
 operator-workflow -> setup, bootstrap, repair
 operator-feedback -> feedback intake in an installed project
 operator-planner  -> roadmap/backlog planning in an installed project
+ux-auditor        -> scored UX assessment in an installed project
+user-journey      -> persona, ICP, journey, blueprint, and storyboard artifacts
 operator          -> execution in an installed project
 ```
 
@@ -19,7 +21,7 @@ From this kit repo:
 bash scripts/codex-skills-install.sh
 ```
 
-This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, `$operator-feedback`, `$operator-planner`, `$design-agent`, and `$incubation`.
+This installs or refreshes every bundled Codex Desktop skill under `skills/codex/`, including `$operator`, `operator-workflow`, `$operator-feedback`, `$operator-planner`, `$design-agent`, `$ux-auditor`, `$user-journey`, and `$incubation`.
 
 To fast-forward the kit source first, then refresh skills:
 
@@ -34,12 +36,14 @@ Codex skills are not background daemons. Invoke the skill explicitly with `$oper
 To keep Operator Kit as the default for a Codex project/session, say:
 
 ```text
-Always use $operator for this project unless I explicitly ask for feedback, planning, design, setup, or non-operator work.
+Always use $operator for this project unless I explicitly ask for feedback, planning, design, UX audit, journey mapping, setup, or non-operator work.
 ```
 
 `CODEX.md` and `AGENTS.md` carry the same routing convention for installed
 projects, while `$operator-feedback`, `$operator-planner`, and `$design-agent`
 remain the deliberate modes for observation, planning, and design work.
+Use `$ux-auditor` for scored UX assessment and `$user-journey` for journey
+artifacts before execution work is dispatched.
 
 ## Operator Feedback And Planner Companions
 
@@ -96,6 +100,34 @@ Role split:
 
 ```text
 $design-agent -> UX/design-system reasoning and task content
+$operator     -> lane safety, dispatch, collection, integration review
+```
+
+## Optional UX Auditor And User Journey Companions
+
+Install `$ux-auditor` and `$user-journey` when you want scored UX assessment or
+journey artifacts before `$operator` execution.
+
+From this kit repo:
+
+```bash
+bash scripts/codex-skills-install.sh --skill ux-auditor --skill user-journey
+```
+
+Use the skills together:
+
+```text
+Use $ux-auditor. Score this onboarding flow against persona, ICP, and journey risk.
+Use $user-journey. Map the first-value journey and service blueprint.
+Use $user-journey with $ux-auditor. Build the artifact, then audit the flow.
+Use $ux-auditor with $operator. Convert the highest-risk findings into a lane-ready task.
+```
+
+Role split:
+
+```text
+$ux-auditor   -> scored UX assessment and prioritized recommendations
+$user-journey -> persona, ICP, journey map, service blueprint, storyboard artifacts
 $operator     -> lane safety, dispatch, collection, integration review
 ```
 

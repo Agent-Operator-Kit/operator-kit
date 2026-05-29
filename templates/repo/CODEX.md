@@ -8,7 +8,8 @@ If the user says to always use operator for this project or session, treat
 `$operator` as the default for future execution requests in this Codex chat and
 related project chats. Still use `$operator-feedback` for observation-only
 feedback, `$operator-planner` for prioritization and roadmap planning, and
-`$design-agent` for UX/design-system work, and `$incubation` for idea
+`$design-agent` for UX/design-system work, `$ux-auditor` for scored UX
+assessment, `$user-journey` for journey artifacts, and `$incubation` for idea
 incubation unless the user asks for execution.
 
 Default Codex-owned areas often include:

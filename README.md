@@ -185,7 +185,7 @@ with the Cursor bootstrap profile. Configure these lanes:
 - agents-api: optional lane for agent/API integration work
 
 Always use the operator skill for this project unless I explicitly ask for
-feedback, planning, design, setup, or non-operator work.
+feedback, planning, design, UX audit, journey mapping, setup, or non-operator work.
 ```
 
 The agent should inspect first, classify the project as installed, partial, or
@@ -225,6 +225,8 @@ skills/codex/operator-workflow/SKILL.md
 skills/codex/operator-feedback/SKILL.md
 skills/codex/operator-planner/SKILL.md
 skills/codex/design-agent/SKILL.md
+skills/codex/ux-auditor/SKILL.md
+skills/codex/user-journey/SKILL.md
 skills/codex/incubation/SKILL.md
 ```
 
@@ -249,6 +251,10 @@ Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` ski
 Use `skills/codex/operator-feedback/SKILL.md` for feedback intake and `skills/codex/operator-planner/SKILL.md` for roadmap/backlog planning. The older `skills/codex/product-manager/SKILL.md` remains as a compatibility alias.
 
 Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
+
+Use `skills/codex/ux-auditor/SKILL.md` as the optional global Codex Desktop `$ux-auditor` companion skill for scored UX audits, persona/ICP fit assessment, journey risk analysis, and prioritized recommendations.
+
+Use `skills/codex/user-journey/SKILL.md` as the optional global Codex Desktop `$user-journey` companion skill for persona, ICP, journey map, service blueprint, storyboard, Canvas, and HTML journey artifacts.
 
 Use `skills/codex/incubation/SKILL.md` as the optional global Codex Desktop `$incubation` companion skill for product idea framing, durable idea-file capture, promotion readiness, and handoff into promoted Operator Kit projects.
 
@@ -322,14 +328,16 @@ Use the operator skill. Dispatch the approved backend task.
 Use the operator-planner skill. Promote ready feedback into roadmap items.
 Use the operator-feedback skill. Capture these testing notes as FB-* intake.
 Use the design-agent skill with operator. Shape this UI issue into a lane task.
+Use the ux-auditor skill. Score this onboarding flow against the persona and ICP.
+Use the user-journey skill. Map the first-value journey.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 
 For a Cursor project/session where execution should default to Operator Kit,
 say: "Always use the operator skill for this project unless I explicitly ask
-for feedback, planning, design, incubation, setup, or non-operator work." Codex Desktop uses
+for feedback, planning, design, UX audit, journey mapping, incubation, setup, or non-operator work." Codex Desktop uses
 the same convention with `$operator`, `$operator-planner`, `$operator-feedback`,
-`$design-agent`, and `$incubation`.
+`$design-agent`, `$ux-auditor`, `$user-journey`, and `$incubation`.
 
 For an existing project:
 
@@ -573,6 +581,30 @@ Use $design-agent with $operator. Package my annotations and dispatch a follow-u
 ```
 
 `$design-agent` owns design/UX reasoning and task content. `$operator` owns project detection, lane safety, dispatch, collection, and integration review.
+
+## Optional Codex Desktop `$ux-auditor` And `$user-journey` Skills
+
+The install script also refreshes the companion `$ux-auditor` and
+`$user-journey` skills. Use them when you want a scored product-experience audit
+or journey artifacts before shaping implementation work:
+
+```bash
+bash scripts/codex-skills-install.sh --skill ux-auditor --skill user-journey
+```
+
+Then open or restart Codex Desktop and use:
+
+```text
+Use $ux-auditor. Score this onboarding flow against the target persona and ICP.
+Use $user-journey. Map the first-value journey for this product flow.
+Use $user-journey with $ux-auditor. Create the journey map, then audit the flow.
+Use $ux-auditor with $operator. Audit this flow and prepare lane-ready follow-ups.
+```
+
+`$ux-auditor` owns scored UX assessment and recommendations. `$user-journey`
+owns persona, ICP, journey map, service blueprint, and storyboard artifacts.
+`$operator` owns project detection, lane safety, dispatch, collection, and
+integration review.
 
 ## Optional Codex Desktop `$incubation` Skill
 

@@ -69,6 +69,8 @@ skills/codex/operator-workflow/SKILL.md
 skills/codex/operator-feedback/SKILL.md
 skills/codex/operator-planner/SKILL.md
 skills/codex/design-agent/SKILL.md
+skills/codex/ux-auditor/SKILL.md
+skills/codex/user-journey/SKILL.md
 skills/codex/incubation/SKILL.md
 ```
 
@@ -103,6 +105,8 @@ Use $operator-feedback with $design-agent. Capture these annotations as feedback
 Use $operator-planner. Review local feedback and propose the next lane schedule.
 Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.
 Use $design-agent with $operator. Prepare a UX follow-up task for the UI lane.
+Use $ux-auditor. Score this onboarding flow against the target persona and ICP.
+Use $user-journey. Map the first-value journey and service blueprint.
 ```
 
 The `$operator` skill detects `operator.config.env` and the required `scripts/operator-*.sh` files. If the kit is partially installed or missing, it reports what is missing instead of dispatching unsafe work.
@@ -177,6 +181,8 @@ Install the Cursor project assets too:
 - .cursor/skills/operator-planner/SKILL.md
 - .cursor/skills/operator-feedback/SKILL.md
 - .cursor/skills/design-agent/SKILL.md
+- .cursor/skills/ux-auditor/SKILL.md
+- .cursor/skills/user-journey/SKILL.md
 - .cursor/skills/incubation/SKILL.md
 - .cursor/environment.json.example
 
@@ -205,6 +211,8 @@ After installation, Cursor uses:
 .cursor/skills/operator-planner/SKILL.md
 .cursor/skills/operator-feedback/SKILL.md
 .cursor/skills/design-agent/SKILL.md
+.cursor/skills/ux-auditor/SKILL.md
+.cursor/skills/user-journey/SKILL.md
 .cursor/skills/incubation/SKILL.md
 ```
 
@@ -215,13 +223,15 @@ Use the operator skill. Execute the approved backend task.
 Use the operator-planner skill. Prioritize the feedback inbox.
 Use the operator-feedback skill. Capture these testing notes.
 Use the design-agent skill with operator. Shape a UI lane task.
+Use the ux-auditor skill. Score this product flow.
+Use the user-journey skill. Map this first-value journey.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```
 
 To keep Operator Kit as the default in Cursor, tell the agent:
 
 ```text
-Always use the operator skill for this project unless I explicitly ask for feedback, planning, design, setup, or non-operator work.
+Always use the operator skill for this project unless I explicitly ask for feedback, planning, design, UX audit, journey mapping, setup, or non-operator work.
 ```
 
 Cursor Cloud Agents, formerly Background Agents, should be treated as remote

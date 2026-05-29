@@ -6,7 +6,7 @@ This project uses Agent Operator Kit.
 
 When operating from Cursor, read `.cursor/rules/operator-workflow.mdc`. Use `.cursor/skills/operator/SKILL.md` for day-to-day execution, `.cursor/skills/operator-planner/SKILL.md` for roadmap/backlog planning, `.cursor/skills/operator-feedback/SKILL.md` for feedback intake, `.cursor/skills/design-agent/SKILL.md` for UX/design work, `.cursor/skills/ux-auditor/SKILL.md` for scored UX audits, `.cursor/skills/user-journey/SKILL.md` for journey artifacts, `.cursor/skills/incubation/SKILL.md` for idea incubation and promotion readiness, and `.cursor/skills/operator-workflow/SKILL.md` for setup, status, dispatch, collection, and repair workflows. In Cursor-first environments without Codex, use Cursor IDE as the operator lane, Cursor CLI as a local worker lane when available, and Claude Code as an optional scoped worker.
 
-When operating from Codex Desktop, use `$operator-feedback` for feedback intake, `$operator-planner` for roadmap/backlog planning, and `$operator` for execution unless the user explicitly says otherwise.
+When operating from Codex Desktop, use `$operator-feedback` for feedback intake, `$operator-planner` for roadmap/backlog planning, `$design-agent` for UX/design-system work, `$ux-auditor` for scored UX audits, `$user-journey` for journey artifacts, `$incubation` for idea incubation and promotion readiness, and `$operator` for execution unless the user explicitly says otherwise.
 
 If the user says to always use operator for the current project or session, make
 operator mode the default for future execution requests in Cursor and Codex.

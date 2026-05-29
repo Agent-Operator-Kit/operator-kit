@@ -45,10 +45,14 @@ Skill routing:
 - For roadmap/backlog planning, use `.cursor/skills/operator-planner/SKILL.md`.
 - For UX, design-system, visual review, or UI task shaping, use
   `.cursor/skills/design-agent/SKILL.md`.
+- For scored UX audits, persona fit, ICP fit, journey risk, and prioritized
+  recommendations, use `.cursor/skills/ux-auditor/SKILL.md`.
+- For persona, ICP, journey map, service blueprint, or storyboard artifacts, use
+  `.cursor/skills/user-journey/SKILL.md`.
 - For lightweight idea framing, critique, incubation files, and promotion
   readiness, use `.cursor/skills/incubation/SKILL.md`.
 
 If the user says to "always use operator" for this project or session, treat
 `operator` as the default Cursor skill for future execution requests unless the
-user explicitly asks for feedback, planning, design, incubation, setup, or a
-non-operator task.
+user explicitly asks for feedback, planning, design, UX audit, journey mapping,
+incubation, setup, or a non-operator task.

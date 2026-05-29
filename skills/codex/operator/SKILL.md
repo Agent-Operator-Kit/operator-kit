@@ -14,12 +14,15 @@ This is execution mode:
 ```text
 $operator-feedback = capture evidence, classify feedback, write FB-* intake
 $operator-planner  = prioritize, group, promote to roadmap/backlog
+$ux-auditor        = scored UX assessment against persona, ICP, journey, and business fit
+$user-journey      = persona, ICP, journey map, service blueprint, and storyboard artifacts
 $operator          = create tasks, dispatch lanes, collect, integrate
 ```
 
 When the user is only testing, annotating, collecting observations, or
 prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
-Use `$operator` when work is ready to become execution.
+Use `$ux-auditor` for assessment, `$user-journey` for journey artifacts, and
+`$operator` when work is ready to become execution.
 
 ## Detect The Project
 
@@ -243,6 +246,33 @@ Design mockups, alternate redesign options, HTML prototypes, screenshots,
 generated images, proposal READMEs, and other temporary design files belong in
 `$OPERATOR_DIR/tasks/<slug>/work/`. Promote only accepted, durable artifacts
 into source, `design-system/`, or evergreen docs.
+
+## UX Auditor And Journey Collaboration
+
+When the user asks for a UX score, UX audit, persona fit, ICP fit, journey-risk
+assessment, user journey map, service blueprint, or storyboard:
+
+1. Prefer `$ux-auditor` for scored assessment and prioritized recommendations.
+2. Prefer `$user-journey` when the missing artifact is persona, ICP, journey map,
+   service blueprint, storyboard, or first-value transition.
+3. Use `$design-agent` when the work needs broader design-system extraction,
+   visual consistency review, or UI task shaping.
+4. Keep `$operator` responsible for project detection, lane safety, task folder
+   creation, dispatch, collection, and integration review.
+
+Suggested combined requests:
+
+```text
+Use $user-journey with $ux-auditor. Map this onboarding flow and score the experience.
+Use $ux-auditor with $operator. Audit this flow and prepare implementation follow-ups.
+Use $user-journey with $operator. Create a journey artifact, then shape a lane-ready task.
+Use $ux-auditor with $operator-feedback. Capture audit findings as feedback intake.
+```
+
+Audit reports, journey maps, service blueprints, storyboards, Canvas exports,
+HTML artifacts, screenshots, and other temporary review files belong under
+`$OPERATOR_DIR/tasks/<slug>/work/` unless the operator intentionally promotes
+them into durable source or docs.
 
 ## Incubation Collaboration
 
