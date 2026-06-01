@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Operator Kit</title>
-<meta name="description" content="Agent Operator Kit V2 is an operating model for coordinating specialized coding agents with role catalogs, approved architecture patterns, lane recommendations, dependency-aware batch planning, worktree lanes, tmux sessions, operator memory, feedback intake, roadmap planning, handoffs, and one-command upgrades.">
+<meta name="description" content="Agent Operator Kit coordinates Codex, Claude Code, Cursor, and other coding agents across isolated lanes, shared memory, clear handoffs, and operator-approved parallel work.">
 <link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -873,8 +873,6 @@
     <li><a href="#codex-skill">Codex</a></li>
     <li><a href="#operator-modes">Modes</a></li>
     <li><a href="#upgrade">Upgrade</a></li>
-    <li><a href="#incubation">Incubation</a></li>
-    <li><a href="#design-agent">Design</a></li>
     <li><a href="#agents">Assets</a></li>
     <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
@@ -889,15 +887,15 @@
     <div class="hero-eyebrow fade-up fade-up-1">
       <span>V2</span>
       <span style="color:var(--fg3)">—</span>
-      <span>catalog-driven operator system</span>
+      <span>operator system for coding agents</span>
     </div>
     <h1 class="hero-title fade-up fade-up-2">
-      Coordinate specialized agents with contracts, lanes, and approved patterns.
+      Run multiple coding agents without losing the plot.
     </h1>
     <p class="hero-subtitle fade-up fade-up-3">
-      Operator Kit V2 maps your production system, recommends durable lanes,
-      assigns specialist role templates, applies approved architecture patterns,
-      and proposes parallel batches for operator approval.
+      Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents a
+      simple operating model: isolated lanes, clear task packets, shared memory,
+      and human-approved integration.
     </p>
     <div class="hero-ctas fade-up fade-up-4">
       <a class="btn-primary" href="#getting-started">
@@ -912,11 +910,11 @@
     <div class="hero-stats fade-up fade-up-5">
       <div>
         <div class="hero-stat-label">Operator Cockpit</div>
-        <div class="hero-stat-val">Cursor · Codex · Claude</div>
+        <div class="hero-stat-val">Codex · Claude Code · Cursor</div>
       </div>
       <div>
-        <div class="hero-stat-label">V2 Planning</div>
-        <div class="hero-stat-val">System map · Catalog · Batch</div>
+        <div class="hero-stat-label">V2 Adds</div>
+        <div class="hero-stat-val">Lanes · Catalog · Batches</div>
       </div>
       <div>
         <div class="hero-stat-label">Versions</div>
@@ -933,25 +931,23 @@
           <div class="terminal-dot yellow"></div>
           <div class="terminal-dot green"></div>
         </div>
-        <span class="terminal-title">operator-v2 — catalog → plan → approved dispatch</span>
+        <span class="terminal-title">operator-v2 — plan → dispatch → review</span>
       </div>
       <div class="terminal-body" id="terminal-body">
-        <div><span class="t-comment"># install V2, then let the operator recommend lanes</span></div>
-        <div><span class="t-prompt">operator</span> <span class="t-cmd">Set up Agent Operator Kit V2 and recommend durable lanes.</span></div>
+        <div><span class="t-comment"># install the kit into a project</span></div>
+        <div><span class="t-prompt">agent</span> <span class="t-cmd">Set up Agent Operator Kit V2 here.</span></div>
         <div>&nbsp;</div>
         <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing</span></div>
-        <div><span class="t-success">✓</span> <span class="t-info">CATALOG</span> roles · patterns · approved packages/repos</div>
-        <div><span class="t-success">✓</span> <span class="t-info">SYSTEM</span>  OPERATOR_DIR/system-map.md</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANES</span>   durable lanes + specialist overlays</div>
+        <div><span class="t-success">✓</span> lanes: operator · backend · ui · release</div>
+        <div><span class="t-success">✓</span> workspace: OPERATOR_DIR outside the repo</div>
+        <div><span class="t-success">✓</span> assets: Codex · Claude Code · Cursor</div>
         <div>&nbsp;</div>
-        <div><span class="t-comment"># plan more parallel work without going full autopilot</span></div>
-        <div><span class="t-prompt">operator</span> <span class="t-cmd">$ bash scripts/operator-recommend-lanes.sh</span></div>
-        <div>&nbsp;</div>
+        <div><span class="t-comment"># propose parallel work, then wait for approval</span></div>
         <div><span class="t-prompt">operator</span> <span class="t-cmd">$ bash scripts/operator-plan-batch.sh</span></div>
-        <div><span class="t-success">✓</span> ready: RM-0007 provider-integration → backend</div>
-        <div><span class="t-success">✓</span> ready: RM-0012 mobile-release → release</div>
+        <div><span class="t-success">✓</span> ready: backend API contract</div>
+        <div><span class="t-success">✓</span> ready: Claude Code UI lane</div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">operator</span> <span class="t-cmd">Create task packets for the approved batch only.</span><span class="t-cursor"></span></div>
+        <div><span class="t-prompt">operator</span> <span class="t-cmd">Dispatch only the approved tasks.</span><span class="t-cursor"></span></div>
       </div>
     </div>
 
@@ -963,23 +959,23 @@
           <div class="lane-status"></div>
         </div>
         <div class="lane-branch">app / main</div>
-        <div class="lane-agent">Codex or Cursor</div>
+        <div class="lane-agent">human or lead agent</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
-          <span class="lane-name">api-contracts</span>
+          <span class="lane-name">backend</span>
           <div class="lane-status"></div>
         </div>
-        <div class="lane-branch">app-api / codex/api</div>
-        <div class="lane-agent">role: backend contracts</div>
+        <div class="lane-branch">app-backend / codex/backend</div>
+        <div class="lane-agent">Codex</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
-          <span class="lane-name">provider</span>
+          <span class="lane-name">ui</span>
           <div class="lane-status"></div>
         </div>
-        <div class="lane-branch">app-provider / codex/provider</div>
-        <div class="lane-agent">role: integrations</div>
+        <div class="lane-branch">app-ui / claude/ui</div>
+        <div class="lane-agent">Claude Code</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
@@ -996,45 +992,42 @@
 <!-- OPERATOR V2 -->
 <section id="operator-v2">
   <div class="section-label">// operator v2</div>
-  <h2 class="section-title">A catalog-driven operating system<br>for production-shaped agents.</h2>
-  <p class="section-sub">V2 keeps the V1 lane and handoff model, then adds system mapping, specialist role templates, approved architecture patterns, and dependency-aware batch planning.</p>
+  <h2 class="section-title">V2 keeps the model simple.</h2>
+  <p class="section-sub">Map the project, choose the right lanes, give each lane approved patterns, and let the operator approve parallel batches before anything is dispatched.</p>
 
   <div class="v2-grid">
     <div class="v2-stack">
       <div class="v2-card">
-        <h3>Lane recommendation</h3>
-        <p>Create durable lanes for long-lived ownership, contract boundaries, high-risk domains, distinct validation loops, or high context density. Use role overlays for specialist work that does not need a permanent worktree yet.</p>
+        <h3>Recommended lanes</h3>
+        <p>Create durable lanes only where they help: ownership, contracts, risk, validation, or dense context. Use temporary role overlays for smaller specialist work.</p>
       </div>
       <div class="v2-card">
-        <h3>Architecture pattern catalog</h3>
-        <p>Each role template can point to approved packages, GitHub repos, validation recipes, consistency rules, and escalation gates. Think design system, but for engineering decisions.</p>
+        <h3>Approved patterns</h3>
+        <p>Role templates can carry preferred packages, repos, validation recipes, and consistency rules so agents reuse known solutions.</p>
       </div>
       <div class="v2-card">
-        <h3>Operator-approved parallelism</h3>
-        <p>The batch planner reads roadmap dependencies, owner lanes, touched contracts, and approval gates. It proposes safe parallel work, but does not dispatch by itself.</p>
+        <h3>Approved batches</h3>
+        <p>The planner proposes parallel work from dependencies and lane ownership. The operator still decides what gets sent.</p>
       </div>
     </div>
 
     <div class="prompt-card">
       <div class="prompt-card-bar">
-        <span class="prompt-card-title">v2 commands</span>
+        <span class="prompt-card-title">common v2 commands</span>
         <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md" target="_blank">V2 concept</a>
       </div>
       <div class="prompt-body">
-        <div><span class="p-comment"># map the production system</span></div>
+        <div><span class="p-comment"># understand the project</span></div>
         <div><span class="p-key">bash</span> scripts/operator-system-map.sh refresh</div>
         <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
         <div>&nbsp;</div>
-        <div><span class="p-comment"># inspect specialist roles and approved patterns</span></div>
+        <div><span class="p-comment"># inspect approved roles and patterns</span></div>
         <div><span class="p-key">bash</span> scripts/operator-catalog.sh list roles</div>
-        <div><span class="p-key">bash</span> scripts/operator-catalog.sh show roles provider-integration</div>
-        <div><span class="p-key">bash</span> scripts/operator-catalog.sh show patterns provider-integration</div>
         <div>&nbsp;</div>
-        <div><span class="p-comment"># promote roadmap work into a parallel-ready plan</span></div>
-        <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Strava import reliability" --status ready --owner-lane backend --required-roles provider-integration --contracts strava-api</div>
+        <div><span class="p-comment"># plan the next operator-approved batch</span></div>
         <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
         <div>&nbsp;</div>
-        <div><span class="p-comment"># pin the older model when needed</span></div>
+        <div><span class="p-comment"># keep V1 available when a project needs it</span></div>
         <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo</div>
       </div>
     </div>
@@ -1042,30 +1035,30 @@
 
   <div class="version-strip">
     <div class="version-pill">main: V2 default</div>
-    <div class="version-pill">tag v2: catalog + batch planning</div>
-    <div class="version-pill">tag v1: preserved simple lane model</div>
+    <div class="version-pill">V2: catalog + batch planning</div>
+    <div class="version-pill">V1: preserved by tag</div>
   </div>
 
   <div class="v2-flow" style="margin-top:2rem;">
     <div class="v2-flow-item">
       <div class="v2-flow-num">01</div>
-      <div class="v2-flow-title">Detect architecture</div>
-      <div class="v2-flow-copy">Read repo docs, lanes, apps, providers, packages, tests, and existing contracts into a system map.</div>
+      <div class="v2-flow-title">Map</div>
+      <div class="v2-flow-copy">Capture apps, providers, contracts, tests, and current lanes.</div>
     </div>
     <div class="v2-flow-item">
       <div class="v2-flow-num">02</div>
-      <div class="v2-flow-title">Recommend lanes</div>
-      <div class="v2-flow-copy">Separate durable lanes from role overlays so the project gets more expertise without worktree sprawl.</div>
+      <div class="v2-flow-title">Choose lanes</div>
+      <div class="v2-flow-copy">Keep permanent lanes for boundaries that really need memory and ownership.</div>
     </div>
     <div class="v2-flow-item">
       <div class="v2-flow-num">03</div>
-      <div class="v2-flow-title">Apply patterns</div>
-      <div class="v2-flow-copy">Use approved frameworks, packages, repos, and validation recipes before inventing new solutions.</div>
+      <div class="v2-flow-title">Use patterns</div>
+      <div class="v2-flow-copy">Give agents approved tools and validation recipes up front.</div>
     </div>
     <div class="v2-flow-item">
       <div class="v2-flow-num">04</div>
-      <div class="v2-flow-title">Approve batch</div>
-      <div class="v2-flow-copy">Plan parallel dispatch from dependencies and contracts, then send only the operator-approved work.</div>
+      <div class="v2-flow-title">Approve</div>
+      <div class="v2-flow-copy">Dispatch only the batch the operator has reviewed.</div>
     </div>
   </div>
 </section>
@@ -1074,57 +1067,57 @@
 <div class="section-divider"><div></div></div>
 <section id="how-it-works">
   <div class="section-label">// model</div>
-  <h2 class="section-title">One operator,<br>many isolated lanes.</h2>
-  <p class="section-sub">A lightweight operating model that lets agents install the workflow, run in parallel, retrieve only relevant memory, and keep scratch artifacts out of source control.</p>
+  <h2 class="section-title">One operator,<br>many safe lanes.</h2>
+  <p class="section-sub">The operator keeps source clean while Codex, Claude Code, Cursor, and other workers move in parallel.</p>
 
   <div class="how-grid">
     <div class="how-card">
       <div class="how-card-num">01 — ISOLATION</div>
       <div class="how-card-accent"></div>
       <h3>Worktrees</h3>
-      <p>Each agent lane gets a separate directory and branch. Long-running work stays isolated and never conflicts with other lanes or main.</p>
+      <p>Each lane gets its own worktree and branch.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — PERSISTENCE</div>
       <div class="how-card-accent"></div>
       <h3>tmux Lanes</h3>
-      <p>Persistent terminals keep Codex, Claude Code, and Cursor CLI workers visible, inspectable, and recoverable across sessions.</p>
+      <p>tmux keeps long-running agents visible and recoverable.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">03 — HANDOFFS</div>
       <div class="how-card-accent"></div>
       <h3>External Task State</h3>
-      <p>Task packets, pane captures, raw handoffs, screenshots, HTML prototypes, and other working files live under an operator workspace outside the repo.</p>
+      <p>Task packets, handoffs, screenshots, and scratch files stay under <code>OPERATOR_DIR</code>, outside the repo.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — EVERGREEN</div>
       <div class="how-card-accent"></div>
       <h3>Clean Codebase</h3>
-      <p>The repo stores only source code, reusable scripts, stable rules, and durable docs. Generated operator state never bleeds into source history.</p>
+      <p>The repo keeps source, reusable scripts, stable rules, and durable docs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">05 — MOMENTUM</div>
       <div class="how-card-accent"></div>
       <h3>Feature Tracks</h3>
-      <p>Once a feature is authorized, the operator keeps routing lane follow-ups until it is complete, validated, integrated, or blocked by a real user decision.</p>
+      <p>The operator keeps routing follow-ups until the work is integrated or truly blocked.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">06 — MEMORY</div>
       <div class="how-card-accent"></div>
       <h3>Relevant Context Packs</h3>
-      <p>Operator memory is file-first and retrieved per dispatch. Agents get project, task, and episode context only when it helps the lane.</p>
+      <p>Agents get only the project, task, and episode memory relevant to their lane.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">07 — UPGRADE</div>
       <div class="how-card-accent"></div>
       <h3>One Machine Refresh</h3>
-      <p><code>$operator --upgrade</code> refreshes global Codex skills, discovers installed projects, updates scripts/templates, and runs checks.</p>
+      <p><code>$operator --upgrade</code> refreshes installed projects and local skills.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">08 — ROADMAP</div>
       <div class="how-card-accent"></div>
       <h3>Feedback To Execution</h3>
-      <p>Testing notes and annotations become <code>FB-*</code> intake first, planner work promotes selected items into <code>RM-*</code>, and only then does <code>$operator</code> dispatch implementation.</p>
+      <p><code>FB-*</code> and <code>RM-*</code> IDs keep feedback and roadmap work traceable without bloating the repo.</p>
     </div>
   </div>
 
@@ -1185,8 +1178,8 @@
   <div class="gs-inner">
     <div>
       <div class="section-label">// getting started</div>
-      <h2 class="section-title">Start with V2 by default.</h2>
-      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent inspects first, installs or migrates the kit, builds the V2 system map, recommends lanes, and verifies the setup.</p>
+      <h2 class="section-title">Start with your agent.</h2>
+      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt. The agent inspects first, installs or migrates the kit, recommends lanes, and verifies the setup.</p>
 
       <div style="display:flex;flex-direction:column;gap:1.25rem;margin-top:2rem;">
         <div style="display:flex;gap:1rem;align-items:flex-start;">
@@ -1200,14 +1193,14 @@
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
           <div>
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the V2 bootstrap prompt</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">The agent inspects the repo, installs the catalog, proposes lanes, and keeps V1 available by tag.</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">The agent installs or refreshes the kit and proposes the lane map.</div>
           </div>
         </div>
         <div style="display:flex;gap:1rem;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">3</div>
           <div>
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review the report</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">Check installed files, OPERATOR_DIR, system map, catalog, lane recommendation, smoke results, and git status.</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">Check the lane map, operator workspace, smoke result, and git status.</div>
           </div>
         </div>
       </div>
@@ -1229,7 +1222,7 @@
         <button class="copy-btn" id="copy-prompt-btn">copy</button>
       </div>
       <div class="prompt-body" id="prompt-text">
-        <div>Install or initialize Agent Operator Kit V2 for the current repo.</div>
+        <div>Install or initialize Agent Operator Kit V2 for this repo.</div>
         <div>&nbsp;</div>
         <div><span class="p-key">Use this source kit:</span></div>
         <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
@@ -1240,35 +1233,18 @@
         <div>&nbsp;</div>
         <div>Treat the current working directory as the target project repo.</div>
         <div>&nbsp;</div>
-        <div><span class="p-req">Lane requirements:</span></div>
-        <div><span class="p-comment">- operator: Cursor IDE on the stable branch</span></div>
-        <div><span class="p-comment">- web: web app lane</span></div>
-        <div><span class="p-comment">- agents-api: optional lane for agent/API integration work</span></div>
-        <div>&nbsp;</div>
         <div><span class="p-req">Requirements:</span></div>
         <div><span class="p-comment">- inspect the repo first</span></div>
         <div><span class="p-comment">- detect whether Operator Kit is installed, partial, or missing</span></div>
-        <div><span class="p-comment">- upgrade installed projects, repair partial installs, bootstrap missing projects</span></div>
-        <div><span class="p-comment">- initialize the V2 catalog, system map, and lane recommendation output</span></div>
-        <div><span class="p-comment">- configure lanes from the project requirements before creating worktrees</span></div>
-        <div><span class="p-comment">- recommend durable lanes versus specialist role overlays</span></div>
-        <div><span class="p-comment">- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)</span></div>
-        <div><span class="p-comment">- install IDE-specific assets only when that IDE is available</span></div>
-        <div><span class="p-comment">- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable</span></div>
+        <div><span class="p-comment">- install or migrate the kit without overwriting project-specific files</span></div>
+        <div><span class="p-comment">- recommend durable lanes for Codex, Claude Code, Cursor, or another agent</span></div>
         <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
-        <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
-        <div><span class="p-comment">- start or inspect tmux</span></div>
-        <div><span class="p-comment">- create a smoke task</span></div>
-        <div><span class="p-comment">- run the status, summary, memory, catalog, lane recommendation, and batch-plan checks</span></div>
-        <div><span class="p-comment">- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR</span></div>
-        <div><span class="p-comment">- report installed files, OPERATOR_DIR, system map, catalog, lane map, memory status, smoke results, git status,</span></div>
-        <div><span class="p-comment">&nbsp;&nbsp;and whether the repo is ready to commit</span></div>
+        <div><span class="p-comment">- run smoke checks and report the lane map, OPERATOR_DIR, and git status</span></div>
         <div>&nbsp;</div>
         <div><span class="p-req">Guardrails:</span></div>
         <div><span class="p-comment">- do not rewrite git history</span></div>
         <div><span class="p-comment">- do not force-push</span></div>
-        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets, pane captures,</span></div>
-        <div><span class="p-comment">&nbsp;&nbsp;task working files, memory packs, or transient notes</span></div>
+        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets, or transient notes</span></div>
         <div><span class="p-comment">- do not deploy or run production builds during setup</span></div>
       </div>
     </div>
@@ -1277,68 +1253,66 @@
 
 <!-- CURSOR OPERATOR -->
 <section id="cursor-operator">
-  <div class="section-label">// cursor operator</div>
-  <h2 class="section-title">Operator Kit adapts<br>to your IDE stack.</h2>
-  <p class="section-sub">The cockpit role goes to whichever IDE you have. With Cursor available, Cursor Composer or Agent fits naturally; with Codex Desktop, Codex skills fit; with Claude Code, Claude can fill UI or scoped lanes. V2 adds the system map, role catalog, architecture patterns, and batch planner around whichever cockpit you choose.</p>
+  <div class="section-label">// agent surfaces</div>
+  <h2 class="section-title">Use the agent<br>that fits the work.</h2>
+  <p class="section-sub">Codex can operate from Desktop, Claude Code is excellent for scoped implementation lanes, and Cursor can be the cockpit or a worker. The lane model stays the same.</p>
 
   <div class="how-grid">
     <div class="how-card">
       <div class="how-card-num">01 — COCKPIT</div>
       <div class="how-card-accent"></div>
-      <h3>Cursor · Codex · Claude</h3>
-      <p>Pick the cockpit per project. Cursor Composer, Codex Desktop, or Claude Code can each own review, integration, validation, and what lands on the stable branch.</p>
+      <h3>Codex · Claude Code · Cursor</h3>
+      <p>Pick one cockpit for integration decisions, then assign worker lanes by strength.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">02 — RULES</div>
       <div class="how-card-accent"></div>
-      <h3><code>.cursor/rules</code></h3>
-      <p>Project rules keep lane boundaries, external state policy, and safety guardrails available to every Cursor session.</p>
+      <h3>Shared rules</h3>
+      <p>Project assets keep lane boundaries and handoff rules available to each agent surface.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">03 — SKILLS</div>
       <div class="how-card-accent"></div>
-      <h3><code>.cursor/skills</code></h3>
-      <p>Cursor skills provide explicit modes: <code>operator</code>, <code>operator-planner</code>, <code>operator-feedback</code>, <code>design-agent</code>, <code>incubation</code>, and <code>operator-workflow</code>.</p>
+      <h3>Explicit modes</h3>
+      <p>Use operator, feedback, planner, and design modes instead of mixing observation, planning, and implementation.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — SUBAGENTS</div>
       <div class="how-card-accent"></div>
-      <h3>Specialist Contexts</h3>
-      <p>Use Cursor subagents for temporary research, debugging, review, and validation. Use Operator lanes for durable branch and worktree ownership.</p>
+      <h3>Specialists</h3>
+      <p>Use temporary subagents for research and durable lanes for branch-owning implementation.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">05 — LOCAL LANES</div>
       <div class="how-card-accent"></div>
-      <h3>Cursor CLI + tmux</h3>
-      <p>Run Cursor CLI workers in tmux lanes when you need persistent local execution that can receive task packets and produce handoffs.</p>
+      <h3>Local workers</h3>
+      <p>Run CLI workers in tmux lanes when you need persistent local execution and collectable handoffs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">06 — CLOUD AGENTS</div>
       <div class="how-card-accent"></div>
-      <h3>Remote Branch Work</h3>
-      <p>Use Cursor Cloud Agents, formerly Background Agents, for isolated remote tasks. Include the full task packet and memory context because they do not share local <code>OPERATOR_DIR</code>.</p>
+      <h3>Remote workers</h3>
+      <p>Remote agents need the full task packet because they cannot read local <code>OPERATOR_DIR</code>.</p>
     </div>
   </div>
 
   <div class="prompt-card" style="margin-top:1.5rem;">
     <div class="prompt-card-bar">
-      <span class="prompt-card-title">cursor-first setup</span>
+      <span class="prompt-card-title">agent-first setup</span>
       <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">Full guide
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
     </div>
     <div class="prompt-body">
-      <div><span class="p-comment"># bootstrap a project without Codex</span></div>
+      <div><span class="p-comment"># bootstrap a project</span></div>
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills</div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># generated lane shape</span></div>
+      <div><span class="p-comment"># example lane shape</span></div>
       <div><span class="p-val">operator|Cursor IDE|app|main|</span></div>
       <div><span class="p-val">cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent</span></div>
       <div><span class="p-val">ui|Claude Code|app-ui|claude/ui|claude ...</span></div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># V2 lane and catalog checks</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-system-map.sh refresh</div>
-      <div><span class="p-key">bash</span> scripts/operator-catalog.sh list roles</div>
+      <div><span class="p-comment"># V2 planning checks</span></div>
       <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
       <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
       <div>&nbsp;</div>
@@ -1347,7 +1321,7 @@
       <div><span class="p-key">bash</span> scripts/operator-task.sh auth-001 "Auth scaffolding"</div>
       <div><span class="p-key">bash</span> scripts/operator-dispatch.sh --with-memory cursor "$OPERATOR_DIR/tasks/auth-001/tasks/cursor.md"</div>
       <div><span class="p-key">bash</span> scripts/operator-collect.sh cursor auth-001</div>
-      <div><span class="p-comment"># Cursor reviews the handoff and integrates only approved source changes</span></div>
+      <div><span class="p-comment"># the operator reviews the handoff before integrating source changes</span></div>
     </div>
   </div>
 </section>
@@ -1375,37 +1349,37 @@
       <div class="how-card-num">03 — OPERATE</div>
       <div class="how-card-accent"></div>
       <h3>Catalog, Plan, Execute</h3>
-      <p>For installed projects Codex can refresh the V2 system map, inspect role templates, promote roadmap work, plan a batch, create task packets, dispatch lanes, and review handoffs.</p>
+      <p>For installed projects Codex can plan batches, create task packets, dispatch lanes, and review handoffs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — GUARD</div>
       <div class="how-card-accent"></div>
       <h3>No Unsafe Guessing</h3>
-      <p>For partial or missing installs it reports what is missing and avoids tmux dispatch or collection until the Operator Kit install is repaired.</p>
+      <p>For partial or missing installs it reports what is missing before doing lane work.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">05 — UPGRADE</div>
       <div class="how-card-accent"></div>
       <h3><code>$operator --upgrade</code></h3>
-      <p>Refresh the global Codex skills and every installed Operator Kit project on the machine with one operator command.</p>
+      <p>Refresh local skills and installed Operator Kit projects with one command.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">06 — TRACE</div>
       <div class="how-card-accent"></div>
       <h3>Lightweight PR References</h3>
-      <p>Code changes link back with <code>Roadmap: RM-0007</code>, <code>Feedback: FB-0014</code>, and an operator task slug instead of committing the whole planning ledger to the app repo.</p>
+      <p>Code changes can link to <code>RM-*</code>, <code>FB-*</code>, and task slugs without committing the planning ledger.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">07 — DESIGN</div>
       <div class="how-card-accent"></div>
       <h3><code>$design-agent</code></h3>
-      <p>Runs UX and consistency reviews, extracts or recommends design systems, classifies annotations, and packages UI/design work without bypassing Operator lane safety.</p>
+      <p>Use design review before handing UI work to Claude Code or another lane.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">08 — INCUBATION</div>
       <div class="how-card-accent"></div>
       <h3><code>$incubation</code></h3>
-      <p>Frames rough product ideas, captures durable idea files, critiques assumptions, manages promotion readiness, and hands only promoted projects to <code>$operator</code>.</p>
+      <p>Keep early ideas outside Operator Kit until they are ready to become projects.</p>
     </div>
   </div>
 
@@ -1417,47 +1391,20 @@
       </a>
     </div>
     <div class="prompt-body">
-      <div><span class="p-comment"># install once from the kit repo</span></div>
+      <div><span class="p-comment"># install local Codex skills</span></div>
       <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill operator-feedback --skill operator-planner --skill operator</div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill design-agent --skill incubation</div>
-      <div><span class="p-key">bash</span> scripts/operator-sync.sh --skip-project</div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># update an existing Operator Kit project</span></div>
+      <div><span class="p-comment"># install or refresh a project</span></div>
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project</div>
-      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)</div>
-      <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
-      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># upgrade all installed projects and local skills</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh --dry-run</div>
+      <div><span class="p-comment"># upgrade everything later</span></div>
       <div><span class="p-key">bash</span> scripts/operator-upgrade.sh</div>
-      <div><span class="p-val">Use $operator --upgrade.</span></div>
-      <div><span class="p-val">Use $operator /upgrade dry run.</span></div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># operate an installed project</span></div>
-      <div><span class="p-val">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
-      <div><span class="p-val">Use $operator-feedback. Start a mobile feedback review for simulator testing.</span></div>
-      <div><span class="p-val">Use $operator-planner. Review the feedback inbox and propose now/next/later.</span></div>
-      <div><span class="p-val">Use $operator-planner. Promote the top feedback group into roadmap candidates.</span></div>
+      <div><span class="p-comment"># operate in natural language</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>
-      <div><span class="p-val">Use $operator. Refresh the V2 system map and recommend lanes.</span></div>
+      <div><span class="p-val">Use $operator-planner. Review the feedback inbox and propose now/next/later.</span></div>
       <div><span class="p-val">Use $operator. Plan the next approved parallel batch.</span></div>
-      <div><span class="p-val">Use $operator. Start tmux lanes.</span></div>
-      <div><span class="p-val">Use $operator. Create a backend task for auth scaffolding.</span></div>
-      <div><span class="p-val">Use $operator. Execute the approved RM-0007 mobile-ui task.</span></div>
-      <div><span class="p-val">Use $operator. Collect backend result for auth-001 and tell me if it is ready to integrate.</span></div>
-      <div><span class="p-val">Use $operator. Summarize blockers across all lanes.</span></div>
-      <div><span class="p-val">Use $operator. Dispatch the auth task to backend with memory.</span></div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># design and idea companion skills</span></div>
-      <div><span class="p-val">Use $design-agent. Do a comprehensive UX and consistency review.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator-feedback. Classify these annotations as feedback.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task.</span></div>
-      <div><span class="p-val">Use $incubation. Frame this idea and capture the next experiment.</span></div>
-      <div><span class="p-val">Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.</span></div>
-      <div><span class="p-val">Use $incubation with $operator. Prepare an idea for promotion.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator-feedback. Package UI observations as feedback.</span></div>
+      <div><span class="p-val">Use $operator. Dispatch the approved UI task to Claude Code.</span></div>
     </div>
   </div>
 </section>
@@ -1592,128 +1539,6 @@
   </div>
 </section>
 
-<!-- INCUBATION -->
-<section id="incubation">
-  <div class="section-label">// incubation companion</div>
-  <h2 class="section-title">Use <span style="color:var(--accent)">$incubation</span><br>before a project becomes a lane.</h2>
-  <p class="section-sub">Use the optional Codex Desktop incubation skill to frame product ideas, critique assumptions, keep durable idea files, and promote only ready ideas into real Operator Kit projects.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — FRAME</div>
-      <div class="how-card-accent"></div>
-      <h3>Sharper idea framing</h3>
-      <p>It turns rough thoughts into a clear one-liner, target user, painful job, alternatives, wedge, why-now argument, hidden assumptions, and contrarian critique.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — CAPTURE</div>
-      <div class="how-card-accent"></div>
-      <h3>Durable markdown memory</h3>
-      <p>Meaningful learning is captured into idea files such as <code>README.md</code>, <code>framing.md</code>, <code>experiments.md</code>, <code>decision-log.md</code>, and <code>promotion-brief.md</code>.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — PROMOTE</div>
-      <div class="how-card-accent"></div>
-      <h3>Project handoff boundary</h3>
-      <p>When an idea is ready, it prepares <code>/Users/norbert/Projects/&lt;product&gt;/code/app</code> and hands setup to <code>$operator</code> in the promoted repo.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — GUARD</div>
-      <div class="how-card-accent"></div>
-      <h3>No lanes in Incubation</h3>
-      <p><code>$incubation</code> does not initialize Operator Kit inside <code>/Users/norbert/Incubation</code>. Promotion is the handoff point.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">incubation examples</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/incubation-collaboration.md" target="_blank">Full guide
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># install once from the kit repo</span></div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill incubation</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># idea work</span></div>
-      <div><span class="p-val">Use $incubation. Frame this idea and capture the next experiment.</span></div>
-      <div><span class="p-val">Use $incubation. Review promotion readiness for this idea.</span></div>
-      <div><span class="p-val">Use $incubation. Archive this idea and explain why.</span></div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># incubation with operator and design-agent</span></div>
-      <div><span class="p-val">Use $incubation with $operator. Prepare this idea for promotion into an Operator Kit project.</span></div>
-      <div><span class="p-val">Use $incubation with $design-agent. Turn this thesis into design-system starting assumptions.</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- DESIGN AGENT -->
-<section id="design-agent">
-  <div class="section-label">// design-agent companion</div>
-  <h2 class="section-title">Add <span style="color:var(--accent)">$design-agent</span><br>for UX and design-system work.</h2>
-  <p class="section-sub">Use the optional Codex Desktop design-agent skill to review product UX, extract or recommend a design system, classify web-preview annotations, and shape Claude Code Opus or Operator Kit UI tasks. Temporary design artifacts stay in the task work folder.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — REVIEW</div>
-      <div class="how-card-accent"></div>
-      <h3>UX and consistency audits</h3>
-      <p>Ask for a comprehensive review when you want drift, awkward flows, weak states, copy issues, and component inconsistencies called out before implementation work starts.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — SYSTEM</div>
-      <div class="how-card-accent"></div>
-      <h3>Design-system extraction</h3>
-      <p>For existing products, it inspects code, tokens, components, CSS variables, and screens, then separates intentional design language from accidental drift.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — STARTER</div>
-      <div class="how-card-accent"></div>
-      <h3>Starter recommendation</h3>
-      <p>For new projects, it recommends a grounded starter such as shadcn/Radix/Tailwind, Material UI, Ant Design, Mantine, or Chakra instead of letting every agent improvise.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — OPERATOR</div>
-      <div class="how-card-accent"></div>
-      <h3>Task shaping, not dispatch</h3>
-      <p><code>$design-agent</code> owns design judgment and task content. <code>$operator</code> owns project detection, lane safety, dispatch, collection, and integration review.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">05 — WORK FILES</div>
-      <div class="how-card-accent"></div>
-      <h3>Temporary artifacts</h3>
-      <p>Design READMEs, HTML prototypes, screenshots, generated images, and redesign options go to <code>OPERATOR_DIR/tasks/&lt;slug&gt;/work/</code>.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">design-agent examples</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md" target="_blank">Full guide
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># install once from the kit repo</span></div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh --skill design-agent</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># standalone design exploration</span></div>
-      <div><span class="p-val">Use $design-agent. Do a comprehensive UX and consistency review of this project.</span></div>
-      <div><span class="p-val">Use $design-agent. Extract a design system from this existing codebase.</span></div>
-      <div><span class="p-val">Use $design-agent. Recommend a design-system starter for this new product.</span></div>
-      <div><span class="p-val">Use $design-agent. Classify my web-preview annotations into system, component, flow, and one-off feedback.</span></div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># design-agent with operator lanes</span></div>
-      <div><span class="p-val">Use $design-agent with $operator. Prepare a Claude Code Opus UI lane task for the dashboard refresh.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator-feedback. Classify my annotations as local feedback.</span></div>
-      <div><span class="p-val">Use $operator-planner with $design-agent. Turn ready feedback into a UI execution plan.</span></div>
-      <div><span class="p-val">Use $design-agent with $operator. Extract the design system, then package the safest next UI task.</span></div>
-      <div><span class="p-comment"># temporary files land under OPERATOR_DIR/tasks/&lt;slug&gt;/work/</span></div>
-    </div>
-  </div>
-</section>
-
 <!-- AGENTS -->
 <section id="agents">
   <div class="section-label">// agent surfaces</div>
@@ -1836,8 +1661,6 @@
     <div class="footer-right">
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md">V2</a>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/incubation-collaboration.md">Incubation</a>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md">Design Agent</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
     </div>
@@ -1915,44 +1738,29 @@ ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTwea
 // Copy prompt button
 document.getElementById('copy-prompt-btn').addEventListener('click', function() {
   const promptLines = [
-    'Install or initialize Agent Operator Kit V2 for the current repo.',
+    'Install or initialize Agent Operator Kit V2 for this repo.',
     '',
     'Use this source kit:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'First clone or read the kit, then follow its install-or-initialize guide:',
+    'First clone or read the kit, then follow:',
     'templates/prompts/agent-run-bootstrap.md',
     'docs/guides/agent-run-bootstrap.md',
     '',
     'Treat the current working directory as the target project repo.',
     '',
-    'Lane requirements:',
-    '- operator: Cursor IDE on the stable branch',
-    '- web: web app lane',
-    '- agents-api: optional lane for agent/API integration work',
-    '',
     'Requirements:',
     '- inspect the repo first',
     '- detect whether Operator Kit is installed, partial, or missing',
-    '- upgrade installed projects, repair partial installs, bootstrap missing projects',
-    '- initialize the V2 catalog, system map, and lane recommendation output',
-    '- configure lanes from the project requirements before creating worktrees',
-    '- recommend durable lanes versus specialist role overlays',
-    '- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)',
-    '- install IDE-specific assets only when that IDE is available',
-    '- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable',
+    '- install or migrate the kit without overwriting project-specific files',
+    '- recommend durable lanes for Codex, Claude Code, Cursor, or another agent',
     '- create the external operator workspace outside the repo',
-    '- create or verify worktrees without overwriting existing work',
-    '- start or inspect tmux',
-    '- create a smoke task',
-    '- run the status, summary, memory, catalog, lane recommendation, and batch-plan checks',
-    '- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR',
-    '- report installed files, OPERATOR_DIR, system map, catalog, lane map, memory status, smoke results, git status, and whether the repo is ready to commit',
+    '- run smoke checks and report the lane map, OPERATOR_DIR, and git status',
     '',
     'Guardrails:',
     '- do not rewrite git history',
     '- do not force-push',
-    '- do not commit secrets, raw handoffs, task packets, pane captures, task working files, memory packs, or transient notes',
+    '- do not commit secrets, raw handoffs, task packets, or transient notes',
     '- do not deploy or run production builds during setup',
   ].join('\n');
   navigator.clipboard.writeText(promptLines).then(() => {
