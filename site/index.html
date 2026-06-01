@@ -8,1735 +8,764 @@
 <link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
-<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
-<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <style>
   :root {
-    --bg: oklch(0.11 0.015 240);
-    --bg2: oklch(0.14 0.015 240);
-    --bg3: oklch(0.17 0.015 240);
-    --border: oklch(0.22 0.015 240);
-    --border2: oklch(0.28 0.02 240);
-    --fg: oklch(0.92 0.01 240);
-    --fg2: oklch(0.65 0.015 240);
-    --fg3: oklch(0.42 0.015 240);
-    --accent: oklch(0.78 0.19 142);
+    --bg: oklch(0.105 0.015 240);
+    --bg2: oklch(0.135 0.016 240);
+    --bg3: oklch(0.17 0.018 240);
+    --border: oklch(0.24 0.018 240);
+    --border2: oklch(0.31 0.024 240);
+    --fg: oklch(0.92 0.012 240);
+    --fg2: oklch(0.67 0.017 240);
+    --fg3: oklch(0.46 0.017 240);
+    --accent: oklch(0.72 0.15 50);
     --accent2: oklch(0.78 0.14 195);
-    --accent-dim: oklch(0.78 0.19 142 / 0.12);
-    --accent2-dim: oklch(0.78 0.14 195 / 0.12);
-    --font-mono: 'JetBrains Mono', monospace;
-    --font-sans: 'JetBrains Mono', monospace;
+    --accent-dim: oklch(0.72 0.15 50 / 0.13);
+    --font: 'JetBrains Mono', monospace;
   }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; scroll-padding-top: 120px; }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 90px;
+  }
+
   body {
-    background: var(--bg);
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 50% 0%, oklch(0.2 0.08 210 / 0.35), transparent 34rem),
+      linear-gradient(oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
+      var(--bg);
+    background-size: auto, 52px 52px, 52px 52px, auto;
     color: var(--fg);
-    font-family: var(--font-sans);
+    font-family: var(--font);
     line-height: 1.6;
     overflow-x: hidden;
-    max-width: 100vw;
   }
+
+  a {
+    color: inherit;
+  }
+
   code {
     overflow-wrap: anywhere;
     word-break: break-word;
   }
 
-  /* NOISE TEXTURE */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
-
-  /* NAV */
   nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: 60px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 0 3rem;
-    height: 60px;
-    background: oklch(0.11 0.015 240 / 0.85);
-    backdrop-filter: blur(20px);
+    background: oklch(0.105 0.015 240 / 0.86);
     border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(18px);
   }
+
   .nav-logo {
-    font-family: var(--font-mono);
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--accent);
-    letter-spacing: 0.05em;
-    text-decoration: none;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.55rem;
+    color: var(--accent);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-decoration: none;
   }
-  .nav-logo-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    animation: pulse-dot 2s ease-in-out infinite;
+
+  .nav-logo img {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
   }
-  @keyframes pulse-dot {
-    0%, 100% { opacity: 1; transform: scale(1); }
-    50% { opacity: 0.5; transform: scale(0.8); }
-  }
+
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 1.35rem;
+    gap: 1.4rem;
     list-style: none;
   }
-  .nav-links a {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--fg2);
-    text-decoration: none;
-    letter-spacing: 0.04em;
-    transition: color 0.2s;
-  }
-  .nav-links a:hover { color: var(--fg); }
-  .nav-github {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.35rem 0.85rem;
-    border: 1px solid var(--border2);
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--fg2) !important;
-    text-decoration: none;
-    transition: border-color 0.2s, color 0.2s !important;
-  }
-  .nav-github:hover { border-color: var(--accent) !important; color: var(--accent) !important; }
 
-  /* HERO */
-  .hero {
-    position: relative;
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    align-items: center;
-    gap: 4rem;
-    padding: 120px 3rem 80px;
-    max-width: 1280px;
-    margin: 0 auto;
-  }
-  .hero-grid-bg {
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(oklch(0.22 0.015 240 / 0.3) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.22 0.015 240 / 0.3) 1px, transparent 1px);
-    background-size: 48px 48px;
-    pointer-events: none;
-    z-index: 0;
-    mask-image: radial-gradient(ellipse 80% 80% at 50% 0%, black 30%, transparent 80%);
-  }
-  .hero-glow {
-    position: fixed;
-    top: -200px; left: 50%;
-    transform: translateX(-50%);
-    width: 800px; height: 600px;
-    background: radial-gradient(ellipse, oklch(0.78 0.19 142 / 0.08) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .hero-left {
-    position: relative;
-    z-index: 1;
-  }
-  .hero-eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--accent);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-    padding: 0.3rem 0.75rem;
-    border: 1px solid oklch(0.78 0.19 142 / 0.3);
-    border-radius: 2px;
-    background: oklch(0.78 0.19 142 / 0.06);
-  }
-  .hero-title {
-    font-size: clamp(2.8rem, 4.5vw, 4.2rem);
-    font-weight: 800;
-    line-height: 1.2;
-    letter-spacing: -0.01em;
-    margin-bottom: 1.5rem;
-    text-wrap: pretty;
-  }
-  .hero-title em {
-    font-style: normal;
-    color: var(--accent);
-  }
-  .hero-subtitle {
-    font-size: 1.05rem;
+  .nav-links a {
     color: var(--fg2);
-    line-height: 1.7;
-    margin-bottom: 2.5rem;
-    max-width: 480px;
-    font-weight: 400;
-  }
-  .hero-ctas {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--accent);
-    color: oklch(0.1 0.01 240);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-size: 0.74rem;
     letter-spacing: 0.04em;
     text-decoration: none;
-    border-radius: 4px;
-    transition: filter 0.2s, transform 0.15s;
   }
-  .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border: 1px solid var(--border2);
-    color: var(--fg2);
-    font-family: var(--font-mono);
-    font-size: 0.8rem;
-    letter-spacing: 0.04em;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: border-color 0.2s, color 0.2s;
-  }
-  .btn-secondary:hover { border-color: var(--fg2); color: var(--fg); }
-  .hero-stats {
-    display: flex;
-    gap: 2.5rem;
-    margin-top: 3.5rem;
-    padding-top: 2rem;
-    border-top: 1px solid var(--border);
-  }
-  .hero-stat-label {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--fg3);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
-  }
-  .hero-stat-val {
-    font-size: 1.1rem;
-    font-weight: 700;
+
+  .nav-links a:hover {
     color: var(--fg);
   }
 
-  /* TERMINAL */
-  .hero-right {
-    position: relative;
-    z-index: 1;
-  }
-  .terminal {
-    background: var(--bg2);
-    border: 1px solid var(--border2);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 32px 80px oklch(0 0 0 / 0.5), 0 0 0 1px oklch(1 0 0 / 0.03);
-  }
-  .terminal-bar {
-    display: flex;
+  .nav-github {
+    display: inline-flex;
     align-items: center;
-    gap: 0;
-    padding: 0 1rem;
-    height: 40px;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-  }
-  .terminal-dots {
-    display: flex;
-    gap: 6px;
-    margin-right: auto;
-  }
-  .terminal-dot {
-    width: 11px; height: 11px;
-    border-radius: 50%;
-  }
-  .terminal-dot.red { background: #ff5f57; }
-  .terminal-dot.yellow { background: #febc2e; }
-  .terminal-dot.green { background: #28c840; }
-  .terminal-title {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--fg3);
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  .terminal-body {
-    padding: 1.25rem 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    line-height: 1.85;
-    color: var(--fg2);
-    min-height: 280px;
-    overflow-wrap: break-word;
-    word-break: break-word;
-  }
-  .t-prompt { color: var(--accent); }
-  .t-cmd { color: var(--fg); }
-  .t-comment { color: var(--fg3); }
-  .t-success { color: var(--accent); }
-  .t-info { color: var(--accent2); }
-  .t-dim { color: var(--fg3); }
-  .t-cursor {
-    display: inline-block;
-    width: 8px; height: 1em;
-    background: var(--accent);
-    vertical-align: text-bottom;
-    animation: blink 1s step-end infinite;
-  }
-  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-
-  /* DIVIDER */
-  .section-divider {
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 0 3rem;
-    border-top: 1px solid var(--border);
-  }
-
-  /* SECTION */
-  section {
-    position: relative;
-    z-index: 1;
-    max-width: 1280px;
-    margin: 0 auto;
-    padding: 6rem 3rem;
-    scroll-margin-top: 120px;
-  }
-  .gs-section { scroll-margin-top: 120px; }
-  .section-label {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--fg3);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 0.75rem;
-  }
-  .section-title {
-    font-size: clamp(1.8rem, 2.5vw, 2.6rem);
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    margin-bottom: 1rem;
-    line-height: 1.1;
-  }
-  .section-sub {
-    font-size: 1rem;
-    color: var(--fg2);
-    max-width: 540px;
-    line-height: 1.7;
-    margin-bottom: 3.5rem;
-  }
-
-  /* HOW IT WORKS */
-  .how-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
-  }
-  .how-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 2rem;
-    min-width: 0;
-    transition: border-color 0.2s;
-  }
-  .how-card:hover { border-color: var(--border2); }
-  .how-card-num {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--fg3);
-    letter-spacing: 0.12em;
-    margin-bottom: 1rem;
-  }
-  .how-card h3 {
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    margin-bottom: 0.5rem;
-  }
-  .how-card p {
-    font-size: 0.9rem;
-    color: var(--fg2);
-    line-height: 1.65;
-  }
-  .how-card-accent {
-    display: inline-block;
-    width: 32px; height: 3px;
-    border-radius: 2px;
-    margin-bottom: 1.25rem;
-  }
-  .how-card:nth-child(1) .how-card-accent { background: var(--accent); }
-  .how-card:nth-child(2) .how-card-accent { background: var(--accent2); }
-  .how-card:nth-child(3) .how-card-accent { background: var(--accent); }
-  .how-card:nth-child(4) .how-card-accent { background: var(--accent2); }
-  .how-card:nth-child(5) .how-card-accent { background: var(--accent); }
-  .how-card:nth-child(6) .how-card-accent { background: var(--accent2); }
-  .how-card:nth-child(7) .how-card-accent { background: var(--accent); }
-  .how-card:nth-child(8) .how-card-accent { background: var(--accent2); }
-
-  /* Operator system */
-  .system-grid {
-    display: grid;
-    grid-template-columns: 0.95fr 1.05fr;
-    gap: 2rem;
-    align-items: start;
-  }
-  .system-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .system-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.4rem;
-  }
-  .system-card h3 {
-    font-size: 0.98rem;
-    margin-bottom: 0.4rem;
-    letter-spacing: -0.01em;
-  }
-  .system-card p {
-    font-size: 0.86rem;
-    color: var(--fg2);
-    line-height: 1.65;
-  }
-  .system-flow {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-  }
-  .system-flow-item {
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.2rem;
-    min-width: 0;
-  }
-  .system-flow-num {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    color: var(--accent);
-    letter-spacing: 0.1em;
-    margin-bottom: 0.6rem;
-  }
-  .system-flow-title {
-    font-size: 0.9rem;
-    font-weight: 700;
-    margin-bottom: 0.35rem;
-  }
-  .system-flow-copy {
-    font-size: 0.78rem;
-    color: var(--fg2);
-    line-height: 1.55;
-  }
-  .version-strip {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-top: 2rem;
-  }
-  .version-pill {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--fg2);
+    gap: 0.45rem;
+    padding: 0.38rem 0.78rem;
     border: 1px solid var(--border2);
     border-radius: 4px;
-    padding: 0.55rem 0.75rem;
-    background: var(--bg2);
   }
 
-  /* FILE TREE */
-  .filetree-wrap {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    overflow: hidden;
-    margin-top: 3rem;
+  main {
+    position: relative;
+    z-index: 1;
   }
-  .filetree-bar {
-    padding: 0.75rem 1.25rem;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--fg3);
-    letter-spacing: 0.08em;
-  }
-  .filetree-body {
-    padding: 1.25rem 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.77rem;
-    line-height: 2;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0 3rem;
-    overflow-x: auto;
-  }
-  .ft-dir { color: var(--accent2); }
-  .ft-file { color: var(--fg2); }
-  .ft-comment { color: var(--fg3); font-style: italic; }
-  .ft-indent { padding-left: 1.2em; }
-  .ft-indent2 { padding-left: 2.4em; }
 
-  /* GETTING STARTED */
-  .gs-section {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  .gs-inner {
-    max-width: 1280px;
+  .hero {
+    width: min(1180px, calc(100vw - 48px));
+    min-height: calc(100vh - 60px);
     margin: 0 auto;
-    padding: 6rem 3rem;
+    padding: 7rem 0 5rem;
     display: grid;
-    grid-template-columns: 1fr 1.4fr;
-    gap: 5rem;
-    align-items: start;
+    grid-template-columns: 1.02fr 0.98fr;
+    gap: 4rem;
+    align-items: center;
   }
-  .prompt-card {
-    background: var(--bg);
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.35rem;
+    padding: 0.42rem 0.65rem;
+    border: 1px solid oklch(0.72 0.15 50 / 0.35);
+    border-radius: 4px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    max-width: 690px;
+    color: var(--fg);
+    font-size: 4rem;
+    line-height: 1.06;
+    font-weight: 800;
+  }
+
+  .hero-copy {
+    max-width: 650px;
+    margin-top: 1.5rem;
+    color: var(--fg2);
+    font-size: 1rem;
+    line-height: 1.75;
+  }
+
+  .cta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 2.1rem;
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.75rem 1.1rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  .button-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .button-secondary {
+    border: 1px solid var(--border2);
+    color: var(--fg2);
+  }
+
+  .button-secondary:hover {
+    color: var(--fg);
+    border-color: var(--accent);
+  }
+
+  .hero-facts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 1.7rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .fact-label {
+    margin-bottom: 0.45rem;
+    color: var(--fg3);
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+  }
+
+  .fact-value {
+    color: var(--fg);
+    font-size: 0.92rem;
+    font-weight: 800;
+  }
+
+  .operator-panel {
     border: 1px solid var(--border2);
     border-radius: 8px;
+    background: oklch(0.12 0.018 240 / 0.9);
+    overflow: hidden;
+    box-shadow: 0 24px 90px oklch(0 0 0 / 0.26);
+  }
+
+  .panel-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    padding: 0 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg2);
+  }
+
+  .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .dot.red { background: oklch(0.68 0.18 25); }
+  .dot.yellow { background: oklch(0.78 0.15 80); }
+  .dot.green { background: oklch(0.72 0.19 145); }
+
+  .panel-title {
+    margin-left: auto;
+    color: var(--fg3);
+    font-size: 0.68rem;
+  }
+
+  .panel-body {
+    padding: 1.35rem;
+    color: var(--fg2);
+    font-size: 0.78rem;
+    line-height: 1.9;
+  }
+
+  .cmd {
+    color: var(--fg);
+    font-weight: 700;
+  }
+
+  .prompt {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .ok {
+    color: var(--accent);
+  }
+
+  .lane-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .lane {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem;
+    background: var(--bg);
+  }
+
+  .lane-name {
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    margin-bottom: 0.45rem;
+  }
+
+  .lane-copy {
+    color: var(--fg2);
+    font-size: 0.7rem;
+    line-height: 1.55;
+  }
+
+  section {
+    width: min(1120px, calc(100vw - 48px));
+    margin: 0 auto;
+    padding: 5rem 0;
+    border-top: 1px solid var(--border);
+  }
+
+  .section-label {
+    margin-bottom: 0.85rem;
+    color: var(--accent);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    max-width: 720px;
+    color: var(--fg);
+    font-size: 2.4rem;
+    line-height: 1.15;
+    font-weight: 800;
+  }
+
+  .section-copy {
+    max-width: 760px;
+    margin-top: 1rem;
+    color: var(--fg2);
+    font-size: 0.95rem;
+    line-height: 1.75;
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: var(--bg2);
+  }
+
+  .card-num {
+    margin-bottom: 1rem;
+    color: var(--accent);
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+  }
+
+  .card h3 {
+    margin-bottom: 0.55rem;
+    color: var(--fg);
+    font-size: 1rem;
+  }
+
+  .card p {
+    color: var(--fg2);
+    font-size: 0.84rem;
+    line-height: 1.7;
+  }
+
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1px;
+    margin-top: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--border);
     overflow: hidden;
   }
+
+  .step {
+    min-width: 0;
+    padding: 1.25rem;
+    background: var(--bg2);
+  }
+
+  .step strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--fg);
+    font-size: 0.9rem;
+  }
+
+  .step span {
+    color: var(--fg2);
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .start-grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 2rem;
+    align-items: start;
+    margin-top: 2rem;
+  }
+
+  .prompt-card {
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: var(--bg2);
+    overflow: hidden;
+  }
+
   .prompt-card-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1.25rem;
-    background: var(--bg3);
-    border-bottom: 1px solid var(--border);
-  }
-  .prompt-card-title {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--fg3);
-    letter-spacing: 0.08em;
-  }
-  .copy-btn {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--accent);
-    background: none;
-    border: 1px solid oklch(0.78 0.19 142 / 0.3);
-    padding: 0.2rem 0.6rem;
-    border-radius: 3px;
-    cursor: pointer;
-    letter-spacing: 0.06em;
-    transition: background 0.2s;
-  }
-  .copy-btn:hover { background: var(--accent-dim); }
-  .prompt-body {
-    padding: 1.25rem 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    line-height: 1.9;
-    color: var(--fg2);
-    max-height: 420px;
-    overflow-y: auto;
-    overflow-x: auto;
-  }
-  .prompt-body::-webkit-scrollbar { width: 4px; }
-  .prompt-body::-webkit-scrollbar-track { background: transparent; }
-  .prompt-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-  .p-key { color: var(--accent2); }
-  .p-val { color: var(--fg); }
-  .p-comment { color: var(--fg3); }
-  .p-req { color: var(--accent); }
-
-  /* AGENTS GRID */
-  .agents-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1rem;
-  }
-  .agent-card {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
     gap: 1rem;
-    min-width: 0;
-    transition: border-color 0.2s, transform 0.2s;
-  }
-  .agent-card:hover { border-color: var(--border2); transform: translateY(-2px); }
-  .agent-logo {
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
-  }
-  .agent-logo.codex { background: oklch(0.78 0.19 142 / 0.12); color: var(--accent); border: 1px solid oklch(0.78 0.19 142 / 0.2); }
-  .agent-logo.claude { background: oklch(0.78 0.14 30 / 0.12); color: oklch(0.78 0.14 30); border: 1px solid oklch(0.78 0.14 30 / 0.2); }
-  .agent-logo.cursor { background: oklch(0.78 0.14 195 / 0.12); color: var(--accent2); border: 1px solid oklch(0.78 0.14 195 / 0.2); }
-  .agent-logo.design { background: oklch(0.78 0.16 300 / 0.12); color: oklch(0.78 0.16 300); border: 1px solid oklch(0.78 0.16 300 / 0.2); }
-  .agent-logo.incubation { background: oklch(0.78 0.13 85 / 0.12); color: oklch(0.78 0.13 85); border: 1px solid oklch(0.78 0.13 85 / 0.2); }
-  .agent-name {
-    font-size: 1.05rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-  }
-  .agent-desc {
-    font-size: 0.87rem;
-    color: var(--fg2);
-    line-height: 1.65;
-    flex: 1;
-  }
-  .agent-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-  .agent-tag {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    padding: 0.2rem 0.55rem;
-    border-radius: 2px;
-    border: 1px solid var(--border2);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
     color: var(--fg3);
-    letter-spacing: 0.05em;
-  }
-  .agent-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: var(--accent);
-    text-decoration: none;
-    margin-top: 0.5rem;
-    letter-spacing: 0.04em;
-    transition: gap 0.2s;
   }
-  .agent-link:hover { gap: 0.6rem; }
 
-  /* FOOTER */
+  .copy-btn {
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    background: transparent;
+    color: var(--fg2);
+    cursor: pointer;
+    font-family: var(--font);
+    font-size: 0.68rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  .copy-btn:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+  }
+
+  .prompt-body {
+    padding: 1rem;
+    color: var(--fg2);
+    font-size: 0.74rem;
+    line-height: 1.75;
+    overflow-wrap: anywhere;
+  }
+
+  .prompt-body .key {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .prompt-body .val {
+    color: var(--fg);
+  }
+
   footer {
-    position: relative;
-    z-index: 1;
-    border-top: 1px solid var(--border);
-    padding: 2.5rem 3rem;
+    width: min(1120px, calc(100vw - 48px));
+    margin: 0 auto;
+    padding: 2rem 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1280px;
-    margin: 0 auto;
-  }
-  .footer-left {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
     color: var(--fg3);
+    font-size: 0.75rem;
   }
-  .footer-left a { color: var(--accent); text-decoration: none; }
-  .footer-right {
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    color: var(--fg3);
-    display: flex;
-    gap: 2rem;
-  }
-  .footer-right a { color: var(--fg3); text-decoration: none; transition: color 0.2s; }
-  .footer-right a:hover { color: var(--fg2); }
 
-  /* RESPONSIVE */
-  @media (max-width: 900px) {
+  footer a {
+    color: var(--fg2);
+    text-decoration: none;
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 920px) {
     nav {
-      padding: 0 1rem;
-      height: 56px;
+      padding: 0 1.25rem;
     }
-    .nav-logo {
-      font-size: 0.78rem;
-    }
+
     .nav-links {
-      gap: 0;
+      gap: 0.9rem;
     }
-    .nav-links li:not(:last-child) {
-      display: none;
-    }
+
     .hero {
-      grid-template-columns: minmax(0, 1fr);
-      padding: 80px 1.25rem 40px;
-      gap: 2.5rem;
-      min-height: auto;
+      grid-template-columns: 1fr;
+      padding-top: 5rem;
+      gap: 2.2rem;
     }
-    .hero-stats {
-      gap: 1.5rem;
+
+    h1 {
+      font-size: 3.1rem;
+    }
+
+    .card-grid,
+    .steps,
+    .start-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 560px) {
+    nav {
+      height: auto;
+      min-height: 60px;
+      padding: 0.8rem 1rem;
+      align-items: flex-start;
+      gap: 0.8rem;
+    }
+
+    .nav-links {
+      justify-content: flex-end;
       flex-wrap: wrap;
+      row-gap: 0.45rem;
     }
-    .how-grid {
+
+    .nav-links a {
+      font-size: 0.66rem;
+    }
+
+    .nav-github {
+      padding: 0.28rem 0.55rem;
+    }
+
+    .hero,
+    section,
+    footer {
+      width: min(100vw - 28px, 1120px);
+    }
+
+    .hero {
+      padding: 3.8rem 0 3.5rem;
+    }
+
+    h1 {
+      font-size: 2.35rem;
+      line-height: 1.12;
+    }
+
+    h2 {
+      font-size: 1.75rem;
+    }
+
+    .hero-copy,
+    .section-copy {
+      font-size: 0.88rem;
+    }
+
+    .hero-facts,
+    .lane-strip {
       grid-template-columns: 1fr;
     }
-    .system-grid, .system-flow {
-      grid-template-columns: 1fr;
-    }
-    .agents-grid {
-      grid-template-columns: 1fr;
-    }
-    .gs-inner {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 2.5rem;
-      padding: 4rem 1.25rem;
-    }
-    section {
-      padding: 4rem 1.25rem;
-    }
-    .filetree-body {
-      grid-template-columns: 1fr;
-      gap: 0;
-    }
-    .lane-viz {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
+
     footer {
       flex-direction: column;
-      gap: 1rem;
-      padding: 2rem 1.25rem;
-      text-align: center;
-    }
-    .footer-right {
-      gap: 1.25rem;
-    }
-  }
-
-  @media (max-width: 540px) {
-    .hero-title {
-      font-size: 1.9rem;
-      line-height: 1.25;
-    }
-    .hero-subtitle {
-      font-size: 0.92rem;
-    }
-    .hero-eyebrow {
-      font-size: 0.62rem;
-    }
-    .section-title {
-      font-size: 1.6rem;
-    }
-    .terminal-body {
-      font-size: 0.68rem;
-      padding: 1rem;
-    }
-    .lane-viz {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 0.75rem;
-    }
-    .hero-ctas {
-      flex-direction: column;
       align-items: flex-start;
-    }
-    .btn-primary, .btn-secondary {
-      width: 100%;
-      justify-content: center;
-    }
-    .prompt-body {
-      font-size: 0.68rem;
-    }
-    section {
-      padding: 3rem 1rem;
-    }
-    .how-card, .agent-card {
-      padding: 1.5rem;
-    }
-  }
-
-  /* ANIMATIONS */
-  @keyframes fade-up {
-    from { opacity: 0; transform: translateY(24px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-up { animation: fade-up 0.6s ease forwards; }
-  .fade-up-1 { animation-delay: 0.05s; opacity: 0; }
-  .fade-up-2 { animation-delay: 0.15s; opacity: 0; }
-  .fade-up-3 { animation-delay: 0.25s; opacity: 0; }
-  .fade-up-4 { animation-delay: 0.35s; opacity: 0; }
-  .fade-up-5 { animation-delay: 0.45s; opacity: 0; }
-
-  /* LANE VIZ */
-  .lane-viz {
-    margin-top: 3.5rem;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-  }
-  .lane-item {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 1rem 1.25rem;
-  }
-  .lane-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 0.75rem;
-  }
-  .lane-name {
-    font-family: var(--font-mono);
-    font-size: 0.7rem;
-    color: var(--accent);
-    font-weight: 700;
-  }
-  .lane-status {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent);
-    animation: pulse-dot 2s ease-in-out infinite;
-  }
-  .lane-status.idle { background: var(--fg3); box-shadow: none; animation: none; }
-  .lane-branch {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--fg3);
-    margin-bottom: 0.4rem;
-  }
-  .lane-agent {
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    color: var(--accent2);
-  }
-
-  @media (max-width: 900px) {
-    .lane-viz {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    }
-    .lane-item {
-      min-width: 0;
-    }
-  }
-
-  @media (max-width: 540px) {
-    .lane-viz {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      gap: 0.75rem;
-    }
-    .lane-item {
-      padding: 1rem;
     }
   }
 </style>
 </head>
 <body>
-
-<div class="hero-grid-bg"></div>
-<div class="hero-glow"></div>
-
-<!-- NAV -->
 <nav>
-  <a class="nav-logo" href="#">
-    <img src="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png" style="width:24px;height:24px;border-radius:5px;" alt="operator-kit icon">
+  <a class="nav-logo" href="#top">
+    <img src="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png" alt="operator-kit icon">
     operator-kit
   </a>
   <ul class="nav-links">
-    <li><a href="#getting-started">Getting Started</a></li>
-    <li><a href="#operator-system">System</a></li>
-    <li><a href="#how-it-works">Model</a></li>
-    <li><a href="#cursor-operator">Cursor</a></li>
-    <li><a href="#codex-skill">Codex</a></li>
-    <li><a href="#operator-modes">Modes</a></li>
-    <li><a href="#upgrade">Upgrade</a></li>
-    <li><a href="#agents">Assets</a></li>
-    <li><a href="https://github.com/Agent-Operator-Kit/operator-kit" class="nav-github" target="_blank">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-      GitHub
-    </a></li>
+    <li><a href="#value">Value</a></li>
+    <li><a href="#how">How</a></li>
+    <li><a href="#start">Start</a></li>
+    <li><a class="nav-github" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">GitHub</a></li>
   </ul>
 </nav>
 
-<!-- HERO -->
-<div class="hero">
-  <div class="hero-left">
-    <div class="hero-eyebrow fade-up fade-up-1">
-      <span>Operator Kit</span>
-      <span style="color:var(--fg3)">—</span>
-      <span>operator system for coding agents</span>
-    </div>
-    <h1 class="hero-title fade-up fade-up-2">
-      The Operator model for specialized agents.
-    </h1>
-    <p class="hero-subtitle fade-up fade-up-3">
-      Agent Operator Kit gives Codex, Claude Code, Cursor, and other agents a
-      simple operating model: isolated lanes, clear task packets, shared memory,
-      and human-approved integration.
-    </p>
-    <div class="hero-ctas fade-up fade-up-4">
-      <a class="btn-primary" href="#getting-started">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-        Start With An Agent
-      </a>
-      <a class="btn-secondary" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-        View Repository
-      </a>
-    </div>
-    <div class="hero-stats fade-up fade-up-5">
-      <div>
-        <div class="hero-stat-label">Operator Cockpit</div>
-        <div class="hero-stat-val">Codex · Claude Code · Cursor</div>
-      </div>
-      <div>
-        <div class="hero-stat-label">System Adds</div>
-        <div class="hero-stat-val">Lanes · Catalog · Batches</div>
-      </div>
-      <div>
-        <div class="hero-stat-label">Versions</div>
-        <div class="hero-stat-val">main · tag v1 preserved</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="hero-right fade-up fade-up-3">
-    <div class="terminal">
-      <div class="terminal-bar">
-        <div class="terminal-dots">
-          <div class="terminal-dot red"></div>
-          <div class="terminal-dot yellow"></div>
-          <div class="terminal-dot green"></div>
-        </div>
-        <span class="terminal-title">operator — plan → dispatch → review</span>
-      </div>
-      <div class="terminal-body" id="terminal-body">
-        <div><span class="t-comment"># install the kit into a project</span></div>
-        <div><span class="t-prompt">agent</span> <span class="t-cmd">Set up Agent Operator Kit here.</span></div>
-        <div>&nbsp;</div>
-        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing</span></div>
-        <div><span class="t-success">✓</span> lanes: operator · backend · ui · release</div>
-        <div><span class="t-success">✓</span> workspace: OPERATOR_DIR outside the repo</div>
-        <div><span class="t-success">✓</span> assets: Codex · Claude Code · Cursor</div>
-        <div>&nbsp;</div>
-        <div><span class="t-comment"># propose parallel work, then wait for approval</span></div>
-        <div><span class="t-prompt">operator</span> <span class="t-cmd">$ bash scripts/operator-plan-batch.sh</span></div>
-        <div><span class="t-success">✓</span> ready: backend API contract</div>
-        <div><span class="t-success">✓</span> ready: Claude Code UI lane</div>
-        <div>&nbsp;</div>
-        <div><span class="t-prompt">operator</span> <span class="t-cmd">Dispatch only the approved tasks.</span><span class="t-cursor"></span></div>
-      </div>
-    </div>
-
-    <!-- lane map -->
-    <div class="lane-viz">
-      <div class="lane-item">
-        <div class="lane-header">
-          <span class="lane-name">operator</span>
-          <div class="lane-status"></div>
-        </div>
-        <div class="lane-branch">app / main</div>
-        <div class="lane-agent">human or lead agent</div>
-      </div>
-      <div class="lane-item">
-        <div class="lane-header">
-          <span class="lane-name">backend</span>
-          <div class="lane-status"></div>
-        </div>
-        <div class="lane-branch">app-backend / codex/backend</div>
-        <div class="lane-agent">Codex</div>
-      </div>
-      <div class="lane-item">
-        <div class="lane-header">
-          <span class="lane-name">ui</span>
-          <div class="lane-status"></div>
-        </div>
-        <div class="lane-branch">app-ui / claude/ui</div>
-        <div class="lane-agent">Claude Code</div>
-      </div>
-      <div class="lane-item">
-        <div class="lane-header">
-          <span class="lane-name">release</span>
-          <div class="lane-status idle"></div>
-        </div>
-        <div class="lane-branch">app / release</div>
-        <div class="lane-agent" style="color:var(--fg3)">idle</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- OPERATOR SYSTEM -->
-<section id="operator-system">
-  <div class="section-label">// operator system</div>
-  <h2 class="section-title">The model stays simple.</h2>
-  <p class="section-sub">Map the project, choose the right lanes, give each lane approved patterns, and let the operator approve parallel batches before anything is dispatched.</p>
-
-  <div class="system-grid">
-    <div class="system-stack">
-      <div class="system-card">
-        <h3>Recommended lanes</h3>
-        <p>Create durable lanes only where they help: ownership, contracts, risk, validation, or dense context. Use temporary role overlays for smaller specialist work.</p>
-      </div>
-      <div class="system-card">
-        <h3>Approved patterns</h3>
-        <p>Role templates can carry preferred packages, repos, validation recipes, and consistency rules so agents reuse known solutions.</p>
-      </div>
-      <div class="system-card">
-        <h3>Approved batches</h3>
-        <p>The planner proposes parallel work from dependencies and lane ownership. The operator still decides what gets sent.</p>
-      </div>
-    </div>
-
-    <div class="prompt-card">
-      <div class="prompt-card-bar">
-        <span class="prompt-card-title">common operator commands</span>
-        <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md" target="_blank">Docs</a>
-      </div>
-      <div class="prompt-body">
-        <div><span class="p-comment"># understand the project</span></div>
-        <div><span class="p-key">bash</span> scripts/operator-system-map.sh refresh</div>
-        <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
-        <div>&nbsp;</div>
-        <div><span class="p-comment"># inspect approved roles and patterns</span></div>
-        <div><span class="p-key">bash</span> scripts/operator-catalog.sh list roles</div>
-        <div>&nbsp;</div>
-        <div><span class="p-comment"># plan the next operator-approved batch</span></div>
-        <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
-        <div>&nbsp;</div>
-        <div><span class="p-comment"># keep V1 available when a project needs it</span></div>
-        <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="version-strip">
-    <div class="version-pill">main: current default</div>
-    <div class="version-pill">catalog + batch planning</div>
-    <div class="version-pill">V1: preserved by tag</div>
-  </div>
-
-  <div class="system-flow" style="margin-top:2rem;">
-    <div class="system-flow-item">
-      <div class="system-flow-num">01</div>
-      <div class="system-flow-title">Map</div>
-      <div class="system-flow-copy">Capture apps, providers, contracts, tests, and current lanes.</div>
-    </div>
-    <div class="system-flow-item">
-      <div class="system-flow-num">02</div>
-      <div class="system-flow-title">Choose lanes</div>
-      <div class="system-flow-copy">Keep permanent lanes for boundaries that really need memory and ownership.</div>
-    </div>
-    <div class="system-flow-item">
-      <div class="system-flow-num">03</div>
-      <div class="system-flow-title">Use patterns</div>
-      <div class="system-flow-copy">Give agents approved tools and validation recipes up front.</div>
-    </div>
-    <div class="system-flow-item">
-      <div class="system-flow-num">04</div>
-      <div class="system-flow-title">Approve</div>
-      <div class="system-flow-copy">Dispatch only the batch the operator has reviewed.</div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<div class="section-divider"><div></div></div>
-<section id="how-it-works">
-  <div class="section-label">// model</div>
-  <h2 class="section-title">One operator,<br>many safe lanes.</h2>
-  <p class="section-sub">The operator keeps source clean while Codex, Claude Code, Cursor, and other workers move in parallel.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — ISOLATION</div>
-      <div class="how-card-accent"></div>
-      <h3>Worktrees</h3>
-      <p>Each lane gets its own worktree and branch.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — PERSISTENCE</div>
-      <div class="how-card-accent"></div>
-      <h3>tmux Lanes</h3>
-      <p>tmux keeps long-running agents visible and recoverable.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — HANDOFFS</div>
-      <div class="how-card-accent"></div>
-      <h3>External Task State</h3>
-      <p>Task packets, handoffs, screenshots, and scratch files stay under <code>OPERATOR_DIR</code>, outside the repo.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — EVERGREEN</div>
-      <div class="how-card-accent"></div>
-      <h3>Clean Codebase</h3>
-      <p>The repo keeps source, reusable scripts, stable rules, and durable docs.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">05 — MOMENTUM</div>
-      <div class="how-card-accent"></div>
-      <h3>Feature Tracks</h3>
-      <p>The operator keeps routing follow-ups until the work is integrated or truly blocked.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">06 — MEMORY</div>
-      <div class="how-card-accent"></div>
-      <h3>Relevant Context Packs</h3>
-      <p>Agents get only the project, task, and episode memory relevant to their lane.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">07 — UPGRADE</div>
-      <div class="how-card-accent"></div>
-      <h3>One Machine Refresh</h3>
-      <p><code>$operator --upgrade</code> refreshes installed projects and local skills.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">08 — ROADMAP</div>
-      <div class="how-card-accent"></div>
-      <h3>Feedback To Execution</h3>
-      <p><code>FB-*</code> and <code>RM-*</code> IDs keep feedback and roadmap work traceable without bloating the repo.</p>
-    </div>
-  </div>
-
-  <div class="filetree-wrap">
-    <div class="filetree-bar">// recommended project layout</div>
-    <div class="filetree-body">
-      <div>
-        <div><span class="ft-dir">~/Projects/acme/</span></div>
-        <div class="ft-indent"><span class="ft-dir">code/</span></div>
-        <div class="ft-indent2"><span class="ft-file">app/</span>  <span class="ft-comment">canonical repo</span></div>
-        <div class="ft-indent2"><span class="ft-file">app-backend/</span>  <span class="ft-comment">worker lane</span></div>
-        <div class="ft-indent2"><span class="ft-file">app-ui/</span>  <span class="ft-comment">worker lane</span></div>
-        <div class="ft-indent"><span class="ft-dir">operator/</span></div>
-        <div class="ft-indent2"><span class="ft-file">README.md</span></div>
-        <div class="ft-indent2"><span class="ft-file">system-map.md</span>  <span class="ft-comment">architecture map</span></div>
-        <div class="ft-indent2"><span class="ft-dir">catalog/</span></div>
-        <div class="ft-indent2"><span class="ft-file">catalog/roles/*.md</span></div>
-        <div class="ft-indent2"><span class="ft-file">catalog/patterns/*.md</span></div>
-        <div class="ft-indent2"><span class="ft-dir">tasks/</span></div>
-        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/memory.md</span></div>
-        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/</span>  <span class="ft-comment">html, images, notes</span></div>
-        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/feedback/</span>  <span class="ft-comment">captures, annotations</span></div>
-        <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/handoffs/</span></div>
-        <div class="ft-indent2"><span class="ft-dir">roadmap/</span></div>
-        <div class="ft-indent2"><span class="ft-file">roadmap/inbox/FB-*.md</span></div>
-        <div class="ft-indent2"><span class="ft-file">roadmap/items/RM-*.md</span></div>
-        <div class="ft-indent2"><span class="ft-dir">captures/</span></div>
-        <div class="ft-indent2"><span class="ft-dir">memory/</span></div>
-      </div>
-      <div>
-        <div><span class="ft-comment">// installed into repo</span></div>
-        <div><span class="ft-dir">.cursor/rules/</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-workflow.mdc</span></div>
-        <div><span class="ft-dir">.claude/commands/</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-bootstrap.md</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-status.md</span></div>
-        <div><span class="ft-dir">scripts/</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-tmux.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-task.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-dispatch.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-feedback.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-roadmap.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-memory.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-catalog.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-system-map.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-recommend-lanes.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-plan-batch.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-sync.sh</span></div>
-        <div class="ft-indent"><span class="ft-file">operator-upgrade.sh</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- GETTING STARTED -->
-<div class="gs-section" id="getting-started">
-  <div class="gs-inner">
+<main id="top">
+  <section class="hero">
     <div>
-      <div class="section-label">// getting started</div>
-      <h2 class="section-title">Start with your agent.</h2>
-      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt. The agent inspects first, installs or migrates the kit, recommends lanes, and verifies the setup.</p>
-
-      <div style="display:flex;flex-direction:column;gap:1.25rem;margin-top:2rem;">
-        <div style="display:flex;gap:1rem;align-items:flex-start;">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">1</div>
-          <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Open your agent</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">Launch Codex, Claude Code, or Cursor in the target repository.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:1rem;align-items:flex-start;">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
-          <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the bootstrap prompt</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">The agent installs or refreshes the kit and proposes the lane map.</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:1rem;align-items:flex-start;">
-          <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">3</div>
-          <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review the report</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">Check the lane map, operator workspace, smoke result, and git status.</div>
-          </div>
-        </div>
+      <div class="eyebrow">Operator Kit / coding agents</div>
+      <h1>The Operator model for specialized agents.</h1>
+      <p class="hero-copy">
+        A lightweight operating layer for coordinating Codex, Claude Code,
+        Cursor, and other agents across isolated lanes, shared context, clear
+        handoffs, and human-approved integration.
+      </p>
+      <div class="cta-row">
+        <a class="button button-primary" href="#start">Start with an agent</a>
+        <a class="button button-secondary" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">View repository</a>
       </div>
-
-      <div style="margin-top:2.5rem;padding:1.25rem;background:var(--bg);border:1px solid var(--border);border-radius:6px;">
-        <div style="font-family:var(--font-mono);font-size:0.65rem;color:var(--fg3);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.75rem;">manual install</div>
-        <div style="font-family:var(--font-mono);font-size:0.75rem;line-height:2;color:var(--fg2);">
-          <div><span style="color:var(--fg3)">$</span> git clone git@github.com:Agent-Operator-Kit/operator-kit.git</div>
-          <div><span style="color:var(--fg3)">$</span> cd operator-kit</div>
-          <div><span style="color:var(--fg3)">$</span> bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing</div>
-          <div><span style="color:var(--fg3)">$</span> cd /path/to/your/repo && bash scripts/operator-recommend-lanes.sh</div>
+      <div class="hero-facts">
+        <div>
+          <div class="fact-label">Why</div>
+          <div class="fact-value">Parallel agents without chaos</div>
+        </div>
+        <div>
+          <div class="fact-label">How</div>
+          <div class="fact-value">Lanes, tasks, memory, handoffs</div>
+        </div>
+        <div>
+          <div class="fact-label">Where</div>
+          <div class="fact-value">Codex / Claude Code / Cursor</div>
         </div>
       </div>
     </div>
 
-    <div class="prompt-card">
-      <div class="prompt-card-bar">
-        <span class="prompt-card-title">agent-run-bootstrap.md</span>
-        <button class="copy-btn" id="copy-prompt-btn">copy</button>
+    <div>
+      <div class="operator-panel" aria-label="Operator loop example">
+        <div class="panel-bar">
+          <span class="dot red"></span>
+          <span class="dot yellow"></span>
+          <span class="dot green"></span>
+          <span class="panel-title">operator loop</span>
+        </div>
+        <div class="panel-body">
+          <div><span class="prompt">agent</span> <span class="cmd">Set up Agent Operator Kit here.</span></div>
+          <div><span class="ok">ok</span> created isolated lanes</div>
+          <div><span class="ok">ok</span> kept task state outside the repo</div>
+          <div><span class="ok">ok</span> prepared agent handoff rules</div>
+          <br>
+          <div><span class="prompt">operator</span> plan the next safe batch</div>
+          <div><span class="ok">ok</span> backend contract task</div>
+          <div><span class="ok">ok</span> Claude Code UI task</div>
+          <br>
+          <div><span class="prompt">operator</span> dispatch only approved work</div>
+        </div>
       </div>
-      <div class="prompt-body" id="prompt-text">
-        <div>Install or initialize Agent Operator Kit for this repo.</div>
-        <div>&nbsp;</div>
-        <div><span class="p-key">Use this source kit:</span></div>
-        <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
-        <div>&nbsp;</div>
-        <div><span class="p-key">First clone or read the kit, then follow its install-or-initialize guide:</span></div>
-        <div><span class="p-val">templates/prompts/agent-run-bootstrap.md</span></div>
-        <div><span class="p-val">docs/guides/agent-run-bootstrap.md</span></div>
-        <div>&nbsp;</div>
-        <div>Treat the current working directory as the target project repo.</div>
-        <div>&nbsp;</div>
-        <div><span class="p-req">Requirements:</span></div>
-        <div><span class="p-comment">- inspect the repo first</span></div>
-        <div><span class="p-comment">- detect whether Operator Kit is installed, partial, or missing</span></div>
-        <div><span class="p-comment">- install or migrate the kit without overwriting project-specific files</span></div>
-        <div><span class="p-comment">- recommend durable lanes for Codex, Claude Code, Cursor, or another agent</span></div>
-        <div><span class="p-comment">- create the external operator workspace outside the repo</span></div>
-        <div><span class="p-comment">- run smoke checks and report the lane map, OPERATOR_DIR, and git status</span></div>
-        <div>&nbsp;</div>
-        <div><span class="p-req">Guardrails:</span></div>
-        <div><span class="p-comment">- do not rewrite git history</span></div>
-        <div><span class="p-comment">- do not force-push</span></div>
-        <div><span class="p-comment">- do not commit secrets, raw handoffs, task packets, or transient notes</span></div>
-        <div><span class="p-comment">- do not deploy or run production builds during setup</span></div>
+      <div class="lane-strip">
+        <div class="lane">
+          <div class="lane-name">operator</div>
+          <div class="lane-copy">reviews, integrates, protects main</div>
+        </div>
+        <div class="lane">
+          <div class="lane-name">backend</div>
+          <div class="lane-copy">own branch, own worktree, focused task</div>
+        </div>
+        <div class="lane">
+          <div class="lane-name">ui</div>
+          <div class="lane-copy">Claude Code or another specialist lane</div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- CURSOR OPERATOR -->
-<section id="cursor-operator">
-  <div class="section-label">// agent surfaces</div>
-  <h2 class="section-title">Use the agent<br>that fits the work.</h2>
-  <p class="section-sub">Codex can operate from Desktop, Claude Code is excellent for scoped implementation lanes, and Cursor can be the cockpit or a worker. The lane model stays the same.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — COCKPIT</div>
-      <div class="how-card-accent"></div>
-      <h3>Codex · Claude Code · Cursor</h3>
-      <p>Pick one cockpit for integration decisions, then assign worker lanes by strength.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — RULES</div>
-      <div class="how-card-accent"></div>
-      <h3>Shared rules</h3>
-      <p>Project assets keep lane boundaries and handoff rules available to each agent surface.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — SKILLS</div>
-      <div class="how-card-accent"></div>
-      <h3>Explicit modes</h3>
-      <p>Use operator, feedback, planner, and design modes instead of mixing observation, planning, and implementation.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — SUBAGENTS</div>
-      <div class="how-card-accent"></div>
-      <h3>Specialists</h3>
-      <p>Use temporary subagents for research and durable lanes for branch-owning implementation.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">05 — LOCAL LANES</div>
-      <div class="how-card-accent"></div>
-      <h3>Local workers</h3>
-      <p>Run CLI workers in tmux lanes when you need persistent local execution and collectable handoffs.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">06 — CLOUD AGENTS</div>
-      <div class="how-card-accent"></div>
-      <h3>Remote workers</h3>
-      <p>Remote agents need the full task packet because they cannot read local <code>OPERATOR_DIR</code>.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">agent-first setup</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">Full guide
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># bootstrap a project</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># example lane shape</span></div>
-      <div><span class="p-val">operator|Cursor IDE|app|main|</span></div>
-      <div><span class="p-val">cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent</span></div>
-      <div><span class="p-val">ui|Claude Code|app-ui|claude/ui|claude ...</span></div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># planning checks</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
-      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># local operator loop</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-status.sh</div>
-      <div><span class="p-key">bash</span> scripts/operator-task.sh auth-001 "Auth scaffolding"</div>
-      <div><span class="p-key">bash</span> scripts/operator-dispatch.sh --with-memory cursor "$OPERATOR_DIR/tasks/auth-001/tasks/cursor.md"</div>
-      <div><span class="p-key">bash</span> scripts/operator-collect.sh cursor auth-001</div>
-      <div><span class="p-comment"># the operator reviews the handoff before integrating source changes</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- CODEX SKILL -->
-<section id="codex-skill">
-  <div class="section-label">// codex desktop</div>
-  <h2 class="section-title">Use Codex skills<br>as operating modes.</h2>
-  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, recommend lanes, execute approved task batches, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — INSTALL</div>
-      <div class="how-card-accent"></div>
-      <h3>Global Codex Skills</h3>
-      <p>Run <code>scripts/codex-skills-install.sh</code> from the kit repo, then reopen Codex Desktop so <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, and companion skills are available.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — DETECT</div>
-      <div class="how-card-accent"></div>
-      <h3>Installed, Partial, Missing</h3>
-      <p>The skill checks upward and across sibling worktrees for <code>operator.config.env</code> plus the required <code>scripts/operator-*.sh</code> commands before it acts.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — OPERATE</div>
-      <div class="how-card-accent"></div>
-      <h3>Catalog, Plan, Execute</h3>
-      <p>For installed projects Codex can plan batches, create task packets, dispatch lanes, and review handoffs.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — GUARD</div>
-      <div class="how-card-accent"></div>
-      <h3>No Unsafe Guessing</h3>
-      <p>For partial or missing installs it reports what is missing before doing lane work.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">05 — UPGRADE</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$operator --upgrade</code></h3>
-      <p>Refresh local skills and installed Operator Kit projects with one command.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">06 — TRACE</div>
-      <div class="how-card-accent"></div>
-      <h3>Lightweight PR References</h3>
-      <p>Code changes can link to <code>RM-*</code>, <code>FB-*</code>, and task slugs without committing the planning ledger.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">07 — DESIGN</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$design-agent</code></h3>
-      <p>Use design review before handing UI work to Claude Code or another lane.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">08 — INCUBATION</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$incubation</code></h3>
-      <p>Keep early ideas outside Operator Kit until they are ready to become projects.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">codex desktop examples</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/codex-operator-skill.md" target="_blank">Full guide
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># install local Codex skills</span></div>
-      <div><span class="p-key">bash</span> scripts/codex-skills-install.sh</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># install or refresh a project</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># upgrade everything later</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># operate in natural language</span></div>
-      <div><span class="p-val">Use $operator. Show project status.</span></div>
-      <div><span class="p-val">Use $operator-planner. Review the feedback inbox and propose now/next/later.</span></div>
-      <div><span class="p-val">Use $operator. Plan the next approved parallel batch.</span></div>
-      <div><span class="p-val">Use $operator. Dispatch the approved UI task to Claude Code.</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- OPERATOR MODES -->
-<section id="operator-modes">
-  <div class="section-label">// feedback planning execution</div>
-  <h2 class="section-title">Separate observation<br>from implementation.</h2>
-  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion, dependency metadata, lane ownership, and operator approval.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — FEEDBACK MODE</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$operator-feedback</code></h3>
-      <p>Captures testing notes, browser annotations, mobile screenshots, videos, coordinates, <code>testID</code>s, severity, type, and expected behavior as structured <code>FB-*</code> intake.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — PLANNING MODE</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$operator-planner</code></h3>
-      <p>Reviews feedback, groups duplicates, prioritizes now/next/later, promotes selected work into <code>RM-*</code>, and adds required roles, owner lanes, contracts, dependencies, and approval gates.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — EXECUTION MODE</div>
-      <div class="how-card-accent"></div>
-      <h3><code>$operator</code></h3>
-      <p>Runs the batch planner, creates task folders, checks lane and file ownership, dispatches approved scoped packets, collects handoffs, reviews diffs, and integrates implementation work.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — MOBILE LOOP</div>
-      <div class="how-card-accent"></div>
-      <h3>Simulator Review</h3>
-      <p>Capture iOS Simulator screenshots or recordings into a feedback task, open the local review UI, click screenshot locations, annotate, then triage into the feedback inbox.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">05 — TRACE NOTES</div>
-      <div class="how-card-accent"></div>
-      <h3>Link Code Back To Why</h3>
-      <p>Keep roadmap files local, then add a short PR or commit note: <code>Roadmap</code>, <code>Feedback</code>, <code>Operator task</code>, <code>Why</code>, and <code>Validation</code>.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">06 — MULTI-DEV</div>
-      <div class="how-card-accent"></div>
-      <h3>Shared Planning Surface</h3>
-      <p>When collaboration starts, move <code>RM-*</code> and accepted <code>FB-*</code> items to a planning repo or tracker. Each operator keeps execution files local, while PRs carry trace IDs.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">mode examples</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-roadmap.md" target="_blank">Roadmap concept
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># feedback is observation, not execution</span></div>
-      <div><span class="p-val">Use $operator-feedback with $design-agent. Capture these annotations.</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"</div>
-      <div><span class="p-key">bash</span> scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"</div>
-      <div><span class="p-key">bash</span> scripts/operator-feedback.sh review mobile-feedback-20260522</div>
-      <div><span class="p-key">bash</span> scripts/operator-feedback.sh triage mobile-feedback-20260522</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># planning decides what should become work</span></div>
-      <div><span class="p-val">Use $operator-planner. Review FB-* items and propose now/next/later.</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Coach chat input polish" --type bug --priority P1 --areas mobile --status ready --owner-lane mobile-ui --required-roles mobile-app --contracts coach-chat</div>
-      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh pr-note RM-0007 --feedback FB-0014 --task mobile-chat-input-polish</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># execution starts after approval</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
-      <div><span class="p-val">Use $operator. Execute RM-0007 / FB-0014 with the approved mobile-ui task.</span></div>
-    </div>
-  </div>
-</section>
-
-<!-- UPGRADE -->
-<section id="upgrade">
-  <div class="section-label">// upgrade command</div>
-  <h2 class="section-title">Refresh every agent surface<br>with one command.</h2>
-  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, installs catalog and system-map support, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="how-card-num">01 — SKILLS</div>
-      <div class="how-card-accent"></div>
-      <h3>Optional Codex Desktop</h3>
-      <p>Refreshes <code>$operator-feedback</code>, <code>$operator-planner</code>, <code>$operator</code>, <code>$design-agent</code>, <code>$incubation</code>, and setup guidance in <code>~/.codex/skills</code> when Codex is part of your stack.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">02 — DISCOVER</div>
-      <div class="how-card-accent"></div>
-      <h3>Installed projects</h3>
-      <p>Scans <code>~/Projects</code> by default for <code>operator.config.env</code>. Use <code>--target</code> or <code>--projects-root</code> to scope it.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">03 — PRESERVE</div>
-      <div class="how-card-accent"></div>
-      <h3>Project state</h3>
-      <p>Preserves config, source code, handoffs, task packets, task working files, memory, captures, and existing project docs.</p>
-    </div>
-    <div class="how-card">
-      <div class="how-card-num">04 — VERIFY</div>
-      <div class="how-card-accent"></div>
-      <h3>Checks after update</h3>
-      <p>Runs syntax, lane status, summary, memory, roadmap, catalog, lane recommendation, batch-plan, and git status checks for each updated project.</p>
-    </div>
-  </div>
-
-  <div class="prompt-card" style="margin-top:1.5rem;">
-    <div class="prompt-card-bar">
-      <span class="prompt-card-title">upgrade examples</span>
-      <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/scripts/operator-upgrade.sh" target="_blank">Open script
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="prompt-body">
-      <div><span class="p-comment"># preview changes</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh --dry-run</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># refresh this machine</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-upgrade.sh</div>
-      <div><span class="p-val">Use $operator --upgrade.</span></div>
-      <div><span class="p-val">Use $operator /upgrade.</span></div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># on a machine without a local checkout</span></div>
-      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)</div>
-      <div>&nbsp;</div>
-      <div><span class="p-comment"># pin the older model if needed</span></div>
-      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo</div>
-    </div>
-  </div>
-</section>
-
-<!-- AGENTS -->
-<section id="agents">
-  <div class="section-label">// agent surfaces</div>
-  <h2 class="section-title">Reusable assets<br>for each agent.</h2>
-  <p class="section-sub">Pre-built skills, commands, and rules tailored to each agent's native format.</p>
-
-  <div class="agents-grid">
-    <div class="agent-card">
-      <div class="agent-logo design">DSGN</div>
-      <div class="agent-name">Design Agent</div>
-      <p class="agent-desc">An optional Codex Desktop companion skill for UX reviews, design-system extraction, starter recommendations, annotation classification, and UI task shaping with temporary files routed to task work folders.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">$design-agent</span>
-        <span class="agent-tag">UX review</span>
-        <span class="agent-tag">design-system</span>
+  <section id="value">
+    <div class="section-label">Value</div>
+    <h2>Use it when one agent is no longer enough.</h2>
+    <p class="section-copy">
+      Real projects have more than frontend and backend. They have provider
+      integrations, mobile apps, auth, storage, deployment, knowledge bases,
+      observability, and release work. Operator Kit gives each slice a clear
+      boundary so agents can specialize without trampling each other.
+    </p>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-num">01</div>
+        <h3>More parallel work</h3>
+        <p>Run multiple agents at once by assigning each one a lane, branch, task packet, and validation target.</p>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/design-agent" target="_blank">
-        Open Design Skill
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="agent-card">
-      <div class="agent-logo codex">FDBK</div>
-      <div class="agent-name">Operator Feedback</div>
-      <p class="agent-desc">A Codex Desktop mode for testing notes, screenshots, videos, browser/mobile annotations, severity, type, coordinates, and <code>FB-*</code> intake.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">$operator-feedback</span>
-        <span class="agent-tag">FB-*</span>
-        <span class="agent-tag">annotations</span>
+      <div class="card">
+        <div class="card-num">02</div>
+        <h3>Cleaner source control</h3>
+        <p>Keep raw handoffs, screenshots, scratch notes, memory, and task files outside the app repo.</p>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-feedback" target="_blank">
-        Open Feedback Skill
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="agent-card">
-      <div class="agent-logo cursor">PLAN</div>
-      <div class="agent-name">Operator Planner</div>
-      <p class="agent-desc">A Codex Desktop mode for feedback review, duplicate grouping, roadmap promotion, required roles, lane ownership, dependencies, and approval gates.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">$operator-planner</span>
-        <span class="agent-tag">RM-*</span>
-        <span class="agent-tag">deps</span>
+      <div class="card">
+        <div class="card-num">03</div>
+        <h3>Better consistency</h3>
+        <p>Use approved patterns, role templates, and lane memory so agents reuse the same project decisions.</p>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-planner" target="_blank">
-        Open Planner Skill
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
     </div>
-    <div class="agent-card">
-      <div class="agent-logo incubation">IDEA</div>
-      <div class="agent-name">Incubation</div>
-      <p class="agent-desc">An optional Codex Desktop companion skill for idea framing, contrarian critique, durable incubation files, promotion readiness, and Operator Kit handoff.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">$incubation</span>
-        <span class="agent-tag">idea files</span>
-        <span class="agent-tag">promotion</span>
+  </section>
+
+  <section id="how">
+    <div class="section-label">How it works</div>
+    <h2>A simple loop for agent work.</h2>
+    <p class="section-copy">
+      The operator is the integration point. Worker agents do scoped work in
+      isolated lanes. The operator reviews handoffs, promotes durable memory,
+      and merges only approved source changes.
+    </p>
+    <div class="steps">
+      <div class="step">
+        <strong>1. Map</strong>
+        <span>Identify the system areas, contracts, agents, and validation commands.</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/incubation" target="_blank">
-        Open Incubation Skill
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="agent-card">
-      <div class="agent-logo codex">CDEX</div>
-      <div class="agent-name">Codex</div>
-      <p class="agent-desc">Global Codex Desktop skills for feedback intake, planning, execution, setup, upgrade, memory, and repair guidance.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">$operator</span>
-        <span class="agent-tag">$operator-feedback</span>
-        <span class="agent-tag">$operator-planner</span>
-        <span class="agent-tag">--upgrade</span>
-        <span class="agent-tag">SKILL.md</span>
+      <div class="step">
+        <strong>2. Assign</strong>
+        <span>Create durable lanes only where ownership, risk, or context justify them.</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator" target="_blank">
-        Open Codex Skill
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="agent-card">
-      <div class="agent-logo claude">CC</div>
-      <div class="agent-name">Claude Code</div>
-      <p class="agent-desc">Project slash commands and a project subagent for setup, status inspection, and operator workflow.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">/operator-bootstrap</span>
-        <span class="agent-tag">/operator-status</span>
-        <span class="agent-tag">agents/</span>
+      <div class="step">
+        <strong>3. Dispatch</strong>
+        <span>Send a small task packet with owned files, acceptance criteria, and memory.</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/templates/claude" target="_blank">
-        Open Claude Assets
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
-    </div>
-    <div class="agent-card">
-      <div class="agent-logo cursor">CRS</div>
-      <div class="agent-name">Cursor</div>
-      <p class="agent-desc">When Cursor is available, Cursor Composer or Agent makes a natural operator cockpit. Project rules, skills, CLI lanes, subagents, and Cloud Agent prompts connect it to the Operator Kit lane and handoff model.</p>
-      <div class="agent-tags">
-        <span class="agent-tag">.mdc rules</span>
-        <span class="agent-tag">Composer</span>
-        <span class="agent-tag">cursor agent</span>
-        <span class="agent-tag">environment.json</span>
-        <span class="agent-tag">SKILL.md</span>
+      <div class="step">
+        <strong>4. Review</strong>
+        <span>Collect the handoff, inspect the diff, capture memory, and integrate.</span>
       </div>
-      <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/cursor-operator-workflow.md" target="_blank">
-        Open Cursor Guide
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
-      </a>
     </div>
+  </section>
+
+  <section id="start">
+    <div class="section-label">Start</div>
+    <h2>Install it by asking an agent.</h2>
+    <p class="section-copy">
+      Open Codex, Claude Code, Cursor, or another coding agent in the target
+      repo and paste the prompt. The agent should inspect first, install or
+      migrate the kit, recommend lanes, and report what changed.
+    </p>
+    <div class="start-grid">
+      <div class="card">
+        <div class="card-num">Manual command</div>
+        <h3>From a local checkout</h3>
+        <p>
+          Clone this repository, then run
+          <code>bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing</code>.
+        </p>
+      </div>
+      <div class="prompt-card">
+        <div class="prompt-card-bar">
+          <span>copy/paste prompt</span>
+          <button class="copy-btn" id="copy-prompt-btn" type="button">copy</button>
+        </div>
+        <div class="prompt-body" id="prompt-text">
+          <div>Install or initialize Agent Operator Kit for this repo.</div>
+          <br>
+          <div><span class="key">Use this source kit:</span></div>
+          <div><span class="val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
+          <br>
+          <div>First clone or read the kit, then follow:</div>
+          <div><span class="val">templates/prompts/agent-run-bootstrap.md</span></div>
+          <div><span class="val">docs/guides/agent-run-bootstrap.md</span></div>
+          <br>
+          <div><span class="key">Requirements:</span></div>
+          <div>- inspect the repo first</div>
+          <div>- install or migrate without overwriting project files</div>
+          <div>- recommend durable lanes for the project</div>
+          <div>- create the operator workspace outside the repo</div>
+          <div>- run smoke checks and report git status</div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div>
+    <a href="https://github.com/Agent-Operator-Kit/operator-kit">Agent Operator Kit</a>
+    &nbsp;/&nbsp; MIT License
   </div>
-</section>
-
-<!-- FOOTER -->
-<div style="border-top:1px solid var(--border);position:relative;z-index:1;">
-  <footer>
-    <div class="footer-left">
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit">Agent Operator Kit</a>
-      &nbsp;·&nbsp; MIT License
-    </div>
-    <div class="footer-right">
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
-    </div>
-  </footer>
-</div>
-
-<script type="text/babel" src="tweaks-panel.jsx"></script>
-<script type="text/babel">
-const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
-  "accentColor": "orange",
-  "terminalFont": "JetBrains Mono",
-  "showLaneViz": true,
-  "density": "compact"
-}/*EDITMODE-END*/;
-
-function OperatorTweaks() {
-  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
-
-  React.useEffect(() => {
-    const accentMap = {
-      orange: ['oklch(0.68 0.13 50)', 'oklch(0.78 0.09 220)', 'oklch(0.68 0.13 50 / 0.12)'],
-      green:  ['oklch(0.78 0.19 142)', 'oklch(0.78 0.14 195)', 'oklch(0.78 0.19 142 / 0.12)'],
-      cyan:   ['oklch(0.78 0.14 195)', 'oklch(0.78 0.16 260)', 'oklch(0.78 0.14 195 / 0.12)'],
-    };
-    const [a, a2, ad] = accentMap[tweaks.accentColor] || accentMap.green;
-    document.documentElement.style.setProperty('--accent', a);
-    document.documentElement.style.setProperty('--accent2', a2);
-    document.documentElement.style.setProperty('--accent-dim', ad);
-  }, [tweaks.accentColor]);
-
-  React.useEffect(() => {
-    document.documentElement.style.setProperty('--font-mono', `'${tweaks.terminalFont}', monospace`);
-  }, [tweaks.terminalFont]);
-
-  React.useEffect(() => {
-    const laneViz = document.querySelector('.lane-viz');
-    if (laneViz) laneViz.style.display = tweaks.showLaneViz ? 'grid' : 'none';
-  }, [tweaks.showLaneViz]);
-
-  React.useEffect(() => {
-    const padding = tweaks.density === 'compact' ? '4rem' : tweaks.density === 'spacious' ? '8rem' : '6rem';
-    document.querySelectorAll('section').forEach(s => {
-      s.style.paddingTop = padding;
-      s.style.paddingBottom = padding;
-    });
-  }, [tweaks.density]);
-
-  return (
-    <TweaksPanel title="Tweaks">
-      <TweakSection label="Accent Color">
-        <TweakRadio id="accentColor" value={tweaks.accentColor} onChange={v => setTweak('accentColor', v)}
-          options={[{value:'orange',label:'Orange'},{value:'green',label:'Green'},{value:'cyan',label:'Cyan'}]} />
-      </TweakSection>
-      <TweakSection label="Terminal Font">
-        <TweakSelect id="terminalFont" value={tweaks.terminalFont} onChange={v => setTweak('terminalFont', v)}
-          options={['JetBrains Mono','IBM Plex Mono','Fira Code','Courier New']} />
-      </TweakSection>
-      <TweakSection label="Show Lane Map">
-        <TweakToggle id="showLaneViz" value={tweaks.showLaneViz} onChange={v => setTweak('showLaneViz', v)} label="Show lane visualization" />
-      </TweakSection>
-      <TweakSection label="Section Density">
-        <TweakRadio id="density" value={tweaks.density} onChange={v => setTweak('density', v)}
-          options={[{value:'compact',label:'Compact'},{value:'comfortable',label:'Default'},{value:'spacious',label:'Spacious'}]} />
-      </TweakSection>
-    </TweaksPanel>
-  );
-}
-
-ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTweaks />);
-</script>
-
-<div id="tweaks-root"></div>
+  <div class="footer-links">
+    <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
+    <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/agent-run-bootstrap.md">Bootstrap guide</a>
+    <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
+  </div>
+</footer>
 
 <script>
-// Copy prompt button
-document.getElementById('copy-prompt-btn').addEventListener('click', function() {
-  const promptLines = [
+  const promptText = [
     'Install or initialize Agent Operator Kit for this repo.',
     '',
     'Use this source kit:',
@@ -1746,29 +775,21 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     'templates/prompts/agent-run-bootstrap.md',
     'docs/guides/agent-run-bootstrap.md',
     '',
-    'Treat the current working directory as the target project repo.',
-    '',
     'Requirements:',
     '- inspect the repo first',
-    '- detect whether Operator Kit is installed, partial, or missing',
-    '- install or migrate the kit without overwriting project-specific files',
-    '- recommend durable lanes for Codex, Claude Code, Cursor, or another agent',
-    '- create the external operator workspace outside the repo',
-    '- run smoke checks and report the lane map, OPERATOR_DIR, and git status',
-    '',
-    'Guardrails:',
-    '- do not rewrite git history',
-    '- do not force-push',
-    '- do not commit secrets, raw handoffs, task packets, or transient notes',
-    '- do not deploy or run production builds during setup',
+    '- install or migrate without overwriting project files',
+    '- recommend durable lanes for the project',
+    '- create the operator workspace outside the repo',
+    '- run smoke checks and report git status',
   ].join('\n');
-  navigator.clipboard.writeText(promptLines).then(() => {
-    const btn = document.getElementById('copy-prompt-btn');
-    btn.textContent = 'copied!';
-    setTimeout(() => { btn.textContent = 'copy'; }, 2000);
-  });
-});
-</script>
 
+  document.getElementById('copy-prompt-btn').addEventListener('click', async function() {
+    await navigator.clipboard.writeText(promptText);
+    this.textContent = 'copied';
+    window.setTimeout(() => {
+      this.textContent = 'copy';
+    }, 1600);
+  });
+</script>
 </body>
 </html>
