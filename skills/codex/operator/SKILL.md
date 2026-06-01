@@ -39,6 +39,9 @@ Before operator work, resolve the project root:
    - `scripts/operator-collect.sh`
    - `scripts/operator-summary.sh`
    - `scripts/operator-memory.sh`
+   - `scripts/operator-catalog.sh`
+   - `scripts/operator-system-map.sh`
+   - `scripts/operator-plan-batch.sh`
    - `scripts/operator-upgrade.sh`
 5. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 6. Read `operator.config.env`.
@@ -77,6 +80,10 @@ bash scripts/operator-memory.sh promote project "<fact>"
 bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-feedback.sh detect
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
@@ -85,6 +92,32 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 ```
 
 Avoid sending arbitrary text directly into tmux panes unless the scripts do not cover the use case.
+
+## V2 Catalog, Lanes, And Batch Planning
+
+Operator Kit V2 keeps V1 lanes/worktrees but adds a system map, role catalog,
+approved architecture patterns, and dependency-aware batch planning.
+
+Use these before broad planning or migration:
+
+```bash
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
+```
+
+Lane recommendation principles:
+
+- create durable lanes for long-lived ownership, explicit contract boundaries,
+  high-risk domains, distinct validation loops, or high context/memory density;
+- use role overlays when specialist guidance is useful but a permanent worktree
+  would add coordination overhead;
+- treat catalog patterns like an engineering design system: prefer approved
+  frameworks, packages, repos, and solution patterns before inventing new ones.
+
+`operator-plan-batch.sh` is advisory. It proposes operator-approved parallel
+dispatch groups but never sends work to agents by itself.
 
 ## Upgrade Command
 
@@ -159,14 +192,18 @@ For new work:
 7. Include:
    - goal
    - context
+   - role template and architecture-pattern refs
+   - approved packages/repos or a note that existing project patterns win
    - owned files or modules
    - read-only files or modules
+   - roadmap dependencies, touched contracts, and parallel-safety notes
    - acceptance criteria
    - validation commands
    - expected working files under `$OPERATOR_DIR/tasks/<slug>/work/`
    - expected handoff output
    - `## Memory Candidates` handoff requirements
-8. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
+8. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` before dispatch and use its lane/approval/conflict findings in the packet.
+9. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
 
 Before dispatch, check that no other active lane owns the same branch or file area.
 
@@ -420,6 +457,9 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-status.sh
    bash scripts/operator-summary.sh
    bash scripts/operator-memory.sh status
+   bash scripts/operator-catalog.sh list roles
+   bash scripts/operator-recommend-lanes.sh
+   bash scripts/operator-plan-batch.sh
    bash scripts/operator-upgrade.sh --dry-run --skip-skills --target <project-root>
    git status --short
    ```

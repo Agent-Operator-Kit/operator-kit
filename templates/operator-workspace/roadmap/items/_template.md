@@ -8,6 +8,12 @@
 - Effort: medium
 - Confidence: medium
 - Areas: mobile, backend, web, product
+- Depends on: none
+- Required roles: none
+- Owner lane: none
+- Contracts: none
+- Parallel safe: yes
+- Approval gate: none
 - Source feedback: none
 - Related operator tasks: none
 - Related PRs/commits: none

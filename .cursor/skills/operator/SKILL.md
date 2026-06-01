@@ -32,7 +32,8 @@ user-journey      = persona, ICP, journey map, blueprint, and storyboard artifac
 3. Confirm the install has `scripts/operator-status.sh`,
    `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`,
    `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, and
-   `scripts/operator-memory.sh`.
+   `scripts/operator-memory.sh`, plus V2 scripts `scripts/operator-catalog.sh`,
+   `scripts/operator-system-map.sh`, and `scripts/operator-plan-batch.sh`.
 4. Run:
 
 ```bash
@@ -58,6 +59,10 @@ bash scripts/operator-collect.sh <lane> <slug>
 bash scripts/operator-summary.sh
 bash scripts/operator-memory.sh status
 bash scripts/operator-roadmap.sh status
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 ```
 
 For new work:
@@ -66,11 +71,14 @@ For new work:
 2. Create the task folder with `operator-task.sh`.
 3. Keep temporary working files under `OPERATOR_DIR/tasks/<slug>/work/`.
 4. Write lane packets under `OPERATOR_DIR/tasks/<slug>/tasks/`.
-5. Include goal, context, owned files, read-only files, acceptance criteria,
-   validation commands, handoff requirements, and memory candidates.
-6. Dispatch with `operator-dispatch.sh`, using `--with-memory` when prior
+5. Include goal, context, role template, architecture patterns, approved
+   packages/repos, owned files, read-only files, roadmap dependencies, touched
+   contracts, parallel-safety notes, acceptance criteria, validation commands,
+   handoff requirements, and memory candidates.
+6. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` before dispatch.
+7. Dispatch with `operator-dispatch.sh`, using `--with-memory` when prior
    context matters.
-7. Collect, review the worker branch, validate, and integrate only approved
+8. Collect, review the worker branch, validate, and integrate only approved
    source changes.
 
 ## Guardrails

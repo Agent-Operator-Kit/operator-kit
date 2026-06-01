@@ -29,7 +29,12 @@ operator_load_config() {
   : "${OPERATOR_DIR:?OPERATOR_DIR is required}"
   : "${TMUX_SESSION:?TMUX_SESSION is required}"
   : "${DEFAULT_BRANCH:=main}"
+  : "${OPERATOR_KIT_VERSION:=2}"
   : "${OPERATOR_LANES:?OPERATOR_LANES is required}"
+}
+
+operator_kit_version() {
+  printf '%s\n' "${OPERATOR_KIT_VERSION:-2}"
 }
 
 operator_lanes() {

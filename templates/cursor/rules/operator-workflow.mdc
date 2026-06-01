@@ -16,6 +16,7 @@ Core rules:
 - Worker agents use isolated git worktrees and branches.
 - Generated task packets, handoffs, pane captures, task working files, and transient notes live under `OPERATOR_DIR`, outside the repo.
 - Operator memory under `OPERATOR_DIR/memory/` carries compact project, task, and episode context across lanes.
+- Operator V2 catalog and system-map state under `OPERATOR_DIR/catalog/` and `OPERATOR_DIR/system-map.md` carries role templates, approved architecture patterns, lane recommendations, and batch-planning context.
 - Repo docs should stay evergreen.
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
@@ -28,8 +29,9 @@ Before making changes:
 1. Read `operator.config.env`.
 2. Run `bash scripts/operator-status.sh` when available.
 3. Run `bash scripts/operator-memory.sh status` when available.
-4. Confirm the target lane, branch, worktree, and file scope.
-5. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
+4. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` when available.
+5. Confirm the target lane, branch, worktree, file scope, role template, and contracts touched.
+6. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
 
 Pause for user input before destructive cleanup, credential/provider-console
 changes, production deploys, release submissions, live-money enablement, or

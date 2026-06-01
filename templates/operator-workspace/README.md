@@ -15,6 +15,9 @@ tasks/<slug>/work/feedback/annotations.json
 roadmap/items/*.md
 roadmap/inbox/*.md
 roadmap/views/*.md
+system-map.md
+catalog/roles/*.md
+catalog/patterns/*.md
 captures/
 memory/project.md
 memory/episodes/*.md
@@ -30,6 +33,10 @@ Use `tasks/<slug>/work/` for temporary artifacts such as exploratory markdown, r
 Use `roadmap/` for local roadmap, backlog, feedback, prioritization, dispatch
 readiness, blocked work, and recently shipped work. Link code changes back with
 lightweight roadmap, feedback, and operator task IDs in PRs or commits.
+
+Use `system-map.md` and `catalog/` for V2 lane recommendations, specialist role
+templates, approved architecture patterns, package/repo choices, validation
+recipes, and escalation gates.
 
 Mode split:
 

@@ -31,6 +31,11 @@ test -f "$tmp_root/operator/README.md"
 test -f "$tmp_root/code/app/scripts/operator-memory.sh"
 test -f "$tmp_root/code/app/scripts/operator-update.sh"
 test -f "$tmp_root/code/app/scripts/operator-upgrade.sh"
+test -f "$tmp_root/code/app/scripts/operator-catalog.sh"
+test -f "$tmp_root/code/app/scripts/operator-system-map.sh"
+test -f "$tmp_root/code/app/scripts/operator-recommend-lanes.sh"
+test -f "$tmp_root/code/app/scripts/operator-plan-batch.sh"
+grep -q 'OPERATOR_KIT_VERSION="2"' "$tmp_root/code/app/operator.config.env"
 test -f "$tmp_root/code/app/.claude/commands/operator-bootstrap.md"
 test -f "$tmp_root/code/app/.claude/commands/operator-status.md"
 test -f "$tmp_root/code/app/.claude/agents/operator-workflow.md"
@@ -40,6 +45,13 @@ for cursor_skill in operator-workflow operator operator-planner operator-feedbac
 done
 test -f "$tmp_root/code/app/.cursor/environment.json.example"
 test ! -d "$tmp_root/code/app/operator"
+test -f "$tmp_root/operator/catalog/README.md"
+test -f "$tmp_root/operator/catalog/roles/provider-integration.md"
+test -f "$tmp_root/operator/catalog/patterns/provider-integration.md"
+test -f "$tmp_root/operator/system-map.md"
+bash scripts/operator-catalog.sh list roles | grep -q provider-integration
+bash scripts/operator-recommend-lanes.sh >/dev/null
+bash scripts/operator-plan-batch.sh >/dev/null
 
 cat > "$task_dir/tasks/backend.md" <<'EOF'
 ## Task
@@ -73,6 +85,21 @@ EOF
 bash scripts/operator-memory.sh ingest backend smoke-001 "$task_dir/handoffs/backend-capture-test.md" >/dev/null
 bash scripts/operator-memory.sh search "disposable smoke" >/dev/null
 test "$(find "$tmp_root/operator/memory/episodes" -type f -name '*.md' | wc -l | tr -d ' ')" = "1"
+
+bash scripts/operator-roadmap.sh add "Provider import" \
+  --id RM-0001 \
+  --status shipped \
+  --owner-lane backend \
+  --required-roles provider-integration \
+  --contracts provider-api >/dev/null
+bash scripts/operator-roadmap.sh add "Mobile polish" \
+  --id RM-0002 \
+  --status ready \
+  --depends-on RM-0001 \
+  --owner-lane ui \
+  --required-roles mobile-app \
+  --contracts mobile-home >/dev/null
+bash scripts/operator-plan-batch.sh | grep -q 'RM-0002'
 
 bash "$KIT_ROOT/scripts/operator-upgrade.sh" \
   --source "$KIT_ROOT" \

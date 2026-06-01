@@ -11,6 +11,16 @@ git clone git@github.com:Agent-Operator-Kit/operator-kit.git /path/to/operator-k
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
 ```
 
+V2 is the default. After sync, inspect the project-specific role and lane
+recommendations:
+
+```bash
+cd /path/to/repo
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-catalog.sh list roles
+```
+
 From inside an older Operator Kit project, you can use the remote entry point as the single command:
 
 ```bash

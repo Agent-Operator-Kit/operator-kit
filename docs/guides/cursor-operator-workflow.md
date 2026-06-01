@@ -133,6 +133,9 @@ bash scripts/operator-status.sh
 bash scripts/operator-summary.sh
 bash scripts/operator-memory.sh status
 bash scripts/operator-roadmap.sh status
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 ```
 
 Create task state outside the repo:

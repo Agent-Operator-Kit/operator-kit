@@ -316,6 +316,10 @@ state should stay outside the app repo:
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-roadmap.sh ready
 bash scripts/operator-feedback.sh detect
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
 bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"
 bash scripts/operator-feedback.sh review mobile-feedback-20260522
@@ -325,6 +329,10 @@ bash scripts/operator-feedback.sh triage mobile-feedback-20260522
 Use `$operator-feedback` for intake and `$operator-planner` for triage and
 prioritization. `$operator` should still create task folders, check lane safety,
 dispatch, collect, and integrate.
+
+V2 roadmap planning should include dependency fields, required role templates,
+touched contracts, owner lane, parallel-safety, and approval gates before an
+item is marked ready.
 
 ## Working Files
 
@@ -355,8 +363,8 @@ Codex should:
 4. Refresh bundled Codex Desktop skills with `scripts/codex-skills-install.sh`.
 5. Run `scripts/operator-update.sh` against the project.
 6. Run syntax, status, summary, and git status checks.
-7. Run `scripts/operator-memory.sh status` and `scripts/operator-roadmap.sh status`.
-8. Summarize updated files, installed missing files, preserved project-specific files, validation results, memory/roadmap status, and follow-up.
+7. Run `scripts/operator-memory.sh status`, `scripts/operator-roadmap.sh status`, `scripts/operator-catalog.sh list roles`, `scripts/operator-recommend-lanes.sh`, and `scripts/operator-plan-batch.sh`.
+8. Summarize updated files, installed missing files, preserved project-specific files, validation results, V2 catalog/system-map status, memory/roadmap status, and follow-up.
 
 The update must preserve:
 

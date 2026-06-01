@@ -9,7 +9,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
-Installs Agent Operator Kit scripts/templates into an existing git repository.
+Installs Agent Operator Kit V2 scripts/templates into an existing git repository.
 
 Profiles:
   default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
@@ -79,7 +79,7 @@ for cursor_skill in operator-workflow operator operator-planner operator-feedbac
   mkdir -p "$repo_root/.cursor/skills/$cursor_skill"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
   chmod +x "$repo_root/scripts/$script"
 done
@@ -93,6 +93,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
+OPERATOR_KIT_VERSION="2"
 
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
@@ -108,6 +109,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
+OPERATOR_KIT_VERSION="2"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
@@ -159,6 +161,29 @@ if [ ! -f "$project_root/operator/README.md" ]; then
 fi
 
 for roadmap_file in \
+  "catalog/README.md" \
+  "catalog/roles/_template.md" \
+  "catalog/roles/api-contracts.md" \
+  "catalog/roles/auth-permissions.md" \
+  "catalog/roles/data-storage.md" \
+  "catalog/roles/deployment-recovery.md" \
+  "catalog/roles/design-system.md" \
+  "catalog/roles/evals-testing.md" \
+  "catalog/roles/knowledge-base.md" \
+  "catalog/roles/llm-runtime.md" \
+  "catalog/roles/mobile-app.md" \
+  "catalog/roles/mobile-release.md" \
+  "catalog/roles/observability.md" \
+  "catalog/roles/provider-integration.md" \
+  "catalog/roles/trading-risk.md" \
+  "catalog/roles/web-ui.md" \
+  "catalog/patterns/_template.md" \
+  "catalog/patterns/api-contracts.md" \
+  "catalog/patterns/architecture-pattern-library.md" \
+  "catalog/patterns/llm-runtime.md" \
+  "catalog/patterns/mobile-release.md" \
+  "catalog/patterns/observability.md" \
+  "catalog/patterns/provider-integration.md" \
   "roadmap/README.md" \
   "roadmap/items/_template.md" \
   "roadmap/inbox/_feedback-template.md" \
@@ -182,11 +207,14 @@ fi
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-memory.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-roadmap.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feedback.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-catalog.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-system-map.sh" refresh >/dev/null
 
 printf 'Installed Agent Operator Kit into: %s\n' "$repo_root"
 printf 'Operator workspace: %s\n' "$project_root/operator"
 printf 'Next:\n'
 printf '  cd %s\n' "$repo_root"
 printf '  edit operator.config.env\n'
+printf '  bash scripts/operator-recommend-lanes.sh\n'
 printf '  bash scripts/operator-tmux.sh start\n'
 printf '  bash scripts/operator-status.sh\n'

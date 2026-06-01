@@ -14,22 +14,41 @@ For day-to-day operation inside an already installed project, prefer the runtime
 1. Inspect the project root and git status.
 2. Identify default branch, package manager, and validation commands.
 3. Propose or read a lane map.
-4. Create an external operator workspace.
-5. Install or update operator scripts, Operator Memory Router, local roadmap/feedback workspace, and evergreen docs.
-6. Install Claude Code project assets under `.claude/` when the target project uses Claude Code.
-7. Install Cursor project assets under `.cursor/` when the target project uses Cursor.
-8. Create lane worktrees and branches.
-9. Start tmux lanes.
-10. Create a smoke task under the external operator workspace.
-11. Verify `scripts/operator-memory.sh status` and `scripts/operator-roadmap.sh status`.
-12. Dispatch and collect one smoke handoff when appropriate.
-13. Report exact paths, branches, commands, memory/roadmap status, and validation status.
+4. In V2, initialize the system map, role catalog, architecture-pattern catalog, and lane recommendations.
+5. Create an external operator workspace.
+6. Install or update operator scripts, Operator Memory Router, local roadmap/feedback workspace, and evergreen docs.
+7. Install Claude Code project assets under `.claude/` when the target project uses Claude Code.
+8. Install Cursor project assets under `.cursor/` when the target project uses Cursor.
+9. Create lane worktrees and branches.
+10. Start tmux lanes.
+11. Create a smoke task under the external operator workspace.
+12. Verify `scripts/operator-memory.sh status`, `scripts/operator-roadmap.sh status`, `scripts/operator-catalog.sh list roles`, and `scripts/operator-recommend-lanes.sh`.
+13. Dispatch and collect one smoke handoff when appropriate.
+14. Report exact paths, branches, commands, V2 catalog/system-map status, memory/roadmap status, and validation status.
 
 ## Agent-Run Setup
 
 When the user wants an agent to fully set up the system from scratch, follow `docs/guides/agent-run-bootstrap.md` and the prompt template in `templates/prompts/agent-run-bootstrap.md`.
 
-The setup agent should inspect first, propose a lane map, install scripts/templates, create the external operator workspace, create or verify worktrees, start tmux, run a smoke task, and report whether the repo is ready to commit.
+The setup agent should inspect first, refresh the V2 system map and lane
+recommendations, propose a lane map, install scripts/templates, create the
+external operator workspace, create or verify worktrees, start tmux, run a smoke
+task, and report whether the repo is ready to commit.
+
+## V2 Catalog And Batch Planning
+
+Installed V2 projects should include:
+
+```bash
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
+```
+
+The catalog is the engineering-pattern source of truth for specialist roles,
+approved packages/repos, validation recipes, and escalation gates. The batch
+planner is advisory and requires operator approval before dispatch.
 
 ## Memory
 

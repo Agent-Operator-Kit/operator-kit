@@ -5,6 +5,9 @@ The operator is the integrator and system owner. Worker agents execute scoped ta
 The operator owns:
 
 - lane assignment
+- system-map and role-template recommendations
+- architecture-pattern catalog curation
+- dependency-aware batch planning before parallel dispatch
 - branch and worktree policy
 - dispatching task packets
 - keeping temporary working files outside the repo
@@ -19,11 +22,29 @@ The operator owns:
 Worker agents own:
 
 - scoped implementation within their assigned lane
+- respecting the role contract and approved architecture patterns in the task packet
 - clear handoffs
 - validation evidence
 - respecting file and branch boundaries
 
 This model is intentionally conservative. It favors traceability and integration quality over agents freely editing the same branch.
+
+## V2 Catalog And Scheduler
+
+Operator V2 keeps this conservative execution model but adds more planning
+context:
+
+- `OPERATOR_DIR/system-map.md` maps the project architecture, current lanes, and
+  recommended specialist roles.
+- `OPERATOR_DIR/catalog/roles/` stores reusable specialist role templates.
+- `OPERATOR_DIR/catalog/patterns/` stores approved architecture patterns,
+  packages, repos, and validation recipes.
+- `scripts/operator-plan-batch.sh` proposes operator-approved parallel dispatch
+  groups from roadmap dependencies and lane ownership.
+
+Durable lanes are recommended for long-lived ownership, contract boundaries,
+high-risk domains, distinct validation loops, or high context density. Smaller
+specialist work should run as role overlays before it becomes a permanent lane.
 
 ## Working Files
 

@@ -44,21 +44,26 @@ fill remaining lanes from the agents you have.
    `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
 5. If missing, install with `operator-sync.sh --bootstrap-if-missing
    --bootstrap-profile cursor --skip-skills`.
-6. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+6. Initialize or refresh the V2 system map and catalog:
+   - `bash scripts/operator-system-map.sh refresh`
+   - `bash scripts/operator-recommend-lanes.sh`
+   - `bash scripts/operator-catalog.sh list roles`
+7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
-7. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
-8. Confirm the stable branch and lane map.
-9. Ensure `OPERATOR_DIR` is outside the repo.
-10. Create or verify lane worktrees.
-11. Start or inspect tmux.
-12. Create a smoke task under `OPERATOR_DIR`.
-13. Run:
+8. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
+9. Confirm the stable branch and lane map.
+10. Ensure `OPERATOR_DIR` is outside the repo.
+11. Create or verify lane worktrees.
+12. Start or inspect tmux.
+13. Create a smoke task under `OPERATOR_DIR`.
+14. Run:
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-memory.sh status`
    - `bash scripts/operator-roadmap.sh status`
-14. Report installed files, lane map, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
+   - `bash scripts/operator-plan-batch.sh`
+15. Report installed files, lane map, V2 catalog/system-map status, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
 
 For first-time setup without Codex, use the Cursor bootstrap profile:
 

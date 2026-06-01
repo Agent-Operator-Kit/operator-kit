@@ -86,6 +86,12 @@ Fields:
 - `effort`
 - `confidence`
 - `areas`
+- `depends on`
+- `required roles`
+- `owner lane`
+- `contracts`
+- `parallel safe`
+- `approval gate`
 - `source feedback`
 - `related operator tasks`
 - `related PRs/commits`
@@ -106,6 +112,17 @@ idea -> candidate -> planned -> ready -> dispatched -> in-review -> shipped
 
 Mark an item `ready` only when it has acceptance criteria, lane ownership, and a
 dispatch plan that `$operator` can safely turn into task packets.
+
+V2 batch planning uses the dependency and dispatch fields to propose safe
+operator-approved parallel work:
+
+```bash
+bash scripts/operator-plan-batch.sh
+```
+
+The planner does not dispatch by itself. It writes
+`OPERATOR_DIR/roadmap/views/batch-plan.md` and separates parallel candidates,
+missing lane decisions, approval gates, dependency blockers, and serialized work.
 
 ## Feedback Items
 

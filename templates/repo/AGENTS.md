@@ -2,7 +2,7 @@
 
 This project uses Agent Operator Kit.
 
-`operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, and Operator Kit updates.
+`operator.config.env` and `scripts/operator-*.sh` are the source of truth for lanes, worktrees, tmux, task packets, dispatch, collection, summaries, V2 system maps/catalogs, batch planning, and Operator Kit updates.
 
 When operating from Cursor, read `.cursor/rules/operator-workflow.mdc`. Use `.cursor/skills/operator/SKILL.md` for day-to-day execution, `.cursor/skills/operator-planner/SKILL.md` for roadmap/backlog planning, `.cursor/skills/operator-feedback/SKILL.md` for feedback intake, `.cursor/skills/design-agent/SKILL.md` for UX/design work, `.cursor/skills/ux-auditor/SKILL.md` for scored UX audits, `.cursor/skills/user-journey/SKILL.md` for journey artifacts, `.cursor/skills/incubation/SKILL.md` for idea incubation and promotion readiness, and `.cursor/skills/operator-workflow/SKILL.md` for setup, status, dispatch, collection, and repair workflows. In Cursor-first environments without Codex, use Cursor IDE as the operator lane, Cursor CLI as a local worker lane when available, and Claude Code as an optional scoped worker.
 
@@ -23,6 +23,7 @@ incubation to incubation mode unless the user asks for execution.
 - Task packets, handoffs, pane captures, task working files, and transient notes live outside the repo under `OPERATOR_DIR`.
 - Repo docs are evergreen only.
 - Feedback is not execution: annotations and testing notes become `FB-*` intake first, planner work promotes selected items into `RM-*`, and only `$operator` dispatches implementation.
+- V2 role templates and architecture patterns live under `OPERATOR_DIR/catalog`; use them like an engineering design system for approved packages, repos, contracts, and validation patterns.
 
 ## Commands
 
@@ -37,6 +38,10 @@ bash scripts/operator-memory.sh status
 bash scripts/operator-memory.sh search <query>
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-feedback.sh detect
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```
@@ -48,6 +53,7 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 - `OPERATOR_DIR/tasks/<slug>/memory.md` stores feature-track facts shared across lanes.
 - `OPERATOR_DIR/tasks/<slug>/work/` stores temporary working files: scratch markdown, prototypes, screenshots, generated images, redesign options, and review READMEs.
 - `OPERATOR_DIR/roadmap/` stores local roadmap, backlog, feedback, prioritization views, and PR/commit trace IDs.
+- `OPERATOR_DIR/system-map.md` and `OPERATOR_DIR/catalog/` store V2 lane recommendations, role templates, and architecture patterns.
 - `OPERATOR_DIR/memory/episodes/*.md` stores distilled lane handoffs.
 - Use `operator-dispatch.sh --with-memory` when prior context should be retrieved for a lane.
 - Raw captures and handoffs are evidence; promote only concise facts that will help future work.

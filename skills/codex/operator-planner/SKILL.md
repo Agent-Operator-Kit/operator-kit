@@ -32,6 +32,8 @@ safety and implementation handoff.
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-roadmap.sh status`
    - `bash scripts/operator-memory.sh status`
+   - `bash scripts/operator-catalog.sh list roles`
+   - `bash scripts/operator-system-map.sh refresh`
 4. Read only the relevant roadmap items, feedback inbox items, task handoffs,
    and task memory for the planning question.
 
@@ -44,6 +46,7 @@ Convert raw feedback into decisions:
 
 - group duplicate `FB-*` items;
 - identify themes and dependencies;
+- map work to V2 role templates, architecture patterns, contracts, and approval gates;
 - assign priority using impact, urgency, effort, confidence, and lane capacity;
 - promote selected feedback to `RM-*` roadmap/backlog items;
 - decide now/next/later, parked, blocked, ready, or shipped;
@@ -61,6 +64,12 @@ Roadmap item contract:
 - `effort`
 - `confidence`
 - `areas`
+- `depends on`
+- `required roles`
+- `owner lane`
+- `contracts`
+- `parallel safe`
+- `approval gate`
 - `source feedback`
 - `related operator tasks`
 - `related PRs/commits`
@@ -80,7 +89,8 @@ idea -> candidate -> planned -> ready -> dispatched -> in-review -> shipped
 ```
 
 Mark an item `ready` only when it has clear acceptance criteria, lane ownership,
-and a dispatch plan that `$operator` can safely turn into task packets.
+required roles/contracts, dependency metadata, approval gates, and a dispatch
+plan that `$operator` can safely turn into task packets.
 
 ## Commands
 
@@ -93,6 +103,7 @@ bash scripts/operator-roadmap.sh list
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-roadmap.sh ready
 bash scripts/operator-roadmap.sh link-task RM-0001 task-slug
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-roadmap.sh pr-note RM-0001 --feedback FB-0001 --task task-slug
 
 bash scripts/operator-feedback.sh triage mobile-feedback-20260522

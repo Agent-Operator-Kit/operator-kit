@@ -10,12 +10,14 @@ git checkout -b main
 
 git clone git@github.com:Agent-Operator-Kit/operator-kit.git "$HOME/Projects/operator-kit"
 bash "$HOME/Projects/operator-kit/scripts/operator-bootstrap.sh" "$PWD"
+bash scripts/operator-recommend-lanes.sh
 ```
 
 For a Cursor-first project without Codex, use:
 
 ```bash
 bash "$HOME/Projects/operator-kit/scripts/operator-bootstrap.sh" --profile cursor "$PWD"
+bash scripts/operator-recommend-lanes.sh
 ```
 
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.

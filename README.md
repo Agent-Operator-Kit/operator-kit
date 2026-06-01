@@ -18,7 +18,27 @@ https://agent-operator-kit.github.io/operator-kit/
 - tmux keeps long-running agents visible and recoverable.
 - Task packets, handoffs, and temporary working files live outside the repo in an operator workspace.
 - Local roadmap, backlog, feedback, and prioritization live outside the repo under `OPERATOR_DIR/roadmap`.
+- V2 adds a project system map, role-template catalog, approved architecture patterns, lane recommendations, and operator-approved batch planning.
 - The repo keeps evergreen docs, reusable scripts, source code, and lightweight PR/commit trace references.
+
+## Versions
+
+V2 is the default current Operator Kit. It keeps the V1 worktree/tmux/task-packet
+model and adds catalog-driven lane recommendations plus dependency-aware batch
+planning.
+
+V1 remains available from the `v1` git tag for projects that want the simpler
+operator model:
+
+```bash
+git clone --branch v1 https://github.com/Agent-Operator-Kit/operator-kit.git
+```
+
+Remote one-command installs can also pin V1 by using the tag in the raw URL:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo
+```
 
 ## Layout
 
@@ -32,6 +52,10 @@ Recommended project layout:
     app-ui/           # optional worker worktree
   operator/
     README.md
+    system-map.md
+    catalog/
+      roles/
+      patterns/
     roadmap/
       items/*.md
       inbox/
@@ -83,6 +107,10 @@ scripts/
   operator-memory.sh
   operator-roadmap.sh
   operator-feedback.sh
+  operator-catalog.sh
+  operator-system-map.sh
+  operator-recommend-lanes.sh
+  operator-plan-batch.sh
   operator-update.sh
   operator-sync.sh
   operator-upgrade.sh
@@ -403,6 +431,10 @@ bash scripts/operator-memory.sh promote project "<fact>"
 bash scripts/operator-memory.sh promote task <slug> "<fact>"
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-feedback.sh detect
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-recommend-lanes.sh
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/codex-skills-install.sh [--latest]
 bash scripts/operator-sync.sh [--target <repo>]
@@ -506,6 +538,58 @@ Use `$operator-feedback` to capture feedback intake, then `$operator-planner`
 to triage, prioritize local roadmap items, and shape ready-for-execution plans.
 `$operator` still owns task creation, dispatch, collection, and integration
 review.
+
+V2 roadmap items can carry dispatch metadata so the operator can plan safe
+parallel batches:
+
+```text
+Depends on: RM-0001
+Required roles: provider-integration, api-contracts
+Owner lane: backend
+Contracts: strava-provider, activities-api
+Parallel safe: yes
+Approval gate: none
+```
+
+Run the planner before dispatch:
+
+```bash
+bash scripts/operator-plan-batch.sh
+```
+
+The output is an operator-approved proposal. It groups parallel candidates,
+missing lane decisions, human approval gates, dependency blockers, and serialized
+work. It never dispatches agents by itself.
+
+## Operator V2 Catalog And Lane Recommendations
+
+The V2 catalog lives under `OPERATOR_DIR/catalog` and acts like an engineering
+design system for agents:
+
+- `roles/`: specialist templates such as provider integration, mobile release,
+  LLM runtime, knowledge base, auth/permissions, observability, and trading/risk.
+- `patterns/`: approved architecture patterns, packages, repos, validation
+  recipes, and consistency rules.
+
+Use the system map and recommendation commands to initialize or migrate a
+project:
+
+```bash
+bash scripts/operator-system-map.sh refresh
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-recommend-lanes.sh
+```
+
+Recommended durable lanes should follow five principles:
+
+- long-lived ownership
+- explicit contract boundary
+- high-risk domain
+- distinct validation loop
+- high context and memory density
+
+Use role overlays for specialist work that is not yet large enough to deserve a
+permanent worktree.
 
 ## Codex Desktop `$operator` Skill
 
@@ -652,4 +736,6 @@ For updates, `scripts/operator-sync.sh` can refresh bundled Codex Desktop skills
 
 ## Status
 
-This is an initial public version. The shell scripts are intentionally small and inspectable. A richer CLI can wrap the same model later.
+V2 is the current version. V1 is preserved at the `v1` git tag for simpler
+operator installs. The shell scripts are intentionally small and inspectable; a
+richer CLI can wrap the same model later.

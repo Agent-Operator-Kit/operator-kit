@@ -5,7 +5,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-sync.sh [options]
 
-Single-command sync for Agent Operator Kit:
+Single-command sync for Agent Operator Kit V2:
   1. resolve the latest kit source
   2. install or refresh bundled Codex Desktop skills
   3. detect the current Operator Kit project
@@ -282,6 +282,9 @@ run_project_checks() {
     bash scripts/operator-summary.sh
     bash scripts/operator-memory.sh status
     bash scripts/operator-roadmap.sh status
+    bash scripts/operator-catalog.sh list roles >/dev/null
+    bash scripts/operator-recommend-lanes.sh >/dev/null
+    bash scripts/operator-plan-batch.sh >/dev/null
     git status --short
   )
 }
@@ -292,6 +295,7 @@ SOURCE_REVISION="$(git -C "$SOURCE_PATH" rev-parse --short HEAD 2>/dev/null || p
 print_section "Operator Kit Sync"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
+printf 'Default kit version: 2\n'
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'

@@ -33,6 +33,8 @@ bash scripts/operator-status.sh
 bash scripts/operator-summary.sh
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-memory.sh status
+bash scripts/operator-catalog.sh list roles
+bash scripts/operator-system-map.sh refresh
 ```
 
 4. Read only the roadmap items, feedback inbox items, task handoffs, and task
@@ -47,6 +49,7 @@ Convert raw feedback and rough requests into decisions:
 
 - group duplicate `FB-*` items;
 - identify themes, dependencies, blockers, and lane ownership;
+- map work to V2 role templates, architecture patterns, touched contracts, and approval gates;
 - prioritize using impact, urgency, effort, confidence, and lane capacity;
 - promote selected feedback to `RM-*` roadmap/backlog items;
 - decide now, next, later, parked, blocked, ready, or shipped;
@@ -56,11 +59,13 @@ Convert raw feedback and rough requests into decisions:
 Roadmap items should include:
 
 - ID, type, status, priority, impact, effort, confidence, and areas;
+- depends on, required roles, owner lane, contracts, parallel safe, and approval gate;
 - source feedback, related tasks, related PRs or commits;
 - problem, rationale, acceptance criteria, dispatch plan, and progress.
 
 Mark an item `ready` only when it has clear acceptance criteria, lane ownership,
-and a dispatch plan that `operator` can safely turn into task packets.
+required roles/contracts, dependency metadata, approval gates, and a dispatch
+plan that `operator` can safely turn into task packets.
 
 ## Commands
 
@@ -73,6 +78,7 @@ bash scripts/operator-roadmap.sh list
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-roadmap.sh ready
 bash scripts/operator-roadmap.sh link-task RM-0001 task-slug
+bash scripts/operator-plan-batch.sh
 bash scripts/operator-roadmap.sh pr-note RM-0001 --feedback FB-0001 --task task-slug
 bash scripts/operator-feedback.sh triage <feedback-slug>
 ```

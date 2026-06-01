@@ -53,7 +53,11 @@ Goals:
 
 Required behavior:
 1. Inspect the repo first: git status, default branch, remotes, package manager, validation commands, and current docs.
-2. Propose a lane map before creating worktrees. Use conservative defaults:
+2. In V2, run or prepare the system-map/lane recommendation flow before creating worktrees:
+   - `bash scripts/operator-system-map.sh refresh`
+   - `bash scripts/operator-recommend-lanes.sh`
+   - treat the output as a proposal, not an automatic worktree plan
+3. Propose a lane map before creating worktrees. Use conservative defaults:
    - operator: current repo worktree on the stable branch
    - backend: Codex CLI on codex/backend
    - ui: Claude Code on claude/ui
@@ -62,22 +66,25 @@ Required behavior:
    - for Cursor-first environments without Codex, use `--profile cursor` and
      prefer Cursor IDE as operator, Cursor CLI as a local worker, and Claude
      Code as an optional UI lane
-3. After I approve or if the lane map is obvious, clone/install the kit if needed and run its bootstrap script.
-4. Edit operator.config.env so paths, branches, lane owners, and agent invocations match this project.
-5. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
-6. Start the tmux session.
-7. Create a smoke task under the external operator workspace.
-8. Dispatch with --no-enter to one lane if safe, then collect a smoke handoff.
-9. Run script checks:
+4. After I approve or if the lane map is obvious, clone/install the kit if needed and run its bootstrap script.
+5. Edit operator.config.env so paths, branches, lane owners, and agent invocations match this project.
+6. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
+7. Start the tmux session.
+8. Create a smoke task under the external operator workspace.
+9. Dispatch with --no-enter to one lane if safe, then collect a smoke handoff.
+10. Run script checks:
    - bash -n scripts/*.sh
    - bash scripts/operator-status.sh
    - bash scripts/operator-summary.sh
    - bash scripts/operator-memory.sh status
    - bash scripts/operator-roadmap.sh status
-10. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
-11. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
-12. Confirm AGENTS.md points Codex users to the global $operator skill when available.
-13. Show git status and list intended repo changes.
+   - bash scripts/operator-catalog.sh list roles
+   - bash scripts/operator-recommend-lanes.sh
+   - bash scripts/operator-plan-batch.sh
+11. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
+12. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-catalog.sh, scripts/operator-system-map.sh, scripts/operator-recommend-lanes.sh, scripts/operator-plan-batch.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
+13. Confirm AGENTS.md points Codex users to the global $operator skill when available.
+14. Show git status and list intended repo changes.
 
 Guardrails:
 - Do not rewrite git history.

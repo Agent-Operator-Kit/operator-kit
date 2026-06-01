@@ -52,7 +52,11 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
    `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
 5. If missing, install with `operator-sync.sh --bootstrap-if-missing
    --bootstrap-profile cursor --skip-skills`.
-6. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+6. Initialize or refresh the V2 system map and catalog:
+   - `bash scripts/operator-system-map.sh refresh`
+   - `bash scripts/operator-recommend-lanes.sh`
+   - `bash scripts/operator-catalog.sh list roles`
+7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
 
 The local flow:
@@ -61,7 +65,7 @@ The local flow:
 2. Read `operator.config.env`.
 3. Confirm lane map and expected branches.
 4. Keep generated state under `OPERATOR_DIR`.
-5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, and `scripts/operator-feedback.sh`.
+5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-catalog.sh`, `scripts/operator-system-map.sh`, `scripts/operator-recommend-lanes.sh`, and `scripts/operator-plan-batch.sh`.
 6. Commit only evergreen repo changes.
 
 For first-time setup without Codex, use the Cursor bootstrap profile:

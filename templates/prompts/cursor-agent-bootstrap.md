@@ -43,8 +43,12 @@ Required setup:
 3. If installed, upgrade/refresh from the source kit with `scripts/operator-sync.sh` or the source kit's `scripts/operator-sync.sh`; do not re-bootstrap.
 4. If partial, repair by syncing from the source kit; preserve existing `operator.config.env`, `OPERATOR_DIR`, task packets, handoffs, memory, roadmap, and source code.
 5. If missing, install with `operator-sync.sh --bootstrap-if-missing --bootstrap-profile cursor --skip-skills`.
-6. Convert the lane requirements above into `operator.config.env`. If the user already specified lanes, write them after install/update; otherwise propose the lane map before creating worktrees.
-7. Install Cursor project assets:
+6. Run V2 map/catalog checks and use them to recommend durable lanes versus role overlays:
+   - `bash scripts/operator-system-map.sh refresh`
+   - `bash scripts/operator-recommend-lanes.sh`
+   - `bash scripts/operator-catalog.sh list roles`
+7. Convert the lane requirements above into `operator.config.env`. If the user already specified lanes, write them after install/update; otherwise propose the lane map before creating worktrees.
+8. Install Cursor project assets:
    - `.cursor/rules/operator-workflow.mdc`
    - `.cursor/skills/operator-workflow/SKILL.md`
    - `.cursor/skills/operator/SKILL.md`
@@ -55,15 +59,16 @@ Required setup:
    - `.cursor/skills/user-journey/SKILL.md`
    - `.cursor/skills/incubation/SKILL.md`
    - `.cursor/environment.json.example`
-8. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
-9. Start or inspect tmux.
-10. Create a smoke task under the external operator workspace.
-11. Run:
+9. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
+10. Start or inspect tmux.
+11. Create a smoke task under the external operator workspace.
+12. Run:
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-memory.sh status`
-12. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
+   - `bash scripts/operator-plan-batch.sh`
+13. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
 
 Cursor-first lane defaults when Codex is unavailable:
 

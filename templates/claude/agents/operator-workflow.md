@@ -57,6 +57,7 @@ Roadmap and feedback:
 
 - Use `scripts/operator-roadmap.sh status` to inspect local roadmap health.
 - Use `scripts/operator-feedback.sh detect` to detect feedback/test surfaces.
+- Use `scripts/operator-catalog.sh list roles`, `scripts/operator-recommend-lanes.sh`, and `scripts/operator-plan-batch.sh` for V2 role templates, lane recommendations, and operator-approved batch planning.
 - Keep raw feedback annotations and planning views under `OPERATOR_DIR`.
 - In Codex Desktop, use `$operator-feedback` for intake, `$operator-planner`
   for planning, and `$operator` for execution.

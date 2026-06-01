@@ -4,6 +4,11 @@ Codex is typically the operator, integrator, backend worker, release worker, or 
 
 In Codex Desktop, use the global `$operator` skill for day-to-day Operator Kit work unless the user explicitly says otherwise. The skill should detect `operator.config.env`, read `AGENTS.md`, and operate through `scripts/operator-*.sh`.
 
+Operator Kit V2 adds `OPERATOR_DIR/system-map.md`, `OPERATOR_DIR/catalog/`, and
+`scripts/operator-plan-batch.sh`. Use them before broad roadmap execution so
+lane choices, role templates, approved architecture patterns, dependencies, and
+approval gates are explicit.
+
 If the user says to always use operator for this project or session, treat
 `$operator` as the default for future execution requests in this Codex chat and
 related project chats. Still use `$operator-feedback` for observation-only

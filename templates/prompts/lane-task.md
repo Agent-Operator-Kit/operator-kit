@@ -14,6 +14,21 @@ Read-only files or modules:
 
 - TBD
 
+## Role Contract
+
+- Role template: TBD
+- Architecture patterns: TBD
+- Approved packages/repos: use existing project-approved patterns first
+- Dependency IDs: none
+- Approval gates: none
+
+## Parallel Safety
+
+- Owner lane: TBD
+- Contracts touched: TBD
+- Safe to run in parallel with: TBD
+- Must serialize after: TBD
+
 ## Acceptance Criteria
 
 - TBD

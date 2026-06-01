@@ -66,21 +66,27 @@ Required behavior:
    - `release`: Codex CLI only if the project has release work
    - `product`: Codex CLI only if product or research work is useful
    - for Cursor-first environments without Codex, use `--profile cursor` and prefer Cursor IDE as operator, Cursor CLI as a local worker, and Claude Code as an optional UI lane
-8. After install/update, edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
-9. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
-10. Start the tmux session.
-11. Create a smoke task under the external operator workspace.
-12. Dispatch with `--no-enter` to one lane if safe, then collect a smoke handoff.
-13. Run script checks:
+8. In V2, refresh the system map and lane recommendation:
+   - `bash scripts/operator-system-map.sh refresh`
+   - `bash scripts/operator-recommend-lanes.sh`
+   - use this output to refine the lane map; do not create every role as a permanent lane
+9. After install/update, edit `operator.config.env` so paths, branches, lane owners, and agent invocations match this project.
+10. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
+11. Start the tmux session.
+12. Create a smoke task under the external operator workspace.
+13. Dispatch with `--no-enter` to one lane if safe, then collect a smoke handoff.
+14. Run script checks:
     - `bash -n scripts/*.sh`
     - `bash scripts/operator-status.sh`
     - `bash scripts/operator-summary.sh`
     - `bash scripts/operator-memory.sh status`
     - `bash scripts/operator-roadmap.sh status`
-14. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
-15. Confirm `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
-16. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
-17. Show git status and list intended repo changes.
+    - `bash scripts/operator-catalog.sh list roles`
+    - `bash scripts/operator-plan-batch.sh`
+15. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
+16. Confirm `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-catalog.sh`, `scripts/operator-system-map.sh`, `scripts/operator-recommend-lanes.sh`, `scripts/operator-plan-batch.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
+17. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
+18. Show git status and list intended repo changes.
 
 If starting from only the GitHub URL, clone the kit or use the remote entry
 point, then run:

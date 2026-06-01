@@ -21,6 +21,9 @@ Commands:
   add "<title>" [--id RM-0001] [--type feature] [--status candidate]
       [--priority P2] [--impact medium] [--effort medium]
       [--confidence medium] [--areas mobile,backend] [--source-feedback FB-0001]
+      [--depends-on RM-0001] [--required-roles provider-integration]
+      [--owner-lane backend] [--contracts api,db]
+      [--parallel-safe yes] [--approval-gate none]
       Add a roadmap/backlog item under OPERATOR_DIR/roadmap/items.
   list [--status ready] [--type bug]
       List roadmap items.
@@ -108,6 +111,8 @@ add_item() {
   local id="" type="feature" status="candidate" priority="P2"
   local impact="medium" effort="medium" confidence="medium"
   local areas="" source_feedback=""
+  local depends_on="none" required_roles="none" owner_lane="none"
+  local contracts="none" parallel_safe="yes" approval_gate="none"
 
   if [ -z "$title" ]; then
     usage >&2
@@ -125,6 +130,12 @@ add_item() {
       --confidence) confidence="${2:-}"; shift 2 ;;
       --areas) areas="${2:-}"; shift 2 ;;
       --source-feedback) source_feedback="${2:-}"; shift 2 ;;
+      --depends-on) depends_on="${2:-}"; shift 2 ;;
+      --required-roles) required_roles="${2:-}"; shift 2 ;;
+      --owner-lane) owner_lane="${2:-}"; shift 2 ;;
+      --contracts) contracts="${2:-}"; shift 2 ;;
+      --parallel-safe) parallel_safe="${2:-}"; shift 2 ;;
+      --approval-gate) approval_gate="${2:-}"; shift 2 ;;
       *)
         printf 'Unknown add option: %s\n' "$1" >&2
         exit 1
@@ -163,6 +174,12 @@ add_item() {
     printf '%s\n' "- Effort: $effort"
     printf '%s\n' "- Confidence: $confidence"
     printf '%s\n' "- Areas: ${areas:-none}"
+    printf '%s\n' "- Depends on: ${depends_on:-none}"
+    printf '%s\n' "- Required roles: ${required_roles:-none}"
+    printf '%s\n' "- Owner lane: ${owner_lane:-none}"
+    printf '%s\n' "- Contracts: ${contracts:-none}"
+    printf '%s\n' "- Parallel safe: ${parallel_safe:-yes}"
+    printf '%s\n' "- Approval gate: ${approval_gate:-none}"
     printf '%s\n' "- Source feedback: ${source_feedback:-none}"
     printf '%s\n' "- Related operator tasks: none"
     printf '%s\n' "- Related PRs/commits: none"

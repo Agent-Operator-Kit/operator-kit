@@ -5,7 +5,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-upgrade.sh [options]
 
-Refreshes Agent Operator Kit everywhere on this machine:
+Refreshes Agent Operator Kit V2 everywhere on this machine:
   1. resolve the latest kit source
   2. refresh bundled Codex Desktop skills
   3. discover installed Operator Kit projects
@@ -215,6 +215,7 @@ SOURCE_REVISION="$(git -C "$SOURCE_PATH" rev-parse --short HEAD 2>/dev/null || p
 print_section "Operator Kit Upgrade"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
+printf 'Default kit version: 2\n'
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
