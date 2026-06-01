@@ -23,7 +23,7 @@ worker lane, and Claude Code lanes only where Claude is available.
   state policy, and safety guardrails in `.cursor/rules/*.mdc`.
 - Skills are reusable procedures. Use `operator` for execution,
   `operator-planner` for planning, `operator-feedback` for feedback intake,
-  `design-agent` for UX/design work, `ux-auditor` for scored UX audits,
+  `design-agent` for UX/design work, UX Auditor (`ux-auditor`) for scored UX audits,
   `user-journey` for journey artifacts, `incubation` for lightweight idea work,
   and `operator-workflow` for setup, repair, and upgrade workflows.
 - Prompt templates are copy/paste entry points for bootstrapping or Background

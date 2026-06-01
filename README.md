@@ -248,11 +248,11 @@ bash scripts/codex-skills-install.sh --latest
 
 Use `skills/codex/operator/SKILL.md` as the global Codex Desktop `$operator` skill for execution in installed projects. Use `skills/codex/operator-workflow/SKILL.md` for setup, repair, and bootstrap guidance.
 
-Use `skills/codex/operator-feedback/SKILL.md` for feedback intake and `skills/codex/operator-planner/SKILL.md` for roadmap/backlog planning. The older `skills/codex/product-manager/SKILL.md` remains as a compatibility alias.
+Use `skills/codex/operator-feedback/SKILL.md` for feedback intake and `skills/codex/operator-planner/SKILL.md` for roadmap/backlog planning.
 
 Use `skills/codex/design-agent/SKILL.md` as the optional global Codex Desktop `$design-agent` companion skill for UX consistency reviews, code-first design-system extraction, starter recommendation, annotation feedback classification, and preparing Claude Code or Operator Kit design/UI tasks.
 
-Use `skills/codex/ux-auditor/SKILL.md` as the optional global Codex Desktop `$ux-auditor` companion skill for scored UX audits, persona/ICP fit assessment, journey risk analysis, and prioritized recommendations.
+Use `skills/codex/ux-auditor/SKILL.md` as the optional global Codex Desktop UX Auditor (`$ux-auditor`) companion skill for scored UX audits, persona/ICP fit assessment, journey risk analysis, and prioritized recommendations.
 
 Use `skills/codex/user-journey/SKILL.md` as the optional global Codex Desktop `$user-journey` companion skill for persona, ICP, journey map, service blueprint, storyboard, Canvas, and HTML journey artifacts.
 
@@ -328,7 +328,7 @@ Use the operator skill. Dispatch the approved backend task.
 Use the operator-planner skill. Promote ready feedback into roadmap items.
 Use the operator-feedback skill. Capture these testing notes as FB-* intake.
 Use the design-agent skill with operator. Shape this UI issue into a lane task.
-Use the ux-auditor skill. Score this onboarding flow against the persona and ICP.
+Use the UX Auditor skill. Score this onboarding flow against the persona and ICP.
 Use the user-journey skill. Map the first-value journey.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```
@@ -560,9 +560,6 @@ $operator-planner  = prioritize, group, promote to roadmap/backlog
 $operator          = create tasks, dispatch lanes, collect, integrate
 ```
 
-The compatibility `$product-manager` skill remains available for older prompts,
-but new workflows should use `$operator-feedback` and `$operator-planner`.
-
 ## Optional Codex Desktop `$design-agent` Skill
 
 The install script also refreshes the companion `$design-agent` skill. Use it when you want Codex Desktop to help with UX/design-system workflows before dispatching Claude Code or Operator Kit lanes:
@@ -582,11 +579,12 @@ Use $design-agent with $operator. Package my annotations and dispatch a follow-u
 
 `$design-agent` owns design/UX reasoning and task content. `$operator` owns project detection, lane safety, dispatch, collection, and integration review.
 
-## Optional Codex Desktop `$ux-auditor` And `$user-journey` Skills
+## Optional Codex Desktop UX Auditor And User Journey Skills
 
-The install script also refreshes the companion `$ux-auditor` and
-`$user-journey` skills. Use them when you want a scored product-experience audit
-or journey artifacts before shaping implementation work:
+The install script also refreshes the companion UX Auditor (`$ux-auditor`) and
+User Journey (`$user-journey`) skills. Use them when you want a scored
+product-experience audit or journey artifacts before shaping implementation
+work:
 
 ```bash
 bash scripts/codex-skills-install.sh --skill ux-auditor --skill user-journey
@@ -601,8 +599,9 @@ Use $user-journey with $ux-auditor. Create the journey map, then audit the flow.
 Use $ux-auditor with $operator. Audit this flow and prepare lane-ready follow-ups.
 ```
 
-`$ux-auditor` owns scored UX assessment and recommendations. `$user-journey`
-owns persona, ICP, journey map, service blueprint, and storyboard artifacts.
+UX Auditor (`$ux-auditor`) owns scored UX assessment and recommendations.
+User Journey (`$user-journey`) owns persona, ICP, journey map, service
+blueprint, and storyboard artifacts.
 `$operator` owns project detection, lane safety, dispatch, collection, and
 integration review.
 

@@ -1,0 +1,4 @@
+interface:
+  display_name: "UX Auditor"
+  short_description: "Score product experience"
+  default_prompt: "Use $ux-auditor to score a screen, flow, screenshot, prototype, Canvas, or design proposal against persona, ICP, journey risk, usability, and business fit."

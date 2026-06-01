@@ -14,15 +14,15 @@ This is execution mode:
 ```text
 $operator-feedback = capture evidence, classify feedback, write FB-* intake
 $operator-planner  = prioritize, group, promote to roadmap/backlog
-$ux-auditor        = scored UX assessment against persona, ICP, journey, and business fit
+UX Auditor ($ux-auditor) = scored UX assessment against persona, ICP, journey, and business fit
 $user-journey      = persona, ICP, journey map, service blueprint, and storyboard artifacts
 $operator          = create tasks, dispatch lanes, collect, integrate
 ```
 
 When the user is only testing, annotating, collecting observations, or
 prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
-Use `$ux-auditor` for assessment, `$user-journey` for journey artifacts, and
-`$operator` when work is ready to become execution.
+Use UX Auditor (`$ux-auditor`) for assessment, `$user-journey` for journey
+artifacts, and `$operator` when work is ready to become execution.
 
 ## Detect The Project
 
@@ -252,7 +252,7 @@ into source, `design-system/`, or evergreen docs.
 When the user asks for a UX score, UX audit, persona fit, ICP fit, journey-risk
 assessment, user journey map, service blueprint, or storyboard:
 
-1. Prefer `$ux-auditor` for scored assessment and prioritized recommendations.
+1. Prefer UX Auditor (`$ux-auditor`) for scored assessment and prioritized recommendations.
 2. Prefer `$user-journey` when the missing artifact is persona, ICP, journey map,
    service blueprint, storyboard, or first-value transition.
 3. Use `$design-agent` when the work needs broader design-system extraction,

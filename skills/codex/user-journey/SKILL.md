@@ -6,7 +6,7 @@ description: "Create persona, ICP, journey map, service blueprint, storyboard, a
 # User Journey
 
 Use this skill to produce user-journey artifacts for product/design work. It can
-stand alone or feed `$ux-auditor`.
+stand alone or feed UX Auditor (`$ux-auditor`).
 
 ## Start Routine
 

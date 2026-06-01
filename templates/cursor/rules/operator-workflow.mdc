@@ -46,7 +46,7 @@ Skill routing:
 - For UX, design-system, visual review, or UI task shaping, use
   `.cursor/skills/design-agent/SKILL.md`.
 - For scored UX audits, persona fit, ICP fit, journey risk, and prioritized
-  recommendations, use `.cursor/skills/ux-auditor/SKILL.md`.
+  recommendations, use UX Auditor (`.cursor/skills/ux-auditor/SKILL.md`).
 - For persona, ICP, journey map, service blueprint, or storyboard artifacts, use
   `.cursor/skills/user-journey/SKILL.md`.
 - For lightweight idea framing, critique, incubation files, and promotion

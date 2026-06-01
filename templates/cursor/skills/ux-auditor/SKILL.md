@@ -1,6 +1,6 @@
 ---
 name: ux-auditor
-description: Score and assess product UX against persona, ICP, user journey, usability, and business fit. Use when reviewing a screen, flow, screenshot, prototype, Canvas, or design proposal and the user asks for a UX audit, UX review, product experience audit, persona fit, ICP fit, journey risks, score, assessment, or prioritized recommendations.
+description: UX Auditor scores and assesses product UX against persona, ICP, user journey, usability, and business fit. Use when reviewing a screen, flow, screenshot, prototype, Canvas, or design proposal and the user asks for a UX audit, UX review, product experience audit, persona fit, ICP fit, journey risks, score, assessment, or prioritized recommendations.
 ---
 
 # UX Auditor

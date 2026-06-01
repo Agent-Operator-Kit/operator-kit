@@ -19,7 +19,7 @@ operator-feedback = capture evidence, classify feedback, write FB-* intake
 operator-planner  = prioritize, group, promote to roadmap/backlog
 operator          = create tasks, dispatch lanes, collect, integrate
 design-agent      = UX/design-system reasoning and UI task shaping
-ux-auditor        = scored UX assessment and recommendations
+UX Auditor (ux-auditor) = scored UX assessment and recommendations
 user-journey      = persona, ICP, journey map, blueprint, and storyboard artifacts
 ```
 

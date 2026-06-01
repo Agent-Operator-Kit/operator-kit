@@ -96,7 +96,7 @@ operator          -> execution, task packets, dispatch, collect, integration
 operator-feedback -> feedback intake and FB-* capture
 operator-planner  -> roadmap/backlog planning and ready-for-execution plans
 design-agent      -> UX/design-system review and UI task shaping
-ux-auditor        -> scored UX audits and prioritized recommendations
+UX Auditor (ux-auditor) -> scored UX audits and prioritized recommendations
 user-journey      -> persona, ICP, journey map, blueprint, and storyboard artifacts
 incubation        -> idea framing, critique, durable idea files, promotion readiness
 operator-workflow -> setup, bootstrap, repair, upgrade, and general operations
@@ -109,7 +109,7 @@ Use the operator skill. Run status and summary, then create a task packet for th
 Use the operator-planner skill. Review feedback and propose now/next/later.
 Use the operator-feedback skill. Capture these simulator notes as FB-* intake.
 Use the design-agent skill with operator. Review the UI and prepare a lane-ready task.
-Use the ux-auditor skill. Score this onboarding flow against the persona and ICP.
+Use the UX Auditor skill. Score this onboarding flow against the persona and ICP.
 Use the user-journey skill. Map the first-value journey.
 Use the incubation skill. Frame this idea and prepare the next experiment.
 ```

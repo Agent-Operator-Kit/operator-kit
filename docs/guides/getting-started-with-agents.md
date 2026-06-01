@@ -223,7 +223,7 @@ Use the operator skill. Execute the approved backend task.
 Use the operator-planner skill. Prioritize the feedback inbox.
 Use the operator-feedback skill. Capture these testing notes.
 Use the design-agent skill with operator. Shape a UI lane task.
-Use the ux-auditor skill. Score this product flow.
+Use the UX Auditor skill. Score this product flow.
 Use the user-journey skill. Map this first-value journey.
 Use the incubation skill. Frame this idea and capture the next experiment.
 ```

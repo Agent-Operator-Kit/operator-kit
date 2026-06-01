@@ -41,7 +41,7 @@ Capture and classify:
 - mobile screenshots and screen recordings;
 - simulator or TestFlight observations;
 - verbal testing notes;
-- design and UX observations from `design-agent`, `ux-auditor`, or
+- design and UX observations from `design-agent`, UX Auditor (`ux-auditor`), or
   `user-journey`;
 - evidence links and reproduction context.
 

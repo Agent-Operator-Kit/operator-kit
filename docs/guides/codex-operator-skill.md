@@ -8,7 +8,7 @@ The setup skill and the runtime skill have different jobs:
 operator-workflow -> setup, bootstrap, repair
 operator-feedback -> feedback intake in an installed project
 operator-planner  -> roadmap/backlog planning in an installed project
-ux-auditor        -> scored UX assessment in an installed project
+UX Auditor ($ux-auditor) -> scored UX assessment in an installed project
 user-journey      -> persona, ICP, journey, blueprint, and storyboard artifacts
 operator          -> execution in an installed project
 ```
@@ -42,8 +42,8 @@ Always use $operator for this project unless I explicitly ask for feedback, plan
 `CODEX.md` and `AGENTS.md` carry the same routing convention for installed
 projects, while `$operator-feedback`, `$operator-planner`, and `$design-agent`
 remain the deliberate modes for observation, planning, and design work.
-Use `$ux-auditor` for scored UX assessment and `$user-journey` for journey
-artifacts before execution work is dispatched.
+Use UX Auditor (`$ux-auditor`) for scored UX assessment and `$user-journey`
+for journey artifacts before execution work is dispatched.
 
 ## Operator Feedback And Planner Companions
 
@@ -75,9 +75,6 @@ $operator-planner  -> roadmap, prioritization, ready-for-execution planning
 $operator          -> task creation, lane safety, dispatch, collection, integration review
 ```
 
-The older `$product-manager` skill remains available as a compatibility alias,
-but new prompts should use `$operator-feedback` or `$operator-planner`.
-
 ## Optional Design Agent Companion
 
 Install `$design-agent` when you want Codex Desktop to help with UX consistency reviews, code-first design-system extraction, curated starter recommendation, web annotation feedback classification, and preparing design/UI task packets for Claude Code or Operator Kit lanes.
@@ -105,8 +102,8 @@ $operator     -> lane safety, dispatch, collection, integration review
 
 ## Optional UX Auditor And User Journey Companions
 
-Install `$ux-auditor` and `$user-journey` when you want scored UX assessment or
-journey artifacts before `$operator` execution.
+Install UX Auditor (`$ux-auditor`) and User Journey (`$user-journey`) when you
+want scored UX assessment or journey artifacts before `$operator` execution.
 
 From this kit repo:
 
@@ -126,8 +123,8 @@ Use $ux-auditor with $operator. Convert the highest-risk findings into a lane-re
 Role split:
 
 ```text
-$ux-auditor   -> scored UX assessment and prioritized recommendations
-$user-journey -> persona, ICP, journey map, service blueprint, storyboard artifacts
+UX Auditor ($ux-auditor) -> scored UX assessment and prioritized recommendations
+$user-journey            -> persona, ICP, journey map, service blueprint, storyboard artifacts
 $operator     -> lane safety, dispatch, collection, integration review
 ```
 
