@@ -503,46 +503,6 @@
     font-weight: 800;
   }
 
-  .example-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-
-  .example-card {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 1.25rem;
-    background: var(--bg2);
-  }
-
-  .example-card h3 {
-    color: var(--fg);
-    font-size: 1rem;
-    margin-bottom: 0.7rem;
-  }
-
-  .lane-list {
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .lane-list div {
-    display: flex;
-    justify-content: space-between;
-    gap: 1rem;
-    border-top: 1px solid var(--border);
-    padding-top: 0.55rem;
-    color: var(--fg2);
-    font-size: 0.76rem;
-  }
-
-  .lane-list strong {
-    color: var(--accent);
-    font-size: 0.72rem;
-  }
-
   .step {
     min-width: 0;
     padding: 1.25rem;
@@ -667,7 +627,6 @@
     .card-grid,
     .role-grid,
     .approach-grid,
-    .example-grid,
     .steps,
     .start-grid {
       grid-template-columns: 1fr;
@@ -743,7 +702,6 @@
     <li><a href="#value">Value</a></li>
     <li><a href="#agents">Agents</a></li>
     <li><a href="#approach">Approach</a></li>
-    <li><a href="#examples">Examples</a></li>
     <li><a href="#start">Start</a></li>
     <li><a class="nav-github" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">GitHub</a></li>
   </ul>
@@ -780,7 +738,7 @@
     </div>
 
     <div>
-      <div class="operator-panel" aria-label="Operator loop example">
+      <div class="operator-panel" aria-label="Operator loop panel">
         <div class="panel-bar">
           <span class="dot red"></span>
           <span class="dot yellow"></span>
@@ -790,7 +748,7 @@
         <div class="panel-body">
           <div><span class="prompt">operator</span> map production reality</div>
           <div><span class="ok">ok</span> frontend · API · database · auth · deploy · observability</div>
-          <div><span class="ok">ok</span> Strava provider · Wahoo provider · mobile release · coach LLM</div>
+          <div><span class="ok">ok</span> provider integrations · mobile release · LLM runtime</div>
           <br>
           <div><span class="prompt">catalog</span> recommend specialist lanes</div>
           <div><span class="ok">ok</span> provider-integration uses approved retry/cache pattern</div>
@@ -802,14 +760,14 @@
       <div class="lane-strip">
         <div class="lane">
           <div class="lane-name">provider</div>
-          <div class="lane-copy">Strava/Wahoo contracts and sync rules</div>
+          <div class="lane-copy">external API contracts and sync rules</div>
         </div>
         <div class="lane">
           <div class="lane-name">mobile</div>
           <div class="lane-copy">iOS build, simulator, release states</div>
         </div>
         <div class="lane">
-          <div class="lane-name">coach LLM</div>
+          <div class="lane-name">LLM runtime</div>
           <div class="lane-copy">prompts, retrieval, safety, evals</div>
         </div>
       </div>
@@ -892,7 +850,7 @@
       <div class="role-card">
         <div class="role-type">providers</div>
         <h3>Integration Agent</h3>
-        <p>Handles third-party providers such as Strava, Wahoo, payments, broker APIs, webhooks, and sync logic.</p>
+        <p>Handles third-party APIs, OAuth, provider sandboxes, webhooks, retries, and sync logic.</p>
         <div class="tag-row"><span class="tag">OAuth</span><span class="tag">retry</span><span class="tag">webhooks</span></div>
       </div>
       <div class="role-card">
@@ -931,7 +889,7 @@
         </div>
         <div class="principle">
           <strong>High-risk domain</strong>
-          <span>Auth, money movement, release, privacy, production recovery, or provider sync.</span>
+          <span>Auth, credentials, release, privacy, production recovery, or provider sync.</span>
         </div>
         <div class="principle">
           <strong>Distinct validation loop</strong>
@@ -939,13 +897,13 @@
         </div>
         <div class="principle">
           <strong>High context density</strong>
-          <span>The lane benefits from focused docs, memory, approved patterns, and local examples.</span>
+          <span>The lane benefits from focused docs, memory, approved patterns, and local references.</span>
         </div>
       </div>
       <div class="catalog-panel">
         <h3>Each lane template can carry an approved toolkit.</h3>
         <ul>
-          <li>Recommended frameworks, packages, GitHub repos, and examples.</li>
+          <li>Recommended frameworks, packages, GitHub repos, and reference patterns.</li>
           <li>Approved architecture patterns such as retries, caching, RLS, logging, or API contract style.</li>
           <li>Validation commands and handoff requirements for the lane.</li>
           <li>Escalation gates for risky changes, credentials, providers, deploys, and data migrations.</li>
@@ -979,38 +937,6 @@
       <div class="step">
         <strong>4. Integrate</strong>
         <span>Collect handoffs, inspect diffs, capture memory, and merge accepted source changes.</span>
-      </div>
-    </div>
-  </section>
-
-  <section id="examples">
-    <div class="section-label">Example maps</div>
-    <h2>The same model adapts to different products.</h2>
-    <p class="section-copy">
-      The operator does not force every repo into the same frontend/backend
-      split. It maps the real production system, then recommends lanes that
-      match the product, risk, and validation model.
-    </p>
-    <div class="example-grid">
-      <div class="example-card">
-        <h3>Cadence-style training app</h3>
-        <div class="lane-list">
-          <div><strong>provider</strong><span>Strava and Wahoo sync, OAuth, rate limits</span></div>
-          <div><strong>mobile</strong><span>iOS screens, simulator checks, release readiness</span></div>
-          <div><strong>coach LLM</strong><span>prompting, retrieval, training-plan evaluation</span></div>
-          <div><strong>knowledge</strong><span>athlete context, workout library, domain memory</span></div>
-          <div><strong>backend</strong><span>activity schema, APIs, jobs, storage contracts</span></div>
-        </div>
-      </div>
-      <div class="example-card">
-        <h3>Investment or trading product</h3>
-        <div class="lane-list">
-          <div><strong>data</strong><span>market feeds, portfolio history, normalization</span></div>
-          <div><strong>risk</strong><span>guardrails, exposure, compliance-sensitive flows</span></div>
-          <div><strong>broker</strong><span>provider APIs, sandbox validation, order states</span></div>
-          <div><strong>research</strong><span>LLM summaries, document retrieval, citations</span></div>
-          <div><strong>ops</strong><span>audit trail, logs, recovery, deploy gates</span></div>
-        </div>
       </div>
     </div>
   </section>
