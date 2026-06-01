@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Agent Operator Kit</title>
-<meta name="description" content="Agent Operator Kit is an operating model for coordinating coding agents that integrates with Cursor, Codex, Claude Code, and domain skills: pick the operator cockpit per setup, plus isolated worktree lanes, tmux sessions, operator memory, feedback intake, roadmap planning, handoffs, and one-command upgrades.">
+<meta name="description" content="Agent Operator Kit V2 is an operating model for coordinating specialized coding agents with role catalogs, approved architecture patterns, lane recommendations, dependency-aware batch planning, worktree lanes, tmux sessions, operator memory, feedback intake, roadmap planning, handoffs, and one-command upgrades.">
 <link rel="icon" href="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
@@ -400,6 +400,80 @@
   .how-card:nth-child(5) .how-card-accent { background: var(--accent); }
   .how-card:nth-child(6) .how-card-accent { background: var(--accent2); }
   .how-card:nth-child(7) .how-card-accent { background: var(--accent); }
+  .how-card:nth-child(8) .how-card-accent { background: var(--accent2); }
+
+  /* V2 */
+  .v2-grid {
+    display: grid;
+    grid-template-columns: 0.95fr 1.05fr;
+    gap: 2rem;
+    align-items: start;
+  }
+  .v2-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .v2-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.4rem;
+  }
+  .v2-card h3 {
+    font-size: 0.98rem;
+    margin-bottom: 0.4rem;
+    letter-spacing: -0.01em;
+  }
+  .v2-card p {
+    font-size: 0.86rem;
+    color: var(--fg2);
+    line-height: 1.65;
+  }
+  .v2-flow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+  }
+  .v2-flow-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.2rem;
+    min-width: 0;
+  }
+  .v2-flow-num {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    margin-bottom: 0.6rem;
+  }
+  .v2-flow-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+  }
+  .v2-flow-copy {
+    font-size: 0.78rem;
+    color: var(--fg2);
+    line-height: 1.55;
+  }
+  .version-strip {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 2rem;
+  }
+  .version-pill {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--fg2);
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 0.55rem 0.75rem;
+    background: var(--bg2);
+  }
 
   /* FILE TREE */
   .filetree-wrap {
@@ -630,6 +704,9 @@
     .how-grid {
       grid-template-columns: 1fr;
     }
+    .v2-grid, .v2-flow {
+      grid-template-columns: 1fr;
+    }
     .agents-grid {
       grid-template-columns: 1fr;
     }
@@ -790,6 +867,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#operator-v2">V2</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#cursor-operator">Cursor</a></li>
     <li><a href="#codex-skill">Codex</a></li>
@@ -809,17 +887,17 @@
 <div class="hero">
   <div class="hero-left">
     <div class="hero-eyebrow fade-up fade-up-1">
-      <span>v0.1</span>
+      <span>V2</span>
       <span style="color:var(--fg3)">—</span>
-      <span>AI-agent setup and operations</span>
+      <span>catalog-driven operator system</span>
     </div>
     <h1 class="hero-title fade-up fade-up-2">
-      The Operator model for specialized agents.
+      Coordinate specialized agents with contracts, lanes, and approved patterns.
     </h1>
     <p class="hero-subtitle fade-up fade-up-3">
-      One operating layer for the agents you already use. Operator Kit
-      integrates with Cursor, Codex, Claude Code, and domain skills, and adapts
-      its cockpit role to whichever IDE you have available.
+      Operator Kit V2 maps your production system, recommends durable lanes,
+      assigns specialist role templates, applies approved architecture patterns,
+      and proposes parallel batches for operator approval.
     </p>
     <div class="hero-ctas fade-up fade-up-4">
       <a class="btn-primary" href="#getting-started">
@@ -837,12 +915,12 @@
         <div class="hero-stat-val">Cursor · Codex · Claude</div>
       </div>
       <div>
-        <div class="hero-stat-label">Primary Flow</div>
-        <div class="hero-stat-val">Paste prompt · Agent installs</div>
+        <div class="hero-stat-label">V2 Planning</div>
+        <div class="hero-stat-val">System map · Catalog · Batch</div>
       </div>
       <div>
-        <div class="hero-stat-label">Refresh</div>
-        <div class="hero-stat-val">operator-upgrade.sh</div>
+        <div class="hero-stat-label">Versions</div>
+        <div class="hero-stat-val">main = V2 · tag v1 preserved</div>
       </div>
     </div>
   </div>
@@ -855,24 +933,25 @@
           <div class="terminal-dot yellow"></div>
           <div class="terminal-dot green"></div>
         </div>
-        <span class="terminal-title">operator — feedback → planning → execution</span>
+        <span class="terminal-title">operator-v2 — catalog → plan → approved dispatch</span>
       </div>
       <div class="terminal-body" id="terminal-body">
-        <div><span class="t-comment"># pick your IDE; Operator Kit is the lane map for any of them</span></div>
-        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Set up Agent Operator Kit with the Cursor profile.</span></div>
+        <div><span class="t-comment"># install V2, then let the operator recommend lanes</span></div>
+        <div><span class="t-prompt">operator</span> <span class="t-cmd">Set up Agent Operator Kit V2 and recommend durable lanes.</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing --bootstrap-profile cursor --skip-skills</span></div>
-        <div><span class="t-success">✓</span> <span class="t-info">CURSOR</span>  .cursor/rules · .cursor/skills · environment example</div>
-        <div><span class="t-success">✓</span> <span class="t-info">LANES</span>   Cursor IDE · Cursor CLI · Claude Code</div>
-        <div><span class="t-success">✓</span> <span class="t-info">STATE</span>   OPERATOR_DIR/tasks · memory · roadmap · feedback</div>
+        <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing</span></div>
+        <div><span class="t-success">✓</span> <span class="t-info">CATALOG</span> roles · patterns · approved packages/repos</div>
+        <div><span class="t-success">✓</span> <span class="t-info">SYSTEM</span>  OPERATOR_DIR/system-map.md</div>
+        <div><span class="t-success">✓</span> <span class="t-info">LANES</span>   durable lanes + specialist overlays</div>
         <div>&nbsp;</div>
-        <div><span class="t-comment"># use Composer for integration, scripts for state</span></div>
-        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Run operator-status and summarize lane health.</span></div>
+        <div><span class="t-comment"># plan more parallel work without going full autopilot</span></div>
+        <div><span class="t-prompt">operator</span> <span class="t-cmd">$ bash scripts/operator-recommend-lanes.sh</span></div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Create a task packet and dispatch it to the Cursor CLI lane with memory.</span></div>
-        <div><span class="t-success">✓</span> ready-for-execution: RM-0007 · FB-0014</div>
+        <div><span class="t-prompt">operator</span> <span class="t-cmd">$ bash scripts/operator-plan-batch.sh</span></div>
+        <div><span class="t-success">✓</span> ready: RM-0007 provider-integration → backend</div>
+        <div><span class="t-success">✓</span> ready: RM-0012 mobile-release → release</div>
         <div>&nbsp;</div>
-        <div><span class="t-prompt">cursor</span> <span class="t-cmd">Collect the handoff, review the branch, and integrate approved source changes.</span><span class="t-cursor"></span></div>
+        <div><span class="t-prompt">operator</span> <span class="t-cmd">Create task packets for the approved batch only.</span><span class="t-cursor"></span></div>
       </div>
     </div>
 
@@ -884,23 +963,23 @@
           <div class="lane-status"></div>
         </div>
         <div class="lane-branch">app / main</div>
-        <div class="lane-agent">Cursor IDE</div>
+        <div class="lane-agent">Codex or Cursor</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
-          <span class="lane-name">cursor</span>
+          <span class="lane-name">api-contracts</span>
           <div class="lane-status"></div>
         </div>
-        <div class="lane-branch">app-cursor / cursor/operator</div>
-        <div class="lane-agent">Cursor CLI</div>
+        <div class="lane-branch">app-api / codex/api</div>
+        <div class="lane-agent">role: backend contracts</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
-          <span class="lane-name">ui</span>
+          <span class="lane-name">provider</span>
           <div class="lane-status"></div>
         </div>
-        <div class="lane-branch">app-ui / claude/ui</div>
-        <div class="lane-agent">Claude Code</div>
+        <div class="lane-branch">app-provider / codex/provider</div>
+        <div class="lane-agent">role: integrations</div>
       </div>
       <div class="lane-item">
         <div class="lane-header">
@@ -913,6 +992,83 @@
     </div>
   </div>
 </div>
+
+<!-- OPERATOR V2 -->
+<section id="operator-v2">
+  <div class="section-label">// operator v2</div>
+  <h2 class="section-title">A catalog-driven operating system<br>for production-shaped agents.</h2>
+  <p class="section-sub">V2 keeps the V1 lane and handoff model, then adds system mapping, specialist role templates, approved architecture patterns, and dependency-aware batch planning.</p>
+
+  <div class="v2-grid">
+    <div class="v2-stack">
+      <div class="v2-card">
+        <h3>Lane recommendation</h3>
+        <p>Create durable lanes for long-lived ownership, contract boundaries, high-risk domains, distinct validation loops, or high context density. Use role overlays for specialist work that does not need a permanent worktree yet.</p>
+      </div>
+      <div class="v2-card">
+        <h3>Architecture pattern catalog</h3>
+        <p>Each role template can point to approved packages, GitHub repos, validation recipes, consistency rules, and escalation gates. Think design system, but for engineering decisions.</p>
+      </div>
+      <div class="v2-card">
+        <h3>Operator-approved parallelism</h3>
+        <p>The batch planner reads roadmap dependencies, owner lanes, touched contracts, and approval gates. It proposes safe parallel work, but does not dispatch by itself.</p>
+      </div>
+    </div>
+
+    <div class="prompt-card">
+      <div class="prompt-card-bar">
+        <span class="prompt-card-title">v2 commands</span>
+        <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md" target="_blank">V2 concept</a>
+      </div>
+      <div class="prompt-body">
+        <div><span class="p-comment"># map the production system</span></div>
+        <div><span class="p-key">bash</span> scripts/operator-system-map.sh refresh</div>
+        <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
+        <div>&nbsp;</div>
+        <div><span class="p-comment"># inspect specialist roles and approved patterns</span></div>
+        <div><span class="p-key">bash</span> scripts/operator-catalog.sh list roles</div>
+        <div><span class="p-key">bash</span> scripts/operator-catalog.sh show roles provider-integration</div>
+        <div><span class="p-key">bash</span> scripts/operator-catalog.sh show patterns provider-integration</div>
+        <div>&nbsp;</div>
+        <div><span class="p-comment"># promote roadmap work into a parallel-ready plan</span></div>
+        <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Strava import reliability" --status ready --owner-lane backend --required-roles provider-integration --contracts strava-api</div>
+        <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
+        <div>&nbsp;</div>
+        <div><span class="p-comment"># pin the older model when needed</span></div>
+        <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="version-strip">
+    <div class="version-pill">main: V2 default</div>
+    <div class="version-pill">tag v2: catalog + batch planning</div>
+    <div class="version-pill">tag v1: preserved simple lane model</div>
+  </div>
+
+  <div class="v2-flow" style="margin-top:2rem;">
+    <div class="v2-flow-item">
+      <div class="v2-flow-num">01</div>
+      <div class="v2-flow-title">Detect architecture</div>
+      <div class="v2-flow-copy">Read repo docs, lanes, apps, providers, packages, tests, and existing contracts into a system map.</div>
+    </div>
+    <div class="v2-flow-item">
+      <div class="v2-flow-num">02</div>
+      <div class="v2-flow-title">Recommend lanes</div>
+      <div class="v2-flow-copy">Separate durable lanes from role overlays so the project gets more expertise without worktree sprawl.</div>
+    </div>
+    <div class="v2-flow-item">
+      <div class="v2-flow-num">03</div>
+      <div class="v2-flow-title">Apply patterns</div>
+      <div class="v2-flow-copy">Use approved frameworks, packages, repos, and validation recipes before inventing new solutions.</div>
+    </div>
+    <div class="v2-flow-item">
+      <div class="v2-flow-num">04</div>
+      <div class="v2-flow-title">Approve batch</div>
+      <div class="v2-flow-copy">Plan parallel dispatch from dependencies and contracts, then send only the operator-approved work.</div>
+    </div>
+  </div>
+</section>
 
 <!-- HOW IT WORKS -->
 <div class="section-divider"><div></div></div>
@@ -983,6 +1139,10 @@
         <div class="ft-indent2"><span class="ft-file">app-ui/</span>  <span class="ft-comment">worker lane</span></div>
         <div class="ft-indent"><span class="ft-dir">operator/</span></div>
         <div class="ft-indent2"><span class="ft-file">README.md</span></div>
+        <div class="ft-indent2"><span class="ft-file">system-map.md</span>  <span class="ft-comment">V2 architecture map</span></div>
+        <div class="ft-indent2"><span class="ft-dir">catalog/</span></div>
+        <div class="ft-indent2"><span class="ft-file">catalog/roles/*.md</span></div>
+        <div class="ft-indent2"><span class="ft-file">catalog/patterns/*.md</span></div>
         <div class="ft-indent2"><span class="ft-dir">tasks/</span></div>
         <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/memory.md</span></div>
         <div class="ft-indent2"><span class="ft-file">tasks/&lt;slug&gt;/work/</span>  <span class="ft-comment">html, images, notes</span></div>
@@ -1008,6 +1168,10 @@
         <div class="ft-indent"><span class="ft-file">operator-feedback.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-roadmap.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-memory.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-catalog.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-system-map.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-recommend-lanes.sh</span></div>
+        <div class="ft-indent"><span class="ft-file">operator-plan-batch.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-update.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-sync.sh</span></div>
         <div class="ft-indent"><span class="ft-file">operator-upgrade.sh</span></div>
@@ -1021,8 +1185,8 @@
   <div class="gs-inner">
     <div>
       <div class="section-label">// getting started</div>
-      <h2 class="section-title">AI-agent setup is the default.</h2>
-      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent inspects first, proposes lanes, installs the kit, and verifies the setup.</p>
+      <h2 class="section-title">Start with V2 by default.</h2>
+      <p class="section-sub" style="margin-bottom:2rem;">Open Codex, Claude Code, or Cursor in the target repo and paste the prompt on the right. The agent inspects first, installs or migrates the kit, builds the V2 system map, recommends lanes, and verifies the setup.</p>
 
       <div style="display:flex;flex-direction:column;gap:1.25rem;margin-top:2rem;">
         <div style="display:flex;gap:1rem;align-items:flex-start;">
@@ -1035,15 +1199,15 @@
         <div style="display:flex;gap:1rem;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
           <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the bootstrap prompt</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">The agent inspects the repo, proposes a lane map, and installs all reusable assets.</div>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the V2 bootstrap prompt</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">The agent inspects the repo, installs the catalog, proposes lanes, and keeps V1 available by tag.</div>
           </div>
         </div>
         <div style="display:flex;gap:1rem;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">3</div>
           <div>
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Review the report</div>
-            <div style="font-size:0.83rem;color:var(--fg2);">Check installed files, OPERATOR_DIR, lane map, smoke results, memory status, and git status.</div>
+            <div style="font-size:0.83rem;color:var(--fg2);">Check installed files, OPERATOR_DIR, system map, catalog, lane recommendation, smoke results, and git status.</div>
           </div>
         </div>
       </div>
@@ -1054,6 +1218,7 @@
           <div><span style="color:var(--fg3)">$</span> git clone git@github.com:Agent-Operator-Kit/operator-kit.git</div>
           <div><span style="color:var(--fg3)">$</span> cd operator-kit</div>
           <div><span style="color:var(--fg3)">$</span> bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing</div>
+          <div><span style="color:var(--fg3)">$</span> cd /path/to/your/repo && bash scripts/operator-recommend-lanes.sh</div>
         </div>
       </div>
     </div>
@@ -1064,7 +1229,7 @@
         <button class="copy-btn" id="copy-prompt-btn">copy</button>
       </div>
       <div class="prompt-body" id="prompt-text">
-        <div>Install or initialize Agent Operator Kit for the current repo.</div>
+        <div>Install or initialize Agent Operator Kit V2 for the current repo.</div>
         <div>&nbsp;</div>
         <div><span class="p-key">Use this source kit:</span></div>
         <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
@@ -1084,7 +1249,9 @@
         <div><span class="p-comment">- inspect the repo first</span></div>
         <div><span class="p-comment">- detect whether Operator Kit is installed, partial, or missing</span></div>
         <div><span class="p-comment">- upgrade installed projects, repair partial installs, bootstrap missing projects</span></div>
+        <div><span class="p-comment">- initialize the V2 catalog, system map, and lane recommendation output</span></div>
         <div><span class="p-comment">- configure lanes from the project requirements before creating worktrees</span></div>
+        <div><span class="p-comment">- recommend durable lanes versus specialist role overlays</span></div>
         <div><span class="p-comment">- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)</span></div>
         <div><span class="p-comment">- install IDE-specific assets only when that IDE is available</span></div>
         <div><span class="p-comment">- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable</span></div>
@@ -1092,9 +1259,9 @@
         <div><span class="p-comment">- create or verify worktrees without overwriting existing work</span></div>
         <div><span class="p-comment">- start or inspect tmux</span></div>
         <div><span class="p-comment">- create a smoke task</span></div>
-        <div><span class="p-comment">- run the status, summary, and memory checks</span></div>
+        <div><span class="p-comment">- run the status, summary, memory, catalog, lane recommendation, and batch-plan checks</span></div>
         <div><span class="p-comment">- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR</span></div>
-        <div><span class="p-comment">- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status,</span></div>
+        <div><span class="p-comment">- report installed files, OPERATOR_DIR, system map, catalog, lane map, memory status, smoke results, git status,</span></div>
         <div><span class="p-comment">&nbsp;&nbsp;and whether the repo is ready to commit</span></div>
         <div>&nbsp;</div>
         <div><span class="p-req">Guardrails:</span></div>
@@ -1112,7 +1279,7 @@
 <section id="cursor-operator">
   <div class="section-label">// cursor operator</div>
   <h2 class="section-title">Operator Kit adapts<br>to your IDE stack.</h2>
-  <p class="section-sub">The cockpit role goes to whichever IDE you have. With Cursor available, Cursor Composer or Agent fits naturally; with Codex Desktop, Codex skills fit; with Claude Code, Claude can fill UI or scoped lanes. Operator Kit manages the lane map, worktrees, tmux sessions, task packets, memory, roadmap, feedback, and handoffs around the cockpit you choose.</p>
+  <p class="section-sub">The cockpit role goes to whichever IDE you have. With Cursor available, Cursor Composer or Agent fits naturally; with Codex Desktop, Codex skills fit; with Claude Code, Claude can fill UI or scoped lanes. V2 adds the system map, role catalog, architecture patterns, and batch planner around whichever cockpit you choose.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1169,6 +1336,12 @@
       <div><span class="p-val">cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent</span></div>
       <div><span class="p-val">ui|Claude Code|app-ui|claude/ui|claude ...</span></div>
       <div>&nbsp;</div>
+      <div><span class="p-comment"># V2 lane and catalog checks</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-system-map.sh refresh</div>
+      <div><span class="p-key">bash</span> scripts/operator-catalog.sh list roles</div>
+      <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
+      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
+      <div>&nbsp;</div>
       <div><span class="p-comment"># local operator loop</span></div>
       <div><span class="p-key">bash</span> scripts/operator-status.sh</div>
       <div><span class="p-key">bash</span> scripts/operator-task.sh auth-001 "Auth scaffolding"</div>
@@ -1183,7 +1356,7 @@
 <section id="codex-skill">
   <div class="section-label">// codex desktop</div>
   <h2 class="section-title">Use Codex skills<br>as operating modes.</h2>
-  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, execute approved tasks, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
+  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, recommend V2 lanes, execute approved task batches, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1201,8 +1374,8 @@
     <div class="how-card">
       <div class="how-card-num">03 — OPERATE</div>
       <div class="how-card-accent"></div>
-      <h3>Feedback, Plan, Execute</h3>
-      <p>For installed projects Codex can capture feedback under <code>OPERATOR_DIR</code>, promote roadmap work, create task packets, dispatch lanes, and review handoffs.</p>
+      <h3>Catalog, Plan, Execute</h3>
+      <p>For installed projects Codex can refresh the V2 system map, inspect role templates, promote roadmap work, plan a batch, create task packets, dispatch lanes, and review handoffs.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — GUARD</div>
@@ -1253,6 +1426,8 @@
       <div><span class="p-comment"># update an existing Operator Kit project</span></div>
       <div><span class="p-key">bash</span> scripts/operator-sync.sh --target /path/to/project</div>
       <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)</div>
+      <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
+      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># upgrade all installed projects and local skills</span></div>
       <div><span class="p-key">bash</span> scripts/operator-upgrade.sh --dry-run</div>
@@ -1266,6 +1441,8 @@
       <div><span class="p-val">Use $operator-planner. Review the feedback inbox and propose now/next/later.</span></div>
       <div><span class="p-val">Use $operator-planner. Promote the top feedback group into roadmap candidates.</span></div>
       <div><span class="p-val">Use $operator. Show project status.</span></div>
+      <div><span class="p-val">Use $operator. Refresh the V2 system map and recommend lanes.</span></div>
+      <div><span class="p-val">Use $operator. Plan the next approved parallel batch.</span></div>
       <div><span class="p-val">Use $operator. Start tmux lanes.</span></div>
       <div><span class="p-val">Use $operator. Create a backend task for auth scaffolding.</span></div>
       <div><span class="p-val">Use $operator. Execute the approved RM-0007 mobile-ui task.</span></div>
@@ -1289,7 +1466,7 @@
 <section id="operator-modes">
   <div class="section-label">// feedback planning execution</div>
   <h2 class="section-title">Separate observation<br>from implementation.</h2>
-  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion and operator approval.</p>
+  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion, V2 dependency metadata, lane ownership, and operator approval.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1302,13 +1479,13 @@
       <div class="how-card-num">02 — PLANNING MODE</div>
       <div class="how-card-accent"></div>
       <h3><code>$operator-planner</code></h3>
-      <p>Reviews feedback, groups duplicates, prioritizes now/next/later, promotes selected work into <code>RM-*</code> roadmap items, and writes ready-for-execution plans.</p>
+      <p>Reviews feedback, groups duplicates, prioritizes now/next/later, promotes selected work into <code>RM-*</code>, and adds required roles, owner lanes, contracts, dependencies, and approval gates.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">03 — EXECUTION MODE</div>
       <div class="how-card-accent"></div>
       <h3><code>$operator</code></h3>
-      <p>Creates task folders, checks lane and file ownership, dispatches scoped packets, collects handoffs, reviews diffs, and integrates approved implementation work.</p>
+      <p>Runs the batch planner, creates task folders, checks lane and file ownership, dispatches approved scoped packets, collects handoffs, reviews diffs, and integrates implementation work.</p>
     </div>
     <div class="how-card">
       <div class="how-card-num">04 — MOBILE LOOP</div>
@@ -1347,10 +1524,11 @@
       <div>&nbsp;</div>
       <div><span class="p-comment"># planning decides what should become work</span></div>
       <div><span class="p-val">Use $operator-planner. Review FB-* items and propose now/next/later.</span></div>
-      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Coach chat input polish" --type bug --priority P1 --areas mobile</div>
+      <div><span class="p-key">bash</span> scripts/operator-roadmap.sh add "Coach chat input polish" --type bug --priority P1 --areas mobile --status ready --owner-lane mobile-ui --required-roles mobile-app --contracts coach-chat</div>
       <div><span class="p-key">bash</span> scripts/operator-roadmap.sh pr-note RM-0007 --feedback FB-0014 --task mobile-chat-input-polish</div>
       <div>&nbsp;</div>
       <div><span class="p-comment"># execution starts after approval</span></div>
+      <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
       <div><span class="p-val">Use $operator. Execute RM-0007 / FB-0014 with the approved mobile-ui task.</span></div>
     </div>
   </div>
@@ -1360,7 +1538,7 @@
 <section id="upgrade">
   <div class="section-label">// upgrade command</div>
   <h2 class="section-title">Refresh every agent surface<br>with one command.</h2>
-  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
+  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, installs V2 catalog and system-map support, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1385,7 +1563,7 @@
       <div class="how-card-num">04 — VERIFY</div>
       <div class="how-card-accent"></div>
       <h3>Checks after update</h3>
-      <p>Runs syntax, lane status, summary, memory status, and git status checks for each updated project.</p>
+      <p>Runs syntax, lane status, summary, memory, roadmap, catalog, lane recommendation, batch-plan, and git status checks for each updated project.</p>
     </div>
   </div>
 
@@ -1407,6 +1585,9 @@
       <div>&nbsp;</div>
       <div><span class="p-comment"># on a machine without a local checkout</span></div>
       <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)</div>
+      <div>&nbsp;</div>
+      <div><span class="p-comment"># pin the older model if needed</span></div>
+      <div><span class="p-key">bash</span> &lt;(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/v1/scripts/operator-sync.sh) --target /path/to/repo</div>
     </div>
   </div>
 </section>
@@ -1571,11 +1752,11 @@
     <div class="agent-card">
       <div class="agent-logo cursor">PLAN</div>
       <div class="agent-name">Operator Planner</div>
-      <p class="agent-desc">A Codex Desktop mode for feedback review, duplicate grouping, roadmap promotion, prioritization, and ready-for-execution task shaping.</p>
+      <p class="agent-desc">A Codex Desktop mode for feedback review, duplicate grouping, roadmap promotion, required roles, lane ownership, dependencies, and approval gates.</p>
       <div class="agent-tags">
         <span class="agent-tag">$operator-planner</span>
         <span class="agent-tag">RM-*</span>
-        <span class="agent-tag">now/next/later</span>
+        <span class="agent-tag">deps</span>
       </div>
       <a class="agent-link" href="https://github.com/Agent-Operator-Kit/operator-kit/tree/main/skills/codex/operator-planner" target="_blank">
         Open Planner Skill
@@ -1654,6 +1835,7 @@
     </div>
     <div class="footer-right">
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
+      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md">V2</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/incubation-collaboration.md">Incubation</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/guides/design-agent-collaboration.md">Design Agent</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
@@ -1733,14 +1915,14 @@ ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTwea
 // Copy prompt button
 document.getElementById('copy-prompt-btn').addEventListener('click', function() {
   const promptLines = [
-    'Install or initialize Agent Operator Kit for the current repo.',
+    'Install or initialize Agent Operator Kit V2 for the current repo.',
     '',
     'Use this source kit:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'First clone or read the kit, then follow its Cursor install-or-initialize guide:',
-    'templates/prompts/cursor-agent-bootstrap.md',
-    'docs/guides/cursor-operator-workflow.md',
+    'First clone or read the kit, then follow its install-or-initialize guide:',
+    'templates/prompts/agent-run-bootstrap.md',
+    'docs/guides/agent-run-bootstrap.md',
     '',
     'Treat the current working directory as the target project repo.',
     '',
@@ -1753,7 +1935,9 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- inspect the repo first',
     '- detect whether Operator Kit is installed, partial, or missing',
     '- upgrade installed projects, repair partial installs, bootstrap missing projects',
+    '- initialize the V2 catalog, system map, and lane recommendation output',
     '- configure lanes from the project requirements before creating worktrees',
+    '- recommend durable lanes versus specialist role overlays',
     '- pick the operator cockpit based on the available IDE (Cursor, Codex, Claude)',
     '- install IDE-specific assets only when that IDE is available',
     '- use --bootstrap-profile cursor and --skip-skills when Codex is unavailable',
@@ -1761,9 +1945,9 @@ document.getElementById('copy-prompt-btn').addEventListener('click', function() 
     '- create or verify worktrees without overwriting existing work',
     '- start or inspect tmux',
     '- create a smoke task',
-    '- run the status, summary, and memory checks',
+    '- run the status, summary, memory, catalog, lane recommendation, and batch-plan checks',
     '- keep task packets, handoffs, captures, memory, and task working files under OPERATOR_DIR',
-    '- report installed files, OPERATOR_DIR, lane map, memory status, smoke results, git status, and whether the repo is ready to commit',
+    '- report installed files, OPERATOR_DIR, system map, catalog, lane map, memory status, smoke results, git status, and whether the repo is ready to commit',
     '',
     'Guardrails:',
     '- do not rewrite git history',
