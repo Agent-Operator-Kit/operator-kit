@@ -402,59 +402,59 @@
   .how-card:nth-child(7) .how-card-accent { background: var(--accent); }
   .how-card:nth-child(8) .how-card-accent { background: var(--accent2); }
 
-  /* V2 */
-  .v2-grid {
+  /* Operator system */
+  .system-grid {
     display: grid;
     grid-template-columns: 0.95fr 1.05fr;
     gap: 2rem;
     align-items: start;
   }
-  .v2-stack {
+  .system-stack {
     display: flex;
     flex-direction: column;
     gap: 1rem;
   }
-  .v2-card {
+  .system-card {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.4rem;
   }
-  .v2-card h3 {
+  .system-card h3 {
     font-size: 0.98rem;
     margin-bottom: 0.4rem;
     letter-spacing: -0.01em;
   }
-  .v2-card p {
+  .system-card p {
     font-size: 0.86rem;
     color: var(--fg2);
     line-height: 1.65;
   }
-  .v2-flow {
+  .system-flow {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 1rem;
   }
-  .v2-flow-item {
+  .system-flow-item {
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 1.2rem;
     min-width: 0;
   }
-  .v2-flow-num {
+  .system-flow-num {
     font-family: var(--font-mono);
     font-size: 0.62rem;
     color: var(--accent);
     letter-spacing: 0.1em;
     margin-bottom: 0.6rem;
   }
-  .v2-flow-title {
+  .system-flow-title {
     font-size: 0.9rem;
     font-weight: 700;
     margin-bottom: 0.35rem;
   }
-  .v2-flow-copy {
+  .system-flow-copy {
     font-size: 0.78rem;
     color: var(--fg2);
     line-height: 1.55;
@@ -704,7 +704,7 @@
     .how-grid {
       grid-template-columns: 1fr;
     }
-    .v2-grid, .v2-flow {
+    .system-grid, .system-flow {
       grid-template-columns: 1fr;
     }
     .agents-grid {
@@ -867,7 +867,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="#getting-started">Getting Started</a></li>
-    <li><a href="#operator-v2">V2</a></li>
+    <li><a href="#operator-system">System</a></li>
     <li><a href="#how-it-works">Model</a></li>
     <li><a href="#cursor-operator">Cursor</a></li>
     <li><a href="#codex-skill">Codex</a></li>
@@ -885,7 +885,7 @@
 <div class="hero">
   <div class="hero-left">
     <div class="hero-eyebrow fade-up fade-up-1">
-      <span>V2</span>
+      <span>Operator Kit</span>
       <span style="color:var(--fg3)">—</span>
       <span>operator system for coding agents</span>
     </div>
@@ -913,12 +913,12 @@
         <div class="hero-stat-val">Codex · Claude Code · Cursor</div>
       </div>
       <div>
-        <div class="hero-stat-label">V2 Adds</div>
+        <div class="hero-stat-label">System Adds</div>
         <div class="hero-stat-val">Lanes · Catalog · Batches</div>
       </div>
       <div>
         <div class="hero-stat-label">Versions</div>
-        <div class="hero-stat-val">main = V2 · tag v1 preserved</div>
+        <div class="hero-stat-val">main · tag v1 preserved</div>
       </div>
     </div>
   </div>
@@ -931,11 +931,11 @@
           <div class="terminal-dot yellow"></div>
           <div class="terminal-dot green"></div>
         </div>
-        <span class="terminal-title">operator-v2 — plan → dispatch → review</span>
+        <span class="terminal-title">operator — plan → dispatch → review</span>
       </div>
       <div class="terminal-body" id="terminal-body">
         <div><span class="t-comment"># install the kit into a project</span></div>
-        <div><span class="t-prompt">agent</span> <span class="t-cmd">Set up Agent Operator Kit V2 here.</span></div>
+        <div><span class="t-prompt">agent</span> <span class="t-cmd">Set up Agent Operator Kit here.</span></div>
         <div>&nbsp;</div>
         <div><span class="t-prompt">operator:~/operator-kit</span> <span class="t-cmd">$ bash scripts/operator-sync.sh --target ~/Projects/acme/code/app --bootstrap-if-missing</span></div>
         <div><span class="t-success">✓</span> lanes: operator · backend · ui · release</div>
@@ -989,23 +989,23 @@
   </div>
 </div>
 
-<!-- OPERATOR V2 -->
-<section id="operator-v2">
-  <div class="section-label">// operator v2</div>
-  <h2 class="section-title">V2 keeps the model simple.</h2>
+<!-- OPERATOR SYSTEM -->
+<section id="operator-system">
+  <div class="section-label">// operator system</div>
+  <h2 class="section-title">The model stays simple.</h2>
   <p class="section-sub">Map the project, choose the right lanes, give each lane approved patterns, and let the operator approve parallel batches before anything is dispatched.</p>
 
-  <div class="v2-grid">
-    <div class="v2-stack">
-      <div class="v2-card">
+  <div class="system-grid">
+    <div class="system-stack">
+      <div class="system-card">
         <h3>Recommended lanes</h3>
         <p>Create durable lanes only where they help: ownership, contracts, risk, validation, or dense context. Use temporary role overlays for smaller specialist work.</p>
       </div>
-      <div class="v2-card">
+      <div class="system-card">
         <h3>Approved patterns</h3>
         <p>Role templates can carry preferred packages, repos, validation recipes, and consistency rules so agents reuse known solutions.</p>
       </div>
-      <div class="v2-card">
+      <div class="system-card">
         <h3>Approved batches</h3>
         <p>The planner proposes parallel work from dependencies and lane ownership. The operator still decides what gets sent.</p>
       </div>
@@ -1013,8 +1013,8 @@
 
     <div class="prompt-card">
       <div class="prompt-card-bar">
-        <span class="prompt-card-title">common v2 commands</span>
-        <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md" target="_blank">V2 concept</a>
+        <span class="prompt-card-title">common operator commands</span>
+        <a class="agent-link" style="margin:0;" href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md" target="_blank">Docs</a>
       </div>
       <div class="prompt-body">
         <div><span class="p-comment"># understand the project</span></div>
@@ -1034,31 +1034,31 @@
   </div>
 
   <div class="version-strip">
-    <div class="version-pill">main: V2 default</div>
-    <div class="version-pill">V2: catalog + batch planning</div>
+    <div class="version-pill">main: current default</div>
+    <div class="version-pill">catalog + batch planning</div>
     <div class="version-pill">V1: preserved by tag</div>
   </div>
 
-  <div class="v2-flow" style="margin-top:2rem;">
-    <div class="v2-flow-item">
-      <div class="v2-flow-num">01</div>
-      <div class="v2-flow-title">Map</div>
-      <div class="v2-flow-copy">Capture apps, providers, contracts, tests, and current lanes.</div>
+  <div class="system-flow" style="margin-top:2rem;">
+    <div class="system-flow-item">
+      <div class="system-flow-num">01</div>
+      <div class="system-flow-title">Map</div>
+      <div class="system-flow-copy">Capture apps, providers, contracts, tests, and current lanes.</div>
     </div>
-    <div class="v2-flow-item">
-      <div class="v2-flow-num">02</div>
-      <div class="v2-flow-title">Choose lanes</div>
-      <div class="v2-flow-copy">Keep permanent lanes for boundaries that really need memory and ownership.</div>
+    <div class="system-flow-item">
+      <div class="system-flow-num">02</div>
+      <div class="system-flow-title">Choose lanes</div>
+      <div class="system-flow-copy">Keep permanent lanes for boundaries that really need memory and ownership.</div>
     </div>
-    <div class="v2-flow-item">
-      <div class="v2-flow-num">03</div>
-      <div class="v2-flow-title">Use patterns</div>
-      <div class="v2-flow-copy">Give agents approved tools and validation recipes up front.</div>
+    <div class="system-flow-item">
+      <div class="system-flow-num">03</div>
+      <div class="system-flow-title">Use patterns</div>
+      <div class="system-flow-copy">Give agents approved tools and validation recipes up front.</div>
     </div>
-    <div class="v2-flow-item">
-      <div class="v2-flow-num">04</div>
-      <div class="v2-flow-title">Approve</div>
-      <div class="v2-flow-copy">Dispatch only the batch the operator has reviewed.</div>
+    <div class="system-flow-item">
+      <div class="system-flow-num">04</div>
+      <div class="system-flow-title">Approve</div>
+      <div class="system-flow-copy">Dispatch only the batch the operator has reviewed.</div>
     </div>
   </div>
 </section>
@@ -1132,7 +1132,7 @@
         <div class="ft-indent2"><span class="ft-file">app-ui/</span>  <span class="ft-comment">worker lane</span></div>
         <div class="ft-indent"><span class="ft-dir">operator/</span></div>
         <div class="ft-indent2"><span class="ft-file">README.md</span></div>
-        <div class="ft-indent2"><span class="ft-file">system-map.md</span>  <span class="ft-comment">V2 architecture map</span></div>
+        <div class="ft-indent2"><span class="ft-file">system-map.md</span>  <span class="ft-comment">architecture map</span></div>
         <div class="ft-indent2"><span class="ft-dir">catalog/</span></div>
         <div class="ft-indent2"><span class="ft-file">catalog/roles/*.md</span></div>
         <div class="ft-indent2"><span class="ft-file">catalog/patterns/*.md</span></div>
@@ -1192,7 +1192,7 @@
         <div style="display:flex;gap:1rem;align-items:flex-start;">
           <div style="width:28px;height:28px;border-radius:50%;background:var(--accent-dim);border:1px solid oklch(0.78 0.19 142 / 0.25);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:0.65rem;color:var(--accent);flex-shrink:0;margin-top:2px;">2</div>
           <div>
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the V2 bootstrap prompt</div>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.25rem;">Paste the bootstrap prompt</div>
             <div style="font-size:0.83rem;color:var(--fg2);">The agent installs or refreshes the kit and proposes the lane map.</div>
           </div>
         </div>
@@ -1222,7 +1222,7 @@
         <button class="copy-btn" id="copy-prompt-btn">copy</button>
       </div>
       <div class="prompt-body" id="prompt-text">
-        <div>Install or initialize Agent Operator Kit V2 for this repo.</div>
+        <div>Install or initialize Agent Operator Kit for this repo.</div>
         <div>&nbsp;</div>
         <div><span class="p-key">Use this source kit:</span></div>
         <div><span class="p-val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
@@ -1312,7 +1312,7 @@
       <div><span class="p-val">cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent</span></div>
       <div><span class="p-val">ui|Claude Code|app-ui|claude/ui|claude ...</span></div>
       <div>&nbsp;</div>
-      <div><span class="p-comment"># V2 planning checks</span></div>
+      <div><span class="p-comment"># planning checks</span></div>
       <div><span class="p-key">bash</span> scripts/operator-recommend-lanes.sh</div>
       <div><span class="p-key">bash</span> scripts/operator-plan-batch.sh</div>
       <div>&nbsp;</div>
@@ -1330,7 +1330,7 @@
 <section id="codex-skill">
   <div class="section-label">// codex desktop</div>
   <h2 class="section-title">Use Codex skills<br>as operating modes.</h2>
-  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, recommend V2 lanes, execute approved task batches, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
+  <p class="section-sub">Install the runtime skills globally, then ask Codex to capture feedback, plan roadmap work, recommend lanes, execute approved task batches, shape UX work, or incubate ideas in natural language. The skills detect the right workspace first and keep transient state outside the app repo.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1413,7 +1413,7 @@
 <section id="operator-modes">
   <div class="section-label">// feedback planning execution</div>
   <h2 class="section-title">Separate observation<br>from implementation.</h2>
-  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion, V2 dependency metadata, lane ownership, and operator approval.</p>
+  <p class="section-sub">The explicit mode split keeps testing lightweight. Annotations are feedback by default; feedback becomes execution only after planner promotion, dependency metadata, lane ownership, and operator approval.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1485,7 +1485,7 @@
 <section id="upgrade">
   <div class="section-label">// upgrade command</div>
   <h2 class="section-title">Refresh every agent surface<br>with one command.</h2>
-  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, installs V2 catalog and system-map support, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
+  <p class="section-sub"><code>operator-upgrade.sh</code> discovers installed Operator Kit projects, updates project scripts/templates, installs catalog and system-map support, and runs checks. Codex Desktop skills are refreshed when available; Cursor-only machines can use <code>--skip-skills</code>.</p>
 
   <div class="how-grid">
     <div class="how-card">
@@ -1660,7 +1660,6 @@
     </div>
     <div class="footer-right">
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/README.md">Docs</a>
-      <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/docs/concepts/operator-v2.md">V2</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/CONTRIBUTING.md">Contributing</a>
       <a href="https://github.com/Agent-Operator-Kit/operator-kit/blob/main/LICENSE">License</a>
     </div>
@@ -1738,7 +1737,7 @@ ReactDOM.createRoot(document.getElementById('tweaks-root')).render(<OperatorTwea
 // Copy prompt button
 document.getElementById('copy-prompt-btn').addEventListener('click', function() {
   const promptLines = [
-    'Install or initialize Agent Operator Kit V2 for this repo.',
+    'Install or initialize Agent Operator Kit for this repo.',
     '',
     'Use this source kit:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',

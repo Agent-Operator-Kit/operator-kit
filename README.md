@@ -28,9 +28,9 @@ Agent Operator Kit helps split that work into clear lanes:
 - task packets, handoffs, screenshots, notes, and scratch files live outside the repo
 - roadmap and feedback IDs stay traceable without committing the whole planning ledger
 
-## V2
+## Current Model
 
-V2 is the default version.
+The current kit is the default on `main`.
 
 It keeps the V1 worktree, tmux, task-packet, and handoff model, then adds:
 
@@ -53,7 +53,7 @@ Open Codex, Claude Code, Cursor, or another coding agent inside the target repo
 and paste:
 
 ```text
-Install or initialize Agent Operator Kit V2 for this repo.
+Install or initialize Agent Operator Kit for this repo.
 
 Use this source kit:
 git@github.com:Agent-Operator-Kit/operator-kit.git
@@ -188,7 +188,6 @@ bash scripts/codex-skills-install.sh
 - [Agent-run bootstrap](docs/guides/agent-run-bootstrap.md)
 - [Getting started with agents](docs/guides/getting-started-with-agents.md)
 - [Cursor operator workflow](docs/guides/cursor-operator-workflow.md)
-- [Operator V2 concept](docs/concepts/operator-v2.md)
 - [Operator memory](docs/concepts/operator-memory.md)
 - [Operator roadmap](docs/concepts/operator-roadmap.md)
 - [Design-agent collaboration](docs/guides/design-agent-collaboration.md)
@@ -205,5 +204,5 @@ bash scripts/codex-skills-install.sh
 
 ## Status
 
-V2 is current on `main`. V1 is preserved at the `v1` tag. The scripts are
+The current kit is on `main`. V1 is preserved at the `v1` tag. The scripts are
 intentionally small and inspectable; a richer CLI can wrap the same model later.
