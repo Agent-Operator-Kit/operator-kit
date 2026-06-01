@@ -372,6 +372,57 @@
     line-height: 1.7;
   }
 
+  .role-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .role-card {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    background: var(--bg2);
+  }
+
+  .role-type {
+    margin-bottom: 0.55rem;
+    color: var(--accent);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .role-card h3 {
+    margin-bottom: 0.5rem;
+    color: var(--fg);
+    font-size: 0.94rem;
+  }
+
+  .role-card p {
+    color: var(--fg2);
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+
+  .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.85rem;
+  }
+
+  .tag {
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 0.28rem 0.45rem;
+    color: var(--fg2);
+    font-size: 0.62rem;
+  }
+
   .steps {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -381,6 +432,115 @@
     border-radius: 8px;
     background: var(--border);
     overflow: hidden;
+  }
+
+  .approach-grid {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .principle-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--border);
+    overflow: hidden;
+  }
+
+  .principle {
+    padding: 1rem;
+    background: var(--bg2);
+  }
+
+  .principle strong {
+    display: block;
+    color: var(--fg);
+    font-size: 0.86rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .principle span {
+    color: var(--fg2);
+    font-size: 0.76rem;
+    line-height: 1.55;
+  }
+
+  .catalog-panel {
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    background: var(--bg2);
+    padding: 1.2rem;
+  }
+
+  .catalog-panel h3 {
+    color: var(--fg);
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .catalog-panel ul {
+    display: grid;
+    gap: 0.55rem;
+    list-style: none;
+  }
+
+  .catalog-panel li {
+    color: var(--fg2);
+    font-size: 0.8rem;
+    line-height: 1.55;
+  }
+
+  .catalog-panel li::before {
+    content: "ok";
+    display: inline-block;
+    margin-right: 0.5rem;
+    color: var(--accent);
+    font-size: 0.64rem;
+    font-weight: 800;
+  }
+
+  .example-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .example-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.25rem;
+    background: var(--bg2);
+  }
+
+  .example-card h3 {
+    color: var(--fg);
+    font-size: 1rem;
+    margin-bottom: 0.7rem;
+  }
+
+  .lane-list {
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  .lane-list div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    border-top: 1px solid var(--border);
+    padding-top: 0.55rem;
+    color: var(--fg2);
+    font-size: 0.76rem;
+  }
+
+  .lane-list strong {
+    color: var(--accent);
+    font-size: 0.72rem;
   }
 
   .step {
@@ -505,6 +665,9 @@
     }
 
     .card-grid,
+    .role-grid,
+    .approach-grid,
+    .example-grid,
     .steps,
     .start-grid {
       grid-template-columns: 1fr;
@@ -578,7 +741,9 @@
   </a>
   <ul class="nav-links">
     <li><a href="#value">Value</a></li>
-    <li><a href="#how">How</a></li>
+    <li><a href="#agents">Agents</a></li>
+    <li><a href="#approach">Approach</a></li>
+    <li><a href="#examples">Examples</a></li>
     <li><a href="#start">Start</a></li>
     <li><a class="nav-github" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">GitHub</a></li>
   </ul>
@@ -592,7 +757,7 @@
       <p class="hero-copy">
         A lightweight operating layer for coordinating Codex, Claude Code,
         Cursor, and other agents across isolated lanes, shared context, clear
-        handoffs, and human-approved integration.
+        handoffs, approved patterns, and human-approved integration.
       </p>
       <div class="cta-row">
         <a class="button button-primary" href="#start">Start with an agent</a>
@@ -605,7 +770,7 @@
         </div>
         <div>
           <div class="fact-label">How</div>
-          <div class="fact-value">Lanes, tasks, memory, handoffs</div>
+          <div class="fact-value">Role catalog, lanes, batches</div>
         </div>
         <div>
           <div class="fact-label">Where</div>
@@ -623,30 +788,29 @@
           <span class="panel-title">operator loop</span>
         </div>
         <div class="panel-body">
-          <div><span class="prompt">agent</span> <span class="cmd">Set up Agent Operator Kit here.</span></div>
-          <div><span class="ok">ok</span> created isolated lanes</div>
-          <div><span class="ok">ok</span> kept task state outside the repo</div>
-          <div><span class="ok">ok</span> prepared agent handoff rules</div>
+          <div><span class="prompt">operator</span> map production reality</div>
+          <div><span class="ok">ok</span> frontend · API · database · auth · deploy · observability</div>
+          <div><span class="ok">ok</span> Strava provider · Wahoo provider · mobile release · coach LLM</div>
           <br>
-          <div><span class="prompt">operator</span> plan the next safe batch</div>
-          <div><span class="ok">ok</span> backend contract task</div>
-          <div><span class="ok">ok</span> Claude Code UI task</div>
+          <div><span class="prompt">catalog</span> recommend specialist lanes</div>
+          <div><span class="ok">ok</span> provider-integration uses approved retry/cache pattern</div>
+          <div><span class="ok">ok</span> mobile-release uses simulator and build validation</div>
           <br>
-          <div><span class="prompt">operator</span> dispatch only approved work</div>
+          <div><span class="prompt">batch</span> dispatch only non-conflicting tasks</div>
         </div>
       </div>
       <div class="lane-strip">
         <div class="lane">
-          <div class="lane-name">operator</div>
-          <div class="lane-copy">reviews, integrates, protects main</div>
+          <div class="lane-name">provider</div>
+          <div class="lane-copy">Strava/Wahoo contracts and sync rules</div>
         </div>
         <div class="lane">
-          <div class="lane-name">backend</div>
-          <div class="lane-copy">own branch, own worktree, focused task</div>
+          <div class="lane-name">mobile</div>
+          <div class="lane-copy">iOS build, simulator, release states</div>
         </div>
         <div class="lane">
-          <div class="lane-name">ui</div>
-          <div class="lane-copy">Claude Code or another specialist lane</div>
+          <div class="lane-name">coach LLM</div>
+          <div class="lane-copy">prompts, retrieval, safety, evals</div>
         </div>
       </div>
     </div>
@@ -680,13 +844,124 @@
     </div>
   </section>
 
+  <section id="agents">
+    <div class="section-label">Types of agents</div>
+    <h2>A project becomes a small team of specialists.</h2>
+    <p class="section-copy">
+      Operator Kit is not just "frontend agent" and "backend agent." It gives
+      the operator a catalog of possible specialists, each with its own
+      contracts, memory, validation, approved packages, and handoff rules.
+    </p>
+    <div class="role-grid">
+      <div class="role-card">
+        <div class="role-type">control</div>
+        <h3>Operator</h3>
+        <p>Owns integration, lane safety, task packets, handoff review, and what lands on the stable branch.</p>
+        <div class="tag-row"><span class="tag">review</span><span class="tag">merge</span><span class="tag">memory</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">planning</div>
+        <h3>Planner</h3>
+        <p>Turns feedback and roadmap ideas into dependency-aware, lane-ready work before dispatch.</p>
+        <div class="tag-row"><span class="tag">RM-*</span><span class="tag">deps</span><span class="tag">batch</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">feedback</div>
+        <h3>Feedback Collector</h3>
+        <p>Captures testing notes, screenshots, browser annotations, and mobile review evidence as structured intake.</p>
+        <div class="tag-row"><span class="tag">FB-*</span><span class="tag">screens</span><span class="tag">triage</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">experience</div>
+        <h3>UX / Design Agent</h3>
+        <p>Reviews flows, design consistency, component drift, and prepares UI work for Claude Code or a UI lane.</p>
+        <div class="tag-row"><span class="tag">UX</span><span class="tag">tokens</span><span class="tag">tasks</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">product surface</div>
+        <h3>Mobile App Agent</h3>
+        <p>Owns simulator validation, release states, native platform issues, app store risk, and mobile UX defects.</p>
+        <div class="tag-row"><span class="tag">iOS</span><span class="tag">simulator</span><span class="tag">release</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">contracts</div>
+        <h3>API / Backend Agent</h3>
+        <p>Owns data contracts, service boundaries, migrations, rate limits, caching, and backend validation.</p>
+        <div class="tag-row"><span class="tag">API</span><span class="tag">DB</span><span class="tag">tests</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">providers</div>
+        <h3>Integration Agent</h3>
+        <p>Handles third-party providers such as Strava, Wahoo, payments, broker APIs, webhooks, and sync logic.</p>
+        <div class="tag-row"><span class="tag">OAuth</span><span class="tag">retry</span><span class="tag">webhooks</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">intelligence</div>
+        <h3>LLM / Knowledge Agent</h3>
+        <p>Owns prompts, retrieval, knowledge base structure, evals, context windows, and safety constraints.</p>
+        <div class="tag-row"><span class="tag">RAG</span><span class="tag">evals</span><span class="tag">memory</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">operations</div>
+        <h3>Release / Observability Agent</h3>
+        <p>Owns CI, deployment, logs, recovery, smoke checks, incident risks, and production readiness gates.</p>
+        <div class="tag-row"><span class="tag">CI/CD</span><span class="tag">logs</span><span class="tag">recovery</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="approach">
+    <div class="section-label">Approach</div>
+    <h2>The hard part is cutting the system into useful lanes.</h2>
+    <p class="section-copy">
+      More lanes are not automatically better. A lane is worth creating when it
+      gives an agent sharper context, durable memory, clear ownership, and a
+      different validation loop. Smaller specialist roles can stay as temporary
+      overlays until they deserve their own branch and worktree.
+    </p>
+    <div class="approach-grid">
+      <div class="principle-list">
+        <div class="principle">
+          <strong>Long-lived ownership</strong>
+          <span>The work will keep coming back and should accumulate memory.</span>
+        </div>
+        <div class="principle">
+          <strong>Explicit contract boundary</strong>
+          <span>The lane owns APIs, data contracts, provider contracts, or product surfaces.</span>
+        </div>
+        <div class="principle">
+          <strong>High-risk domain</strong>
+          <span>Auth, money movement, release, privacy, production recovery, or provider sync.</span>
+        </div>
+        <div class="principle">
+          <strong>Distinct validation loop</strong>
+          <span>Mobile simulator, backend tests, LLM evals, provider sandbox, or deployment checks.</span>
+        </div>
+        <div class="principle">
+          <strong>High context density</strong>
+          <span>The lane benefits from focused docs, memory, approved patterns, and local examples.</span>
+        </div>
+      </div>
+      <div class="catalog-panel">
+        <h3>Each lane template can carry an approved toolkit.</h3>
+        <ul>
+          <li>Recommended frameworks, packages, GitHub repos, and examples.</li>
+          <li>Approved architecture patterns such as retries, caching, RLS, logging, or API contract style.</li>
+          <li>Validation commands and handoff requirements for the lane.</li>
+          <li>Escalation gates for risky changes, credentials, providers, deploys, and data migrations.</li>
+          <li>Project-specific memory so agents do not rediscover the same decisions every session.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
   <section id="how">
     <div class="section-label">How it works</div>
-    <h2>A simple loop for agent work.</h2>
+    <h2>A simple loop for controlled parallel work.</h2>
     <p class="section-copy">
       The operator is the integration point. Worker agents do scoped work in
       isolated lanes. The operator reviews handoffs, promotes durable memory,
-      and merges only approved source changes.
+      checks dependencies, and merges only approved source changes.
     </p>
     <div class="steps">
       <div class="step">
@@ -694,16 +969,48 @@
         <span>Identify the system areas, contracts, agents, and validation commands.</span>
       </div>
       <div class="step">
-        <strong>2. Assign</strong>
-        <span>Create durable lanes only where ownership, risk, or context justify them.</span>
+        <strong>2. Recommend</strong>
+        <span>Choose durable lanes and attach approved patterns, tools, and validation rules.</span>
       </div>
       <div class="step">
-        <strong>3. Dispatch</strong>
-        <span>Send a small task packet with owned files, acceptance criteria, and memory.</span>
+        <strong>3. Approve</strong>
+        <span>Plan a dependency-safe batch instead of dispatching the roadmap linearly.</span>
       </div>
       <div class="step">
-        <strong>4. Review</strong>
-        <span>Collect the handoff, inspect the diff, capture memory, and integrate.</span>
+        <strong>4. Integrate</strong>
+        <span>Collect handoffs, inspect diffs, capture memory, and merge accepted source changes.</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="examples">
+    <div class="section-label">Example maps</div>
+    <h2>The same model adapts to different products.</h2>
+    <p class="section-copy">
+      The operator does not force every repo into the same frontend/backend
+      split. It maps the real production system, then recommends lanes that
+      match the product, risk, and validation model.
+    </p>
+    <div class="example-grid">
+      <div class="example-card">
+        <h3>Cadence-style training app</h3>
+        <div class="lane-list">
+          <div><strong>provider</strong><span>Strava and Wahoo sync, OAuth, rate limits</span></div>
+          <div><strong>mobile</strong><span>iOS screens, simulator checks, release readiness</span></div>
+          <div><strong>coach LLM</strong><span>prompting, retrieval, training-plan evaluation</span></div>
+          <div><strong>knowledge</strong><span>athlete context, workout library, domain memory</span></div>
+          <div><strong>backend</strong><span>activity schema, APIs, jobs, storage contracts</span></div>
+        </div>
+      </div>
+      <div class="example-card">
+        <h3>Investment or trading product</h3>
+        <div class="lane-list">
+          <div><strong>data</strong><span>market feeds, portfolio history, normalization</span></div>
+          <div><strong>risk</strong><span>guardrails, exposure, compliance-sensitive flows</span></div>
+          <div><strong>broker</strong><span>provider APIs, sandbox validation, order states</span></div>
+          <div><strong>research</strong><span>LLM summaries, document retrieval, citations</span></div>
+          <div><strong>ops</strong><span>audit trail, logs, recovery, deploy gates</span></div>
+        </div>
       </div>
     </div>
   </section>
@@ -743,9 +1050,10 @@
           <div><span class="key">Requirements:</span></div>
           <div>- inspect the repo first</div>
           <div>- install or migrate without overwriting project files</div>
-          <div>- recommend durable lanes for the project</div>
+          <div>- create a system map and recommend durable lanes</div>
+          <div>- include useful role templates and approved patterns</div>
           <div>- create the operator workspace outside the repo</div>
-          <div>- run smoke checks and report git status</div>
+          <div>- run smoke checks and report lane map, workspace, and git status</div>
         </div>
       </div>
     </div>
@@ -778,9 +1086,10 @@
     'Requirements:',
     '- inspect the repo first',
     '- install or migrate without overwriting project files',
-    '- recommend durable lanes for the project',
+    '- create a system map and recommend durable lanes',
+    '- include useful role templates and approved patterns',
     '- create the operator workspace outside the repo',
-    '- run smoke checks and report git status',
+    '- run smoke checks and report lane map, workspace, and git status',
   ].join('\n');
 
   document.getElementById('copy-prompt-btn').addEventListener('click', async function() {
