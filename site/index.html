@@ -123,9 +123,8 @@
 
   .hero {
     width: min(1180px, calc(100vw - 48px));
-    min-height: calc(100vh - 60px);
     margin: 0 auto;
-    padding: 7rem 0 5rem;
+    padding: 5.75rem 0 4rem;
     display: grid;
     grid-template-columns: 1.02fr 0.98fr;
     gap: 4rem;
@@ -199,111 +198,124 @@
     border-color: var(--accent);
   }
 
-  .hero-facts {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1rem;
-    margin-top: 3rem;
-    padding-top: 1.7rem;
-    border-top: 1px solid var(--border);
-  }
-
-  .fact-label {
-    margin-bottom: 0.45rem;
-    color: var(--fg3);
-    font-size: 0.63rem;
-    font-weight: 700;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-  }
-
-  .fact-value {
-    color: var(--fg);
-    font-size: 0.92rem;
-    font-weight: 800;
-  }
-
-  .operator-panel {
+  .operator-diagram {
     border: 1px solid var(--border2);
     border-radius: 8px;
     background: oklch(0.12 0.018 240 / 0.9);
-    overflow: hidden;
     box-shadow: 0 24px 90px oklch(0 0 0 / 0.26);
+    padding: 1rem;
   }
 
-  .panel-bar {
+  .diagram-label-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    min-height: 40px;
-    padding: 0 1rem;
-    border-bottom: 1px solid var(--border);
-    background: var(--bg2);
-  }
-
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
-
-  .dot.red { background: oklch(0.68 0.18 25); }
-  .dot.yellow { background: oklch(0.78 0.15 80); }
-  .dot.green { background: oklch(0.72 0.19 145); }
-
-  .panel-title {
-    margin-left: auto;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
     color: var(--fg3);
     font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
-  .panel-body {
-    padding: 1.35rem;
+  .agent-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-bottom: 1rem;
+  }
+
+  .agent-chip {
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
     color: var(--fg2);
-    font-size: 0.78rem;
-    line-height: 1.9;
-  }
-
-  .cmd {
-    color: var(--fg);
+    font-size: 0.68rem;
     font-weight: 700;
   }
 
-  .prompt {
-    color: var(--accent);
-    font-weight: 800;
+  .diagram-core {
+    border: 1px solid oklch(0.72 0.15 50 / 0.45);
+    border-radius: 8px;
+    background:
+      linear-gradient(135deg, oklch(0.72 0.15 50 / 0.13), transparent),
+      var(--bg2);
+    padding: 1.15rem;
   }
 
-  .ok {
-    color: var(--accent);
-  }
-
-  .lane-strip {
+  .diagram-core-top {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.8rem;
-    margin-top: 1rem;
+    grid-template-columns: 0.9fr auto 1.1fr;
+    align-items: center;
+    gap: 0.75rem;
   }
 
-  .lane {
+  .diagram-node {
     min-width: 0;
     border: 1px solid var(--border);
     border-radius: 6px;
+    background: var(--bg);
     padding: 0.85rem;
+  }
+
+  .diagram-node strong {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--fg);
+    font-size: 0.82rem;
+  }
+
+  .diagram-node span {
+    display: block;
+    color: var(--fg2);
+    font-size: 0.68rem;
+    line-height: 1.5;
+  }
+
+  .diagram-arrow {
+    color: var(--accent);
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+
+  .lane-map {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.85rem;
+  }
+
+  .lane-node {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.75rem;
     background: var(--bg);
   }
 
-  .lane-name {
+  .lane-node strong {
+    display: block;
     color: var(--accent);
     font-size: 0.72rem;
     font-weight: 800;
-    margin-bottom: 0.45rem;
+    margin-bottom: 0.25rem;
   }
 
-  .lane-copy {
+  .lane-node span {
+    display: block;
     color: var(--fg2);
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     line-height: 1.55;
+  }
+
+  .diagram-footer {
+    margin-top: 1rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.85rem;
+    color: var(--fg2);
+    font-size: 0.72rem;
+    line-height: 1.6;
   }
 
   section {
@@ -338,13 +350,14 @@
     line-height: 1.75;
   }
 
-  .card-grid {
+  .model-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
     margin-top: 2rem;
   }
 
+  .model-card,
   .card {
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -352,20 +365,25 @@
     background: var(--bg2);
   }
 
+  .model-card span,
   .card-num {
+    display: block;
     margin-bottom: 1rem;
     color: var(--accent);
     font-size: 0.66rem;
     font-weight: 800;
     letter-spacing: 0.11em;
+    text-transform: uppercase;
   }
 
+  .model-card h3,
   .card h3 {
     margin-bottom: 0.55rem;
     color: var(--fg);
     font-size: 1rem;
   }
 
+  .model-card p,
   .card p {
     color: var(--fg2);
     font-size: 0.84rem;
@@ -374,7 +392,7 @@
 
   .role-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 1rem;
     margin-top: 2rem;
   }
@@ -423,49 +441,37 @@
     font-size: 0.62rem;
   }
 
-  .steps {
+  .lane-principles {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 1px;
-    margin-top: 2rem;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--border);
-    overflow: hidden;
-  }
-
-  .approach-grid {
-    display: grid;
-    grid-template-columns: 0.9fr 1.1fr;
     gap: 1rem;
     margin-top: 2rem;
   }
 
-  .principle-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
+  .principle-tile {
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--border);
-    overflow: hidden;
-  }
-
-  .principle {
     padding: 1rem;
     background: var(--bg2);
   }
 
-  .principle strong {
+  .principle-tile span {
     display: block;
+    color: var(--accent);
+    font-size: 0.66rem;
+    font-weight: 800;
+    margin-bottom: 0.85rem;
+  }
+
+  .principle-tile h3 {
     color: var(--fg);
-    font-size: 0.86rem;
+    font-size: 0.94rem;
     margin-bottom: 0.35rem;
   }
 
-  .principle span {
+  .principle-tile p {
     color: var(--fg2);
-    font-size: 0.76rem;
+    font-size: 0.78rem;
     line-height: 1.55;
   }
 
@@ -473,7 +479,8 @@
     border: 1px solid var(--border2);
     border-radius: 8px;
     background: var(--bg2);
-    padding: 1.2rem;
+    padding: 1.15rem;
+    margin-top: 1rem;
   }
 
   .catalog-panel h3 {
@@ -503,29 +510,10 @@
     font-weight: 800;
   }
 
-  .step {
-    min-width: 0;
-    padding: 1.25rem;
-    background: var(--bg2);
-  }
-
-  .step strong {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--fg);
-    font-size: 0.9rem;
-  }
-
-  .step span {
-    color: var(--fg2);
-    font-size: 0.78rem;
-    line-height: 1.6;
-  }
-
   .start-grid {
     display: grid;
-    grid-template-columns: 0.9fr 1.1fr;
-    gap: 2rem;
+    grid-template-columns: 0.92fr 1.08fr;
+    gap: 1rem;
     align-items: start;
     margin-top: 2rem;
   }
@@ -620,14 +608,24 @@
       gap: 2.2rem;
     }
 
+    .diagram-core-top {
+      grid-template-columns: 1fr;
+    }
+
+    .diagram-arrow {
+      display: none;
+    }
+
+    .model-grid,
+    .lane-principles {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     h1 {
       font-size: 3.1rem;
     }
 
-    .card-grid,
     .role-grid,
-    .approach-grid,
-    .steps,
     .start-grid {
       grid-template-columns: 1fr;
     }
@@ -680,8 +678,9 @@
       font-size: 0.88rem;
     }
 
-    .hero-facts,
-    .lane-strip {
+    .model-grid,
+    .lane-principles,
+    .lane-map {
       grid-template-columns: 1fr;
     }
 
@@ -699,7 +698,7 @@
     operator-kit
   </a>
   <ul class="nav-links">
-    <li><a href="#value">Value</a></li>
+    <li><a href="#model">Model</a></li>
     <li><a href="#agents">Agents</a></li>
     <li><a href="#approach">Approach</a></li>
     <li><a href="#start">Start</a></li>
@@ -721,83 +720,75 @@
         <a class="button button-primary" href="#start">Start with an agent</a>
         <a class="button button-secondary" href="https://github.com/Agent-Operator-Kit/operator-kit" target="_blank">View repository</a>
       </div>
-      <div class="hero-facts">
-        <div>
-          <div class="fact-label">Why</div>
-          <div class="fact-value">Parallel agents without chaos</div>
-        </div>
-        <div>
-          <div class="fact-label">How</div>
-          <div class="fact-value">Role catalog, lanes, batches</div>
-        </div>
-        <div>
-          <div class="fact-label">Where</div>
-          <div class="fact-value">Codex / Claude Code / Cursor</div>
-        </div>
-      </div>
     </div>
 
     <div>
-      <div class="operator-panel" aria-label="Operator loop panel">
-        <div class="panel-bar">
-          <span class="dot red"></span>
-          <span class="dot yellow"></span>
-          <span class="dot green"></span>
-          <span class="panel-title">operator loop</span>
+      <div class="operator-diagram" aria-label="Operator Kit coordination diagram">
+        <div class="diagram-label-row">
+          <span>existing coding agents</span>
+          <span>operator layer</span>
         </div>
-        <div class="panel-body">
-          <div><span class="prompt">operator</span> map production reality</div>
-          <div><span class="ok">ok</span> frontend · API · database · auth · deploy · observability</div>
-          <div><span class="ok">ok</span> provider integrations · mobile release · LLM runtime</div>
-          <br>
-          <div><span class="prompt">catalog</span> recommend specialist lanes</div>
-          <div><span class="ok">ok</span> provider-integration uses approved retry/cache pattern</div>
-          <div><span class="ok">ok</span> mobile-release uses simulator and build validation</div>
-          <br>
-          <div><span class="prompt">batch</span> dispatch only non-conflicting tasks</div>
+        <div class="agent-row">
+          <span class="agent-chip">Codex</span>
+          <span class="agent-chip">Claude Code</span>
+          <span class="agent-chip">Cursor</span>
+          <span class="agent-chip">other agents</span>
         </div>
-      </div>
-      <div class="lane-strip">
-        <div class="lane">
-          <div class="lane-name">provider</div>
-          <div class="lane-copy">external API contracts and sync rules</div>
-        </div>
-        <div class="lane">
-          <div class="lane-name">mobile</div>
-          <div class="lane-copy">iOS build, simulator, release states</div>
-        </div>
-        <div class="lane">
-          <div class="lane-name">LLM runtime</div>
-          <div class="lane-copy">prompts, retrieval, safety, evals</div>
+        <div class="diagram-core">
+          <div class="diagram-core-top">
+            <div class="diagram-node">
+              <strong>Roadmap + feedback</strong>
+              <span>bugs, ideas, browser notes, mobile evidence, production risks</span>
+            </div>
+            <div class="diagram-arrow">-&gt;</div>
+            <div class="diagram-node">
+              <strong>Operator</strong>
+              <span>maps the system, picks lanes, checks dependencies, approves dispatch</span>
+            </div>
+          </div>
+          <div class="lane-map">
+            <div class="lane-node"><strong>API lane</strong><span>contracts, migrations, backend validation</span></div>
+            <div class="lane-node"><strong>UI lane</strong><span>screens, states, design-system changes</span></div>
+            <div class="lane-node"><strong>Integration lane</strong><span>providers, OAuth, webhooks, retries</span></div>
+            <div class="lane-node"><strong>Release lane</strong><span>CI, logs, deploys, recovery checks</span></div>
+          </div>
+          <div class="diagram-footer">
+            Worker agents return handoffs and memory. The operator reviews the diffs and only approved source changes land on the stable branch.
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="value">
-    <div class="section-label">Value</div>
-    <h2>Use it when one agent is no longer enough.</h2>
+  <section id="model">
+    <div class="section-label">Why add it</div>
+    <h2>Agents write code. Operator Kit coordinates the work.</h2>
     <p class="section-copy">
-      Real projects have more than frontend and backend. They have provider
-      integrations, mobile apps, auth, storage, deployment, knowledge bases,
-      observability, and release work. Operator Kit gives each slice a clear
-      boundary so agents can specialize without trampling each other.
+      If you already live in Codex, Claude Code, and Cursor, the hard part is
+      no longer getting code generated. The hard part is deciding which agent
+      owns which slice, what context it should remember, which patterns it must
+      follow, which tasks can run in parallel, and what is safe to merge.
     </p>
-    <div class="card-grid">
-      <div class="card">
-        <div class="card-num">01</div>
-        <h3>More parallel work</h3>
-        <p>Run multiple agents at once by assigning each one a lane, branch, task packet, and validation target.</p>
+    <div class="model-grid">
+      <div class="model-card">
+        <span>Lane ownership</span>
+        <h3>One agent, one boundary.</h3>
+        <p>Each lane has its own branch, task packet, owned files, validation target, and handoff expectations.</p>
       </div>
-      <div class="card">
-        <div class="card-num">02</div>
-        <h3>Cleaner source control</h3>
-        <p>Keep raw handoffs, screenshots, scratch notes, memory, and task files outside the app repo.</p>
+      <div class="model-card">
+        <span>Shared memory</span>
+        <h3>Project decisions survive the chat.</h3>
+        <p>Durable facts, handoff summaries, and lane context live outside the app repo but stay available to agents.</p>
       </div>
-      <div class="card">
-        <div class="card-num">03</div>
-        <h3>Better consistency</h3>
-        <p>Use approved patterns, role templates, and lane memory so agents reuse the same project decisions.</p>
+      <div class="model-card">
+        <span>Approved patterns</span>
+        <h3>Agents reuse the architecture.</h3>
+        <p>Role templates can carry recommended packages, repos, frameworks, validation commands, and solution patterns.</p>
+      </div>
+      <div class="model-card">
+        <span>Batch control</span>
+        <h3>Parallel work stays reviewable.</h3>
+        <p>The operator approves non-conflicting work groups instead of launching autonomous agents into the same files.</p>
       </div>
     </div>
   </section>
@@ -831,15 +822,15 @@
       </div>
       <div class="role-card">
         <div class="role-type">experience</div>
-        <h3>UX / Design Agent</h3>
-        <p>Reviews flows, design consistency, component drift, and prepares UI work for Claude Code or a UI lane.</p>
-        <div class="tag-row"><span class="tag">UX</span><span class="tag">tokens</span><span class="tag">tasks</span></div>
+        <h3>UX Auditor</h3>
+        <p>Scores product flows against persona, journey, usability, accessibility, and business-fit risk.</p>
+        <div class="tag-row"><span class="tag">score</span><span class="tag">journey</span><span class="tag">risk</span></div>
       </div>
       <div class="role-card">
-        <div class="role-type">product surface</div>
-        <h3>Mobile App Agent</h3>
-        <p>Owns simulator validation, release states, native platform issues, app store risk, and mobile UX defects.</p>
-        <div class="tag-row"><span class="tag">iOS</span><span class="tag">simulator</span><span class="tag">release</span></div>
+        <div class="role-type">interface</div>
+        <h3>Design / UI Agent</h3>
+        <p>Reviews component drift, UI states, design-system fit, and prepares implementation-ready screen work.</p>
+        <div class="tag-row"><span class="tag">tokens</span><span class="tag">states</span><span class="tag">handoff</span></div>
       </div>
       <div class="role-card">
         <div class="role-type">contracts</div>
@@ -848,16 +839,34 @@
         <div class="tag-row"><span class="tag">API</span><span class="tag">DB</span><span class="tag">tests</span></div>
       </div>
       <div class="role-card">
+        <div class="role-type">platform</div>
+        <h3>Data / Auth Agent</h3>
+        <p>Owns permissions, RLS, identities, storage policy, privacy-sensitive flows, and access regressions.</p>
+        <div class="tag-row"><span class="tag">auth</span><span class="tag">RLS</span><span class="tag">privacy</span></div>
+      </div>
+      <div class="role-card">
         <div class="role-type">providers</div>
         <h3>Integration Agent</h3>
         <p>Handles third-party APIs, OAuth, provider sandboxes, webhooks, retries, and sync logic.</p>
         <div class="tag-row"><span class="tag">OAuth</span><span class="tag">retry</span><span class="tag">webhooks</span></div>
       </div>
       <div class="role-card">
+        <div class="role-type">product surface</div>
+        <h3>Mobile / Native Agent</h3>
+        <p>Owns simulator validation, release states, native platform issues, app store risk, and mobile defects.</p>
+        <div class="tag-row"><span class="tag">iOS</span><span class="tag">simulator</span><span class="tag">release</span></div>
+      </div>
+      <div class="role-card">
         <div class="role-type">intelligence</div>
         <h3>LLM / Knowledge Agent</h3>
-        <p>Owns prompts, retrieval, knowledge base structure, evals, context windows, and safety constraints.</p>
+        <p>Owns prompts, retrieval, knowledge-base structure, evals, context windows, and safety constraints.</p>
         <div class="tag-row"><span class="tag">RAG</span><span class="tag">evals</span><span class="tag">memory</span></div>
+      </div>
+      <div class="role-card">
+        <div class="role-type">validation</div>
+        <h3>QA / Test Agent</h3>
+        <p>Owns regression plans, smoke checks, acceptance coverage, edge cases, and reproducible failure notes.</p>
+        <div class="tag-row"><span class="tag">smoke</span><span class="tag">coverage</span><span class="tag">bugs</span></div>
       </div>
       <div class="role-card">
         <div class="role-type">operations</div>
@@ -869,92 +878,58 @@
   </section>
 
   <section id="approach">
-    <div class="section-label">Approach</div>
-    <h2>The hard part is cutting the system into useful lanes.</h2>
+    <div class="section-label">Lane strategy</div>
+    <h2>Split by context, contract, risk, and validation.</h2>
     <p class="section-copy">
-      More lanes are not automatically better. A lane is worth creating when it
-      gives an agent sharper context, durable memory, clear ownership, and a
-      different validation loop. Smaller specialist roles can stay as temporary
-      overlays until they deserve their own branch and worktree.
+      More lanes are not automatically better. Create a durable lane only when
+      the agent needs a different context pack, ownership boundary, risk model,
+      or proof of correctness. Smaller specialists can stay as role overlays
+      until the work repeats enough to deserve its own branch and memory.
     </p>
-    <div class="approach-grid">
-      <div class="principle-list">
-        <div class="principle">
-          <strong>Long-lived ownership</strong>
-          <span>The work will keep coming back and should accumulate memory.</span>
-        </div>
-        <div class="principle">
-          <strong>Explicit contract boundary</strong>
-          <span>The lane owns APIs, data contracts, provider contracts, or product surfaces.</span>
-        </div>
-        <div class="principle">
-          <strong>High-risk domain</strong>
-          <span>Auth, credentials, release, privacy, production recovery, or provider sync.</span>
-        </div>
-        <div class="principle">
-          <strong>Distinct validation loop</strong>
-          <span>Mobile simulator, backend tests, LLM evals, provider sandbox, or deployment checks.</span>
-        </div>
-        <div class="principle">
-          <strong>High context density</strong>
-          <span>The lane benefits from focused docs, memory, approved patterns, and local references.</span>
-        </div>
+    <div class="lane-principles">
+      <div class="principle-tile">
+        <span>01</span>
+        <h3>Contract</h3>
+        <p>The lane owns a surface such as API, data, auth, mobile, provider sync, or release.</p>
       </div>
-      <div class="catalog-panel">
-        <h3>Each lane template can carry an approved toolkit.</h3>
-        <ul>
-          <li>Recommended frameworks, packages, GitHub repos, and reference patterns.</li>
-          <li>Approved architecture patterns such as retries, caching, RLS, logging, or API contract style.</li>
-          <li>Validation commands and handoff requirements for the lane.</li>
-          <li>Escalation gates for risky changes, credentials, providers, deploys, and data migrations.</li>
-          <li>Project-specific memory so agents do not rediscover the same decisions every session.</li>
-        </ul>
+      <div class="principle-tile">
+        <span>02</span>
+        <h3>Context</h3>
+        <p>The work has dense local knowledge, docs, decisions, and approved patterns worth remembering.</p>
+      </div>
+      <div class="principle-tile">
+        <span>03</span>
+        <h3>Risk</h3>
+        <p>The lane touches credentials, payments, privacy, deploys, production recovery, or external providers.</p>
+      </div>
+      <div class="principle-tile">
+        <span>04</span>
+        <h3>Validation</h3>
+        <p>The work needs a different proof loop: simulator, backend tests, provider sandbox, evals, or smoke checks.</p>
       </div>
     </div>
-  </section>
-
-  <section id="how">
-    <div class="section-label">How it works</div>
-    <h2>A simple loop for controlled parallel work.</h2>
-    <p class="section-copy">
-      The operator is the integration point. Worker agents do scoped work in
-      isolated lanes. The operator reviews handoffs, promotes durable memory,
-      checks dependencies, and merges only approved source changes.
-    </p>
-    <div class="steps">
-      <div class="step">
-        <strong>1. Map</strong>
-        <span>Identify the system areas, contracts, agents, and validation commands.</span>
-      </div>
-      <div class="step">
-        <strong>2. Recommend</strong>
-        <span>Choose durable lanes and attach approved patterns, tools, and validation rules.</span>
-      </div>
-      <div class="step">
-        <strong>3. Approve</strong>
-        <span>Plan a dependency-safe batch instead of dispatching the roadmap linearly.</span>
-      </div>
-      <div class="step">
-        <strong>4. Integrate</strong>
-        <span>Collect handoffs, inspect diffs, capture memory, and merge accepted source changes.</span>
-      </div>
+    <div class="catalog-panel">
+      <h3>Lane templates act like architecture patterns for agents.</h3>
+      <ul>
+        <li>Recommended frameworks, packages, GitHub repos, and reference implementations.</li>
+        <li>Approved solution patterns such as retries, caching, RLS, logging, API contracts, and release gates.</li>
+        <li>Validation commands, handoff requirements, escalation rules, and project-specific memory.</li>
+      </ul>
     </div>
   </section>
 
   <section id="start">
     <div class="section-label">Start</div>
-    <h2>Install it by asking an agent.</h2>
+    <h2>Ask an agent to install or update it.</h2>
     <p class="section-copy">
-      Open Codex, Claude Code, Cursor, or another coding agent in the target
-      repo and paste the prompt. The agent should inspect first, install or
-      migrate the kit, recommend lanes, and report what changed.
+      Open Codex, Claude Code, Cursor, or another coding agent in the target repo.
+      Paste the prompt, or run the local command from this checkout.
     </p>
     <div class="start-grid">
       <div class="card">
-        <div class="card-num">Manual command</div>
-        <h3>From a local checkout</h3>
+        <div class="card-num">Command</div>
+        <h3>Install or migrate a repo</h3>
         <p>
-          Clone this repository, then run
           <code>bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing</code>.
         </p>
       </div>
@@ -964,22 +939,13 @@
           <button class="copy-btn" id="copy-prompt-btn" type="button">copy</button>
         </div>
         <div class="prompt-body" id="prompt-text">
-          <div>Install or initialize Agent Operator Kit for this repo.</div>
+          <div>Install or update Agent Operator Kit for this repo.</div>
           <br>
-          <div><span class="key">Use this source kit:</span></div>
+          <div><span class="key">Source:</span></div>
           <div><span class="val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
           <br>
-          <div>First clone or read the kit, then follow:</div>
-          <div><span class="val">templates/prompts/agent-run-bootstrap.md</span></div>
-          <div><span class="val">docs/guides/agent-run-bootstrap.md</span></div>
-          <br>
-          <div><span class="key">Requirements:</span></div>
-          <div>- inspect the repo first</div>
-          <div>- install or migrate without overwriting project files</div>
-          <div>- create a system map and recommend durable lanes</div>
-          <div>- include useful role templates and approved patterns</div>
-          <div>- create the operator workspace outside the repo</div>
-          <div>- run smoke checks and report lane map, workspace, and git status</div>
+          <div>Inspect first. If the kit is missing, bootstrap it. If it is installed, update it.</div>
+          <div>Recommend lanes, create the operator workspace outside the repo, run checks, and report the lane map plus git status.</div>
         </div>
       </div>
     </div>
@@ -1000,26 +966,38 @@
 
 <script>
   const promptText = [
-    'Install or initialize Agent Operator Kit for this repo.',
+    'Install or update Agent Operator Kit for this repo.',
     '',
-    'Use this source kit:',
+    'Source:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'First clone or read the kit, then follow:',
-    'templates/prompts/agent-run-bootstrap.md',
-    'docs/guides/agent-run-bootstrap.md',
-    '',
-    'Requirements:',
-    '- inspect the repo first',
-    '- install or migrate without overwriting project files',
-    '- create a system map and recommend durable lanes',
-    '- include useful role templates and approved patterns',
-    '- create the operator workspace outside the repo',
-    '- run smoke checks and report lane map, workspace, and git status',
+    'Inspect first. If the kit is missing, bootstrap it. If it is installed, update it.',
+    'Recommend lanes, create the operator workspace outside the repo, run checks, and report the lane map plus git status.',
   ].join('\n');
 
+  async function copyPromptText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return;
+      } catch (error) {
+        // Local file previews can expose Clipboard API while denying writes.
+      }
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+  }
+
   document.getElementById('copy-prompt-btn').addEventListener('click', async function() {
-    await navigator.clipboard.writeText(promptText);
+    await copyPromptText(promptText);
     this.textContent = 'copied';
     window.setTimeout(() => {
       this.textContent = 'copy';
