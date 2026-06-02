@@ -512,10 +512,27 @@
 
   .start-grid {
     display: grid;
-    grid-template-columns: 0.92fr 1.08fr;
+    grid-template-columns: 1fr;
     gap: 1rem;
     align-items: start;
-    margin-top: 2rem;
+    max-width: 780px;
+    margin-top: 1.4rem;
+  }
+
+  .start-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 1.35rem;
+  }
+
+  .start-tools span {
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    color: var(--fg2);
+    font-size: 0.68rem;
+    font-weight: 700;
   }
 
   .prompt-card {
@@ -920,22 +937,21 @@
 
   <section id="start">
     <div class="section-label">Start</div>
-    <h2>Ask an agent to install or update it.</h2>
+    <h2>Start from Codex, Cursor, or Claude Code.</h2>
     <p class="section-copy">
-      Open Codex, Claude Code, Cursor, or another coding agent in the target repo.
-      Paste the prompt, or run the local command from this checkout.
+      Open the target repo in your agent chat and paste this prompt. The agent
+      should inspect first, then install or update the kit and report what
+      changed.
     </p>
+    <div class="start-tools" aria-label="Supported agent chats">
+      <span>Codex</span>
+      <span>Cursor</span>
+      <span>Claude Code</span>
+    </div>
     <div class="start-grid">
-      <div class="card">
-        <div class="card-num">Command</div>
-        <h3>Install or migrate a repo</h3>
-        <p>
-          <code>bash scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing</code>.
-        </p>
-      </div>
       <div class="prompt-card">
         <div class="prompt-card-bar">
-          <span>copy/paste prompt</span>
+          <span>prompt for agent chat</span>
           <button class="copy-btn" id="copy-prompt-btn" type="button">copy</button>
         </div>
         <div class="prompt-body" id="prompt-text">
@@ -944,8 +960,9 @@
           <div><span class="key">Source:</span></div>
           <div><span class="val">git@github.com:Agent-Operator-Kit/operator-kit.git</span></div>
           <br>
-          <div>Inspect first. If the kit is missing, bootstrap it. If it is installed, update it.</div>
-          <div>Recommend lanes, create the operator workspace outside the repo, run checks, and report the lane map plus git status.</div>
+          <div>Inspect the repo first. If Operator Kit is missing, bootstrap it. If it is already installed, update it.</div>
+          <div>Do not overwrite project-specific files.</div>
+          <div>Recommend a lane map, create or verify the operator workspace outside the repo, run checks, and report what changed, OPERATOR_DIR, lane map, and git status.</div>
         </div>
       </div>
     </div>
@@ -971,8 +988,9 @@
     'Source:',
     'git@github.com:Agent-Operator-Kit/operator-kit.git',
     '',
-    'Inspect first. If the kit is missing, bootstrap it. If it is installed, update it.',
-    'Recommend lanes, create the operator workspace outside the repo, run checks, and report the lane map plus git status.',
+    'Inspect the repo first. If Operator Kit is missing, bootstrap it. If it is already installed, update it.',
+    'Do not overwrite project-specific files.',
+    'Recommend a lane map, create or verify the operator workspace outside the repo, run checks, and report what changed, OPERATOR_DIR, lane map, and git status.',
   ].join('\n');
 
   async function copyPromptText(text) {
