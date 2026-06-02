@@ -71,12 +71,21 @@ project_root="$(dirname "$code_dir")"
 default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)"
 [ -n "$default_branch" ] || default_branch="$(git -C "$repo_root" branch --show-current)"
 [ -n "$default_branch" ] || default_branch="main"
+obsolete_cursor_skills=(product-manager)
 
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   mkdir -p "$repo_root/.cursor/skills/$cursor_skill"
+done
+
+for cursor_skill in "${obsolete_cursor_skills[@]}"; do
+  rm -rf \
+    "$repo_root/.cursor/skills/$cursor_skill" \
+    "$repo_root/.cursor/rules/$cursor_skill.mdc" \
+    "$repo_root/.claude/agents/$cursor_skill.md" \
+    "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
 for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do

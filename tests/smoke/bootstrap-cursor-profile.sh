@@ -13,6 +13,8 @@ git -C "$tmp_root/code/app" config user.name "Smoke Test"
 printf '# Cursor Smoke\n' > "$tmp_root/code/app/README.md"
 git -C "$tmp_root/code/app" add README.md
 git -C "$tmp_root/code/app" commit -m 'init' >/dev/null
+mkdir -p "$tmp_root/code/app/.cursor/skills/product-manager"
+printf '# Legacy Product Manager\n' > "$tmp_root/code/app/.cursor/skills/product-manager/SKILL.md"
 
 bash "$KIT_ROOT/scripts/operator-bootstrap.sh" --profile cursor "$tmp_root/code/app"
 
@@ -31,6 +33,7 @@ test -f ".cursor/rules/operator-workflow.mdc"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   test -f ".cursor/skills/$cursor_skill/SKILL.md"
 done
+test ! -e ".cursor/skills/product-manager"
 test -f ".cursor/environment.json.example"
 test -f "scripts/operator-catalog.sh"
 test -f "scripts/operator-system-map.sh"

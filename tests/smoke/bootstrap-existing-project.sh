@@ -13,6 +13,8 @@ git -C "$tmp_root/code/app" config user.name "Smoke Test"
 printf '# Smoke\n' > "$tmp_root/code/app/README.md"
 git -C "$tmp_root/code/app" add README.md
 git -C "$tmp_root/code/app" commit -m 'init' >/dev/null
+mkdir -p "$tmp_root/code/app/.cursor/skills/product-manager"
+printf '# Legacy Product Manager\n' > "$tmp_root/code/app/.cursor/skills/product-manager/SKILL.md"
 
 bash "$KIT_ROOT/scripts/operator-bootstrap.sh" "$tmp_root/code/app"
 
@@ -43,6 +45,7 @@ test -f "$tmp_root/code/app/.cursor/rules/operator-workflow.mdc"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   test -f "$tmp_root/code/app/.cursor/skills/$cursor_skill/SKILL.md"
 done
+test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
 test -f "$tmp_root/code/app/.cursor/environment.json.example"
 test ! -d "$tmp_root/code/app/operator"
 test -f "$tmp_root/operator/catalog/README.md"
@@ -100,6 +103,24 @@ bash scripts/operator-roadmap.sh add "Mobile polish" \
   --required-roles mobile-app \
   --contracts mobile-home >/dev/null
 bash scripts/operator-plan-batch.sh | grep -q 'RM-0002'
+
+mkdir -p "$tmp_root/code/app/.cursor/skills/product-manager"
+printf '# Legacy Product Manager\n' > "$tmp_root/code/app/.cursor/skills/product-manager/SKILL.md"
+bash "$KIT_ROOT/scripts/operator-update.sh" \
+  --source "$KIT_ROOT" \
+  --target "$tmp_root/code/app" \
+  --no-fetch >/dev/null
+test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
+
+codex_home="$tmp_root/codex-home"
+mkdir -p "$codex_home/skills/product-manager"
+printf '# Legacy Product Manager\n' > "$codex_home/skills/product-manager/SKILL.md"
+bash "$KIT_ROOT/scripts/codex-skills-install.sh" \
+  --source "$KIT_ROOT" \
+  --codex-home "$codex_home" \
+  --no-fetch >/dev/null
+test ! -e "$codex_home/skills/product-manager"
+test -f "$codex_home/skills/operator-planner/SKILL.md"
 
 bash "$KIT_ROOT/scripts/operator-upgrade.sh" \
   --source "$KIT_ROOT" \

@@ -34,6 +34,7 @@ DRY_RUN=0
 LIST_ONLY=0
 TMP_ROOT=""
 REQUESTED_SKILLS=()
+OBSOLETE_SKILLS=(product-manager)
 
 cleanup() {
   if [ -n "$TMP_ROOT" ] && [ -d "$TMP_ROOT" ]; then
@@ -134,6 +135,26 @@ list_skills() {
   done
 }
 
+remove_obsolete_skills() {
+  local skill
+  local dest
+
+  for skill in "${OBSOLETE_SKILLS[@]}"; do
+    dest="$CODEX_HOME_DIR/skills/$skill"
+    if [ ! -e "$dest" ] && [ ! -L "$dest" ]; then
+      continue
+    fi
+
+    if [ "$DRY_RUN" -eq 1 ]; then
+      printf 'Would remove obsolete Codex skill %s -> %s\n' "$skill" "$dest"
+      continue
+    fi
+
+    rm -rf "$dest"
+    printf 'removed obsolete Codex skill %s -> %s\n' "$skill" "$dest"
+  done
+}
+
 install_skill() {
   local skill="$1"
   local src="$SOURCE_PATH/skills/codex/$skill"
@@ -193,6 +214,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
 fi
 printf '\n'
+
+remove_obsolete_skills
 
 for skill in "${REQUESTED_SKILLS[@]}"; do
   install_skill "$skill"

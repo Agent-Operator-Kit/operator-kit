@@ -24,6 +24,7 @@ TARGET_REPO=""
 DRY_RUN=0
 NO_FETCH=0
 TMP_ROOT=""
+OBSOLETE_CURSOR_SKILLS=(product-manager)
 
 cleanup() {
   if [ -n "$TMP_ROOT" ] && [ -d "$TMP_ROOT" ]; then
@@ -107,7 +108,7 @@ SOURCE_REVISION="$(git -C "$SOURCE_PATH" rev-parse --short HEAD 2>/dev/null || p
 
 REPORT_DIR="$(mktemp -d /tmp/operator-kit-update-report.XXXXXX)"
 trap 'rm -rf "$REPORT_DIR"; cleanup' EXIT
-touch "$REPORT_DIR/updated" "$REPORT_DIR/installed" "$REPORT_DIR/preserved" "$REPORT_DIR/unchanged" "$REPORT_DIR/planned"
+touch "$REPORT_DIR/updated" "$REPORT_DIR/installed" "$REPORT_DIR/preserved" "$REPORT_DIR/unchanged" "$REPORT_DIR/removed" "$REPORT_DIR/planned"
 
 record() {
   printf '%s\n' "$2" >> "$REPORT_DIR/$1"
@@ -146,6 +147,34 @@ copy_refresh() {
   else
     record installed "$label"
   fi
+}
+
+remove_obsolete_path() {
+  local path="$1"
+  local label="$2"
+
+  if [ ! -e "$path" ] && [ ! -L "$path" ]; then
+    return 0
+  fi
+
+  if [ "$DRY_RUN" -eq 1 ]; then
+    record planned "remove obsolete $label"
+    return 0
+  fi
+
+  rm -rf "$path"
+  record removed "$label"
+}
+
+remove_obsolete_project_assets() {
+  local skill
+
+  for skill in "${OBSOLETE_CURSOR_SKILLS[@]}"; do
+    remove_obsolete_path "$TARGET_REPO/.cursor/skills/$skill" ".cursor/skills/$skill"
+    remove_obsolete_path "$TARGET_REPO/.cursor/rules/$skill.mdc" ".cursor/rules/$skill.mdc"
+    remove_obsolete_path "$TARGET_REPO/.claude/agents/$skill.md" ".claude/agents/$skill.md"
+    remove_obsolete_path "$TARGET_REPO/.claude/commands/$skill.md" ".claude/commands/$skill.md"
+  done
 }
 
 install_missing() {
@@ -191,6 +220,8 @@ append_gitignore_snippet() {
 # shellcheck source=/dev/null
 source "$TARGET_REPO/operator.config.env"
 : "${OPERATOR_DIR:?OPERATOR_DIR is required in operator.config.env}"
+
+remove_obsolete_project_assets
 
 mkdir -p "$TARGET_REPO/scripts"
 for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
@@ -269,6 +300,9 @@ print_list "$REPORT_DIR/installed"
 
 print_section "Preserved Project-Specific"
 print_list "$REPORT_DIR/preserved"
+
+print_section "Removed Obsolete"
+print_list "$REPORT_DIR/removed"
 
 print_section "Unchanged"
 print_list "$REPORT_DIR/unchanged"
