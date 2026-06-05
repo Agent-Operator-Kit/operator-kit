@@ -37,7 +37,7 @@ EPISODES_DIR="$MEMORY_DIR/episodes"
 PACKS_DIR="$MEMORY_DIR/packs"
 
 memory_init() {
-  mkdir -p "$EPISODES_DIR" "$PACKS_DIR"
+  mkdir -p "$EPISODES_DIR" "$PACKS_DIR" "$OPERATOR_DIR/tasks"
 
   if [ ! -f "$MEMORY_DIR/project.md" ]; then
     cat > "$MEMORY_DIR/project.md" <<'EOF'

@@ -25,6 +25,7 @@ safety and implementation handoff.
 
 1. Detect the Operator Kit project the same way `$operator` does:
    - walk upward for `operator.config.env`;
+   - if needed, check the scoped project-root layout `code/*/operator.config.env`;
    - if needed, check sibling worktrees for the canonical project.
 2. Read `operator.config.env` and `AGENTS.md`.
 3. Inspect local state:

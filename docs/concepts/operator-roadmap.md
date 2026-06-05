@@ -170,7 +170,7 @@ The v1 loop:
 2. The human tests in simulator or TestFlight.
 3. Captures land under the task:
    ```bash
-   bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"
+   bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Chat input overlaps"
    ```
 4. The review UI opens in Codex Browser:
    ```bash
@@ -236,7 +236,7 @@ added later without changing how agents reason about roadmap items.
 
 ```bash
 bash scripts/operator-roadmap.sh init
-bash scripts/operator-roadmap.sh add "Coach chat polish" --type bug --priority P1 --areas mobile
+bash scripts/operator-roadmap.sh add "Mobile chat polish" --type bug --priority P1 --areas mobile
 bash scripts/operator-roadmap.sh list
 bash scripts/operator-roadmap.sh status
 bash scripts/operator-roadmap.sh ready
@@ -245,7 +245,7 @@ bash scripts/operator-roadmap.sh pr-note RM-0001 --feedback FB-0001 --task mobil
 
 bash scripts/operator-feedback.sh detect
 bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
-bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlap"
+bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Chat input overlap"
 bash scripts/operator-feedback.sh review mobile-feedback-20260522
 bash scripts/operator-feedback.sh triage mobile-feedback-20260522
 ```

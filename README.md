@@ -85,6 +85,15 @@ cd operator-kit
 bash scripts/operator-sync.sh --target /path/to/your/repo --bootstrap-if-missing
 ```
 
+For an empty scoped project root, point sync at the root folder. It will create
+`code/app` as the canonical repo worktree and keep Operator state beside
+`code/`:
+
+```bash
+mkdir -p "$HOME/Projects/acme"
+bash scripts/operator-sync.sh --target "$HOME/Projects/acme" --bootstrap-if-missing
+```
+
 ## Recommended Layout
 
 ```text

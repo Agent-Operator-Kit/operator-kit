@@ -27,6 +27,7 @@ user-journey      = persona, ICP, journey map, blueprint, and storyboard artifac
 
 1. Resolve the Operator Kit project:
    - walk upward until `operator.config.env` is found;
+   - if needed, check the scoped project-root layout `code/*/operator.config.env`;
    - if needed, check sibling worktrees for the canonical project.
 2. Read `operator.config.env` and `AGENTS.md`.
 3. Confirm the install has `scripts/operator-status.sh`,

@@ -18,7 +18,7 @@
 ## Consistency Rules
 
 - Structured logs should include correlation context.
-- Do not log secrets, tokens, personal health data, or live-money sensitive details.
+- Do not log secrets, tokens, personal data, regulated data, or safety-critical details.
 - Health checks should distinguish app, dependency, and database status when possible.
 
 ## Validation

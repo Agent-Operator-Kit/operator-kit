@@ -29,9 +29,15 @@ artifacts, and `$operator` when work is ready to become execution.
 Before operator work, resolve the project root:
 
 1. Starting from `pwd`, walk upward until `operator.config.env` is found.
-2. If no config is found upward, check sibling worktrees by walking upward and looking for immediate child directories that contain `operator.config.env`; this handles starting from `code/app-backend` while the canonical repo is `code/app`.
-3. If multiple candidate configs are found, ask the user which project root to operate.
-4. Confirm these scripts exist next to the selected config:
+2. If no config is found upward, check the scoped project-root layout
+   `code/*/operator.config.env`; this lets the operator work when the chat is
+   opened at the top-level project folder.
+3. If no scoped root config is found, check sibling worktrees by walking upward
+   and looking for immediate child directories that contain
+   `operator.config.env`; this handles starting from `code/app-backend` while
+   the canonical repo is `code/app`.
+4. If multiple candidate configs are found, ask the user which project root to operate.
+5. Confirm these scripts exist next to the selected config:
    - `scripts/operator-status.sh`
    - `scripts/operator-tmux.sh`
    - `scripts/operator-task.sh`
@@ -43,10 +49,10 @@ Before operator work, resolve the project root:
    - `scripts/operator-system-map.sh`
    - `scripts/operator-plan-batch.sh`
    - `scripts/operator-upgrade.sh`
-5. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
-6. Read `operator.config.env`.
-7. Read `AGENTS.md` if present.
-8. Classify the install:
+6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
+7. Read `operator.config.env`.
+8. Read `AGENTS.md` if present.
+9. Classify the install:
    - `installed`: config and required scripts exist, and `bash scripts/operator-status.sh` runs.
    - `partial`: some detection files exist, but required files are missing or status fails.
    - `not-installed`: no reliable Operator Kit signals were found.
@@ -145,7 +151,7 @@ bash scripts/operator-upgrade.sh --projects-root /path/to/projects
 If the current project does not have `scripts/operator-upgrade.sh`, run it from the local kit source when available:
 
 ```bash
-bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-upgrade.sh
+bash "$HOME/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-upgrade.sh"
 ```
 
 If no local source exists, use the latest GitHub source as the fallback:
@@ -313,17 +319,17 @@ them into durable source or docs.
 
 ## Incubation Collaboration
 
-When the user asks about ideas, idea folders, product framing, promotion readiness, archiving, prioritization, or moving an idea from `/Users/norbert/Incubation` into a real Operator Kit project:
+When the user asks about ideas, idea folders, product framing, promotion readiness, archiving, prioritization, or moving an idea from `$HOME/Incubation` into a real Operator Kit project:
 
 1. If the request names `$incubation` or clearly needs idea-framing/promotion workflow, suggest using `$incubation` before Operator Kit setup unless the user already did.
-2. Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`.
+2. Do not initialize Agent Operator Kit inside `$HOME/Incubation`.
 3. Let `$incubation` own:
    - idea framing and contrarian critique,
    - durable markdown capture under `ideas/<slug>/`,
    - `promotion-brief.md`,
    - `_ops/promoted.md`, `_ops/archived.md`, and review-board updates.
 4. Keep `$operator` responsible for:
-   - setup only after the idea is promoted into `/Users/norbert/Projects/<product-slug>/code/app`,
+   - setup only after the idea is promoted into `$HOME/Projects/<product-slug>/code/app`,
    - lane safety,
    - task folder creation under `$OPERATOR_DIR`,
    - dispatch,
@@ -334,7 +340,7 @@ Suggested combined requests:
 
 ```text
 Use $incubation with $operator. Prepare this idea for promotion, then tell me what Operator Kit setup would do.
-Use $incubation with $operator. Promote this idea into /Users/norbert/Projects and initialize Operator Kit only after I confirm.
+Use $incubation with $operator. Promote this idea into $HOME/Projects and initialize Operator Kit only after I confirm.
 Use $incubation with $design-agent. Turn the thesis into product and design-system assumptions before UI work.
 ```
 
@@ -430,7 +436,7 @@ When the user says `$operator update to latest version from git` or similar:
 
 1. Detect the project and classify the install.
 2. Resolve the Operator Kit source:
-   - prefer a local source repo at `/Users/norbert/Projects/Agent-Operator-Kit/operator-kit` when it exists;
+   - prefer a local source repo at `$HOME/Projects/Agent-Operator-Kit/operator-kit` when it exists;
    - otherwise use `https://github.com/Agent-Operator-Kit/operator-kit.git`;
    - respect `OPERATOR_KIT_SOURCE` if the user or environment provides it.
 3. If using a local source repo, run `git pull --ff-only` there only when it has no local changes. If it is dirty, report that and do not overwrite its changes.

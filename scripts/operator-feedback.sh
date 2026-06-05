@@ -436,7 +436,7 @@ INDEX = r"""<!doctype html>
       <form id="form">
         <label>Capture <input id="capture" name="capture" readonly></label>
         <label>Coordinates <input id="coords" name="coords" readonly placeholder="Click a screenshot"></label>
-        <label>Screen <input id="screen" name="screen" placeholder="Coach chat"></label>
+        <label>Screen <input id="screen" name="screen" placeholder="Chat screen"></label>
         <label>Target <input id="target" name="target" placeholder="Input, CTA, card, tab"></label>
         <label>testID <input id="testID" name="testID" placeholder="Optional semantic target"></label>
         <label>Type

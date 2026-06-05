@@ -155,7 +155,7 @@ $operator    -> promoted-project setup, lane safety, dispatch, collection
 $design-agent -> UX/design-system reasoning and task content
 ```
 
-Do not initialize Agent Operator Kit inside `/Users/norbert/Incubation`; initialize it only after promotion into `/Users/norbert/Projects/<product-slug>/code/app`.
+Do not initialize Agent Operator Kit inside `$HOME/Incubation`; initialize it only after promotion into `$HOME/Projects/<product-slug>/code/app`.
 
 ## Codex Main Operator With Cursor Lanes
 
@@ -321,7 +321,7 @@ bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
 bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
-bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach input overlaps"
+bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Chat input overlaps"
 bash scripts/operator-feedback.sh review mobile-feedback-20260522
 bash scripts/operator-feedback.sh triage mobile-feedback-20260522
 ```

@@ -12,7 +12,7 @@ Use this skill to keep ideation lightweight while preserving durable context. Tr
 Default root:
 
 ```text
-/Users/norbert/Incubation/
+$HOME/Incubation/
   _templates/idea/
   _ops/
   ideas/<slug>/
@@ -33,7 +33,7 @@ Each idea folder should usually contain:
 Do not initialize Agent Operator Kit inside Incubation. Reserve Operator Kit for promoted projects under:
 
 ```text
-/Users/norbert/Projects/<product-slug>/
+$HOME/Projects/<product-slug>/
   code/
     app/
   operator/
@@ -50,7 +50,7 @@ Do not initialize Agent Operator Kit inside Incubation. Reserve Operator Kit for
 
 At the start of meaningful idea work:
 
-1. Read `/Users/norbert/Incubation/AGENTS.md`.
+1. Read `$HOME/Incubation/AGENTS.md`.
 2. Read the active idea's `README.md`, `framing.md`, `promotion-brief.md`, `decision-log.md`, and any obviously relevant file.
 3. Keep initial context loading small. Read deeper files only when needed.
 
@@ -100,7 +100,7 @@ Help the user move from vague idea to sharper operating hypothesis:
 When the user asks to promote an idea:
 
 1. Finalize the active idea's `promotion-brief.md`.
-2. Create `/Users/norbert/Projects/<product-slug>/code/app` and `/Users/norbert/Projects/<product-slug>/operator`.
+2. Create `$HOME/Projects/<product-slug>/code/app` and `$HOME/Projects/<product-slug>/operator`.
 3. Copy or summarize incubation context into the promoted project; avoid dragging every scratch note forward.
 4. Update `_ops/promoted.md`.
 5. Initialize Agent Operator Kit only in the promoted repo when the user asks for setup or when the target repo/app shell exists and promotion explicitly includes setup.
@@ -119,9 +119,9 @@ $design-agent = UX/design-system review and UI task shaping
 
 Suggested flow:
 
-1. `$incubation` sharpens the idea and captures durable context in `/Users/norbert/Incubation/ideas/<slug>/`.
+1. `$incubation` sharpens the idea and captures durable context in `$HOME/Incubation/ideas/<slug>/`.
 2. `$incubation` prepares or updates `promotion-brief.md`.
-3. Only after explicit promotion, create or prepare `/Users/norbert/Projects/<product-slug>/code/app`.
+3. Only after explicit promotion, create or prepare `$HOME/Projects/<product-slug>/code/app`.
 4. `$operator` initializes or operates Agent Operator Kit in the promoted project repo, not in Incubation.
 5. `$design-agent` can review UX/design-system direction before UI lanes are dispatched.
 

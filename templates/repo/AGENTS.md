@@ -76,5 +76,6 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
   state, and route follow-up work to the appropriate lane without asking the
   user to approve every handoff-to-handoff transition.
 - Pause for user input before destructive cleanup, credential changes,
-  provider-console changes, production deploys, release submissions, live-money
-  trading enablement, or product decisions that cannot be safely inferred.
+  provider-console changes, production deploys, release submissions,
+  regulated, financial, or safety-critical behavior, or product decisions that
+  cannot be safely inferred.

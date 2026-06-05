@@ -73,7 +73,7 @@ Describe the specialist responsibility.
 
 ## Escalation Gates
 
-- credentials, destructive migrations, production release, live-money behavior
+- credentials, destructive migrations, production release, regulated or safety-critical behavior
 EOF
   fi
 

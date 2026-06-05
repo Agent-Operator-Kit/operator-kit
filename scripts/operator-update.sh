@@ -251,7 +251,7 @@ fi
 install_missing "$SOURCE_PATH/templates/operator-workspace/README.md" "$OPERATOR_DIR/README.md" "OPERATOR_DIR/README.md"
 install_missing "$SOURCE_PATH/templates/operator-workspace/catalog/README.md" "$OPERATOR_DIR/catalog/README.md" "OPERATOR_DIR/catalog/README.md"
 install_missing "$SOURCE_PATH/templates/operator-workspace/catalog/roles/_template.md" "$OPERATOR_DIR/catalog/roles/_template.md" "OPERATOR_DIR/catalog/roles/_template.md"
-for role_template in api-contracts auth-permissions data-storage deployment-recovery design-system evals-testing knowledge-base llm-runtime mobile-app mobile-release observability provider-integration trading-risk web-ui; do
+for role_template in api-contracts auth-permissions data-storage deployment-recovery design-system evals-testing high-risk-operations knowledge-base llm-runtime mobile-app mobile-release observability provider-integration web-ui; do
   install_missing "$SOURCE_PATH/templates/operator-workspace/catalog/roles/$role_template.md" "$OPERATOR_DIR/catalog/roles/$role_template.md" "OPERATOR_DIR/catalog/roles/$role_template.md"
 done
 install_missing "$SOURCE_PATH/templates/operator-workspace/catalog/patterns/_template.md" "$OPERATOR_DIR/catalog/patterns/_template.md" "OPERATOR_DIR/catalog/patterns/_template.md"

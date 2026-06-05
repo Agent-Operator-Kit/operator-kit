@@ -31,6 +31,7 @@ test -f "$tmp_root/operator/memory/project.md"
 test -d "$tmp_root/operator/memory/episodes"
 test -f "$tmp_root/operator/README.md"
 test -f "$tmp_root/code/app/scripts/operator-memory.sh"
+test -f "$tmp_root/code/app/scripts/operator-sync.sh"
 test -f "$tmp_root/code/app/scripts/operator-update.sh"
 test -f "$tmp_root/code/app/scripts/operator-upgrade.sh"
 test -f "$tmp_root/code/app/scripts/operator-catalog.sh"
@@ -111,6 +112,17 @@ bash "$KIT_ROOT/scripts/operator-update.sh" \
   --target "$tmp_root/code/app" \
   --no-fetch >/dev/null
 test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
+
+sync_output="$(bash "$tmp_root/code/app/scripts/operator-sync.sh" \
+  --source "$KIT_ROOT" \
+  --target "$tmp_root/code/app" \
+  --skip-skills \
+  --skip-checks \
+  --no-fetch 2>&1)"
+if printf '%s\n' "$sync_output" | grep -q 'unexpected EOF'; then
+  printf '%s\n' "$sync_output" >&2
+  exit 1
+fi
 
 codex_home="$tmp_root/codex-home"
 mkdir -p "$codex_home/skills/product-manager"

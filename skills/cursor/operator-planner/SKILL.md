@@ -24,6 +24,7 @@ design-agent      = UX/design-system reasoning and UI task shaping
 
 1. Resolve the Operator Kit project:
    - walk upward until `operator.config.env` is found;
+   - if needed, check the scoped project-root layout `code/*/operator.config.env`;
    - if needed, check sibling worktrees for the canonical project.
 2. Read `operator.config.env` and `AGENTS.md`.
 3. Inspect local state:

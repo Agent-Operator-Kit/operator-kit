@@ -184,7 +184,7 @@ for roadmap_file in \
   "catalog/roles/mobile-release.md" \
   "catalog/roles/observability.md" \
   "catalog/roles/provider-integration.md" \
-  "catalog/roles/trading-risk.md" \
+  "catalog/roles/high-risk-operations.md" \
   "catalog/roles/web-ui.md" \
   "catalog/patterns/_template.md" \
   "catalog/patterns/api-contracts.md" \

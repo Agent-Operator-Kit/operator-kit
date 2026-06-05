@@ -34,8 +34,8 @@ Before making changes:
 6. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
 
 Pause for user input before destructive cleanup, credential/provider-console
-changes, production deploys, release submissions, live-money enablement, or
-product decisions that cannot be safely inferred.
+changes, production deploys, release submissions, regulated or safety-critical
+behavior, or product decisions that cannot be safely inferred.
 
 Skill routing:
 

@@ -30,6 +30,22 @@ For day-to-day operation inside an already installed project, prefer the runtime
 
 When the user wants an agent to fully set up the system from scratch, follow `docs/guides/agent-run-bootstrap.md` and the prompt template in `templates/prompts/agent-run-bootstrap.md`.
 
+For an empty scoped project folder, first suggest this top-level layout:
+
+```text
+<project-root>/
+  code/
+    app/             canonical repo worktree
+    app-backend/     optional permanent backend lane
+    app-ui/          optional permanent UI lane
+  operator/          tasks, handoffs, memory, roadmap, catalog
+```
+
+Use `<project-root>/code/<lane-worktree>` for permanent agent lanes and
+`<project-root>/operator` for generated operator state. The operator should
+also work when the chat is opened at `<project-root>` by resolving
+`code/*/operator.config.env`.
+
 The setup agent should inspect first, refresh the V2 system map and lane
 recommendations, propose a lane map, install scripts/templates, create the
 external operator workspace, create or verify worktrees, start tmux, run a smoke
@@ -82,8 +98,8 @@ handoff-to-handoff transition.
 
 Pause for user input before destructive cleanup, credential changes,
 provider-console changes, production deploys, release submissions,
-live-money/trading enablement, or product decisions that cannot be safely
-inferred.
+regulated, financial, or safety-critical behavior, or product decisions that
+cannot be safely inferred.
 
 ## Guardrails
 

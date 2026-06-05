@@ -29,6 +29,7 @@ Options:
 Examples:
   bash scripts/operator-sync.sh
   bash scripts/operator-sync.sh --target /path/to/project
+  bash scripts/operator-sync.sh --target /path/to/empty-project-root --bootstrap-if-missing
   bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
   bash /path/to/operator-kit/scripts/operator-sync.sh --target "$PWD"
   bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh)
@@ -37,6 +38,7 @@ USAGE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+ORIGINAL_SCRIPT_ROOT="${OPERATOR_SYNC_ORIGINAL_SCRIPT_ROOT:-$SCRIPT_ROOT}"
 DEFAULT_LOCAL_SOURCE="$HOME/Projects/Agent-Operator-Kit/operator-kit"
 DEFAULT_REMOTE_SOURCE="https://github.com/Agent-Operator-Kit/operator-kit.git"
 
@@ -51,10 +53,24 @@ SKIP_CHECKS=0
 BOOTSTRAP_IF_MISSING=0
 BOOTSTRAP_PROFILE="${OPERATOR_BOOTSTRAP_PROFILE:-default}"
 TMP_ROOT=""
+TEMP_EXEC_SCRIPT="${OPERATOR_SYNC_TEMP_SCRIPT:-}"
+
+if [ "${OPERATOR_SYNC_TEMP_EXEC:-0}" != "1" ] && [ -f "${BASH_SOURCE[0]}" ]; then
+  TEMP_EXEC_SCRIPT="$(mktemp /tmp/operator-sync-run.XXXXXX)"
+  cp "${BASH_SOURCE[0]}" "$TEMP_EXEC_SCRIPT"
+  chmod +x "$TEMP_EXEC_SCRIPT"
+  OPERATOR_SYNC_TEMP_EXEC=1 \
+    OPERATOR_SYNC_ORIGINAL_SCRIPT_ROOT="$SCRIPT_ROOT" \
+    OPERATOR_SYNC_TEMP_SCRIPT="$TEMP_EXEC_SCRIPT" \
+    exec bash "$TEMP_EXEC_SCRIPT" "$@"
+fi
 
 cleanup() {
   if [ -n "$TMP_ROOT" ] && [ -d "$TMP_ROOT" ]; then
     rm -rf "$TMP_ROOT"
+  fi
+  if [ -n "$TEMP_EXEC_SCRIPT" ] && [ -f "$TEMP_EXEC_SCRIPT" ]; then
+    rm -f "$TEMP_EXEC_SCRIPT"
   fi
 }
 trap cleanup EXIT
@@ -137,8 +153,8 @@ resolve_default_source() {
     return 0
   fi
 
-  if is_kit_source "$SCRIPT_ROOT"; then
-    printf '%s\n' "$SCRIPT_ROOT"
+  if is_kit_source "$ORIGINAL_SCRIPT_ROOT"; then
+    printf '%s\n' "$ORIGINAL_SCRIPT_ROOT"
     return 0
   fi
 
@@ -228,21 +244,122 @@ find_sibling_config() {
   return 1
 }
 
+find_code_config() {
+  local start="$1"
+  local dir
+  local cfg
+  local matches=()
+  dir="$(cd "$start" 2>/dev/null && pwd || true)"
+
+  while [ -n "$dir" ] && [ "$dir" != "/" ] && [ "$dir" != "$HOME" ]; do
+    if [ -d "$dir/code" ]; then
+      for cfg in "$dir"/code/*/operator.config.env; do
+        [ -f "$cfg" ] || continue
+        matches+=("$(cd "$(dirname "$cfg")" && pwd)")
+      done
+      if [ "${#matches[@]}" -gt 0 ]; then
+        break
+      fi
+    fi
+    dir="$(dirname "$dir")"
+  done
+
+  if [ "${#matches[@]}" -eq 1 ]; then
+    printf '%s\n' "${matches[0]}"
+    return 0
+  fi
+
+  if [ "${#matches[@]}" -gt 1 ]; then
+    printf 'Multiple Operator Kit project roots detected under code/. Re-run with --target:\n' >&2
+    printf '  %s\n' "${matches[@]}" >&2
+    return 2
+  fi
+
+  return 1
+}
+
+print_scoped_layout() {
+  local root="$1"
+  cat <<EOF
+Recommended scoped Operator Kit layout:
+  $root/
+    code/
+      app/             canonical repo worktree
+      app-backend/     optional permanent backend lane
+      app-ui/          optional permanent UI lane
+    operator/          tasks, handoffs, memory, roadmap, catalog
+EOF
+}
+
+bootstrap_repo_from_project_root() {
+  local root="$1"
+  local repo
+  root="$(cd "$root" && pwd)"
+  repo="$root/code/app"
+
+  print_scoped_layout "$root" >&2
+
+  mkdir -p "$repo"
+  if ! git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git -C "$repo" init >/dev/null
+    git -C "$repo" symbolic-ref HEAD refs/heads/main >/dev/null
+  fi
+
+  printf '%s\n' "$repo"
+}
+
 detect_target_repo() {
   local start="$1"
   local detected=""
   local git_root=""
   local sibling_status=0
+  local code_status=0
 
   if [ -n "$TARGET_REPO" ]; then
     if [ ! -d "$TARGET_REPO" ]; then
       printf 'Target directory does not exist: %s\n' "$TARGET_REPO" >&2
       exit 1
     fi
-    git -C "$TARGET_REPO" rev-parse --show-toplevel 2>/dev/null || {
-      printf 'Target is not a git repository: %s\n' "$TARGET_REPO" >&2
-      exit 1
-    }
+
+    git_root="$(git -C "$TARGET_REPO" rev-parse --show-toplevel 2>/dev/null || true)"
+    if [ -n "$git_root" ]; then
+      printf '%s\n' "$git_root"
+      return 0
+    fi
+
+    if detected="$(find_code_config "$TARGET_REPO")"; then
+      printf '%s\n' "$detected"
+      return 0
+    else
+      code_status=$?
+      if [ "$code_status" -eq 2 ]; then
+        exit 1
+      fi
+    fi
+
+    if [ "$BOOTSTRAP_IF_MISSING" -eq 1 ]; then
+      bootstrap_repo_from_project_root "$TARGET_REPO"
+      return 0
+    fi
+
+    printf 'Target is not a git repository and no code/*/operator.config.env was found: %s\n' "$TARGET_REPO" >&2
+    print_scoped_layout "$(cd "$TARGET_REPO" && pwd)" >&2
+    printf 'To bootstrap this as an empty scoped project root, run:\n' >&2
+    printf '  bash %s/scripts/operator-sync.sh --target %s --bootstrap-if-missing\n' "$SOURCE_PATH" "$TARGET_REPO" >&2
+    exit 1
+  fi
+
+  if [ "$BOOTSTRAP_IF_MISSING" -eq 1 ] && ! git -C "$start" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if detected="$(find_code_config "$start")"; then
+      printf '%s\n' "$detected"
+      return 0
+    else
+      code_status=$?
+      if [ "$code_status" -eq 2 ]; then
+        exit 1
+      fi
+    fi
+    bootstrap_repo_from_project_root "$start"
     return 0
   fi
 
@@ -258,6 +375,16 @@ detect_target_repo() {
   else
     sibling_status=$?
     if [ "$sibling_status" -eq 2 ]; then
+      exit 1
+    fi
+  fi
+
+  if detected="$(find_code_config "$start")"; then
+    printf '%s\n' "$detected"
+    return 0
+  else
+    code_status=$?
+    if [ "$code_status" -eq 2 ]; then
       exit 1
     fi
   fi

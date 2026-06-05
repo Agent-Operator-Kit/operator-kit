@@ -59,6 +59,22 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
 7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
 
+For an empty scoped project folder, first suggest this top-level layout:
+
+```text
+<project-root>/
+  code/
+    app/             canonical repo worktree
+    app-backend/     optional permanent backend lane
+    app-ui/          optional permanent UI lane
+  operator/          tasks, handoffs, memory, roadmap, catalog
+```
+
+Use `<project-root>/code/<lane-worktree>` for permanent agent lanes and
+`<project-root>/operator` for generated operator state. The operator should
+also work when the chat is opened at `<project-root>` by resolving
+`code/*/operator.config.env`.
+
 The local flow:
 
 1. Inspect the repo and git status.
@@ -146,5 +162,5 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Do not commit memory packs or generated operator memory.
 - Do not start deployments or production builds during setup.
 - Ask before destructive cleanup, credential/provider-console changes,
-  production deploys, release submissions, live-money enablement, or product
-  decisions that cannot be safely inferred.
+  production deploys, release submissions, regulated or safety-critical
+  behavior, or product decisions that cannot be safely inferred.

@@ -10,7 +10,7 @@ operator can propose an approved parallel batch before creating task packets:
 - `Owner lane`: concrete lane to receive the task packet.
 - `Contracts`: API, file, provider, data, or architecture contracts touched.
 - `Parallel safe`: `yes` or `no`.
-- `Approval gate`: `none`, `release`, `provider-console`, `secrets`, `migration`, `live-money`, or another explicit human gate.
+- `Approval gate`: `none`, `release`, `provider-console`, `secrets`, `migration`, `regulated-risk`, or another explicit human gate.
 
 This workspace is outside the app repo by design. Keep raw feedback, triage
 notes, local priority views, and dispatch planning here. Link code changes back

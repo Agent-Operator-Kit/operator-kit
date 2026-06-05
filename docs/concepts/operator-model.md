@@ -66,8 +66,8 @@ integrated, validated, or blocked.
 
 The operator should pause for user input when the next step changes product
 direction, requires credentials, touches provider consoles, runs destructive
-cleanup, starts a deployment or release submission, or enables live-money /
-production trading behavior.
+cleanup, starts a deployment or release submission, or enables regulated,
+financial, or safety-critical behavior.
 
 ## Memory Routing
 

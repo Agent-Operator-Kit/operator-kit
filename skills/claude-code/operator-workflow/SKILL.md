@@ -75,8 +75,8 @@ handoff-to-handoff transition.
 
 Pause for user input before destructive cleanup, credential changes,
 provider-console changes, production deploys, release submissions,
-live-money/trading enablement, or product decisions that cannot be safely
-inferred.
+regulated, financial, or safety-critical behavior, or product decisions that
+cannot be safely inferred.
 
 ## Guardrails
 

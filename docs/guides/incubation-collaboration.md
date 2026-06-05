@@ -41,13 +41,13 @@ Use $incubation with $design-agent. Turn this thesis into design-system starting
 Do not initialize Agent Operator Kit inside:
 
 ```text
-/Users/norbert/Incubation
+$HOME/Incubation
 ```
 
 When an idea graduates, create or prepare:
 
 ```text
-/Users/norbert/Projects/<product-slug>/
+$HOME/Projects/<product-slug>/
   code/
     app/
   operator/
@@ -56,7 +56,7 @@ When an idea graduates, create or prepare:
 Then initialize Agent Operator Kit in the promoted project repo, usually:
 
 ```text
-/Users/norbert/Projects/<product-slug>/code/app
+$HOME/Projects/<product-slug>/code/app
 ```
 
 ## Operator-Aware Flow
@@ -64,7 +64,7 @@ Then initialize Agent Operator Kit in the promoted project repo, usually:
 1. `$incubation` clarifies the idea and captures durable files under `ideas/<slug>/`.
 2. `$incubation` updates `promotion-brief.md` and the incubation ops files.
 3. The user confirms promotion.
-4. The promoted project folder is created under `/Users/norbert/Projects/<product-slug>/`.
+4. The promoted project folder is created under `$HOME/Projects/<product-slug>/`.
 5. `$operator` initializes or operates Agent Operator Kit in the promoted project repo.
 6. `$design-agent` can review UX/design-system direction before UI work is dispatched.
 

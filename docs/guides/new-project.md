@@ -2,6 +2,30 @@
 
 For a new project, create the repo first, then install the operator kit.
 
+The preferred scoped layout is:
+
+```text
+$HOME/Projects/acme/
+  code/
+    app/             canonical repo worktree
+    app-backend/     optional permanent backend lane
+    app-ui/          optional permanent UI lane
+  operator/          tasks, handoffs, memory, roadmap, catalog
+```
+
+From an empty project root, the sync command can create `code/app` and
+initialize git there:
+
+```bash
+mkdir -p "$HOME/Projects/acme"
+git clone git@github.com:Agent-Operator-Kit/operator-kit.git "$HOME/Projects/operator-kit"
+bash "$HOME/Projects/operator-kit/scripts/operator-sync.sh" \
+  --target "$HOME/Projects/acme" \
+  --bootstrap-if-missing
+cd "$HOME/Projects/acme/code/app"
+bash scripts/operator-recommend-lanes.sh
+```
+
 ```bash
 mkdir -p "$HOME/Projects/acme/code/app"
 cd "$HOME/Projects/acme/code/app"

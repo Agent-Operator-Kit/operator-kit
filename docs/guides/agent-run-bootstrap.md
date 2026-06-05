@@ -16,6 +16,20 @@ The agent should do the setup, but it should still move deliberately:
 
 Copy this into the agent session from the target project or from the parent folder that contains the target project.
 
+For an empty scoped project folder, suggest and use this top-level layout:
+
+```text
+<project-root>/
+  code/
+    app/             canonical repo worktree
+    app-backend/     optional permanent backend lane
+    app-ui/          optional permanent UI lane
+  operator/          tasks, handoffs, memory, roadmap, catalog
+```
+
+The operator should also work when the chat is opened at `<project-root>` by
+resolving the canonical config under `code/*/operator.config.env`.
+
 ```text
 Set up Agent Operator Kit for this project.
 
@@ -23,7 +37,7 @@ Source kit:
 git@github.com:Agent-Operator-Kit/operator-kit.git
 
 Target project:
-<absolute path to the project repo>
+<absolute path to the project repo, or an empty project root that should create code/app>
 
 Goals:
 - Use git worktrees for isolated agent lanes.
@@ -49,15 +63,19 @@ Goals:
   - .cursor/skills/user-journey/SKILL.md
   - .cursor/skills/incubation/SKILL.md
   - .cursor/environment.json.example
-- Create the external operator workspace beside the project root unless I specify another path.
+- Create the external operator workspace as `<project-root>/operator` unless I specify another path.
 
 Required behavior:
-1. Inspect the repo first: git status, default branch, remotes, package manager, validation commands, and current docs.
-2. In V2, run or prepare the system-map/lane recommendation flow before creating worktrees:
+1. Inspect first. If the target is an empty project root, propose the scoped
+   layout above, create `code/app`, initialize git there, and keep future
+   permanent lane worktrees under `code/`.
+2. If the target is an existing repo, inspect git status, default branch,
+   remotes, package manager, validation commands, and current docs.
+3. In V2, run or prepare the system-map/lane recommendation flow before creating worktrees:
    - `bash scripts/operator-system-map.sh refresh`
    - `bash scripts/operator-recommend-lanes.sh`
    - treat the output as a proposal, not an automatic worktree plan
-3. Propose a lane map before creating worktrees. Use conservative defaults:
+4. Propose a lane map before creating worktrees. Use conservative defaults:
    - operator: current repo worktree on the stable branch
    - backend: Codex CLI on codex/backend
    - ui: Claude Code on claude/ui
@@ -66,13 +84,13 @@ Required behavior:
    - for Cursor-first environments without Codex, use `--profile cursor` and
      prefer Cursor IDE as operator, Cursor CLI as a local worker, and Claude
      Code as an optional UI lane
-4. After I approve or if the lane map is obvious, clone/install the kit if needed and run its bootstrap script.
-5. Edit operator.config.env so paths, branches, lane owners, and agent invocations match this project.
-6. Create missing lane worktrees from the stable branch, but do not overwrite existing worktrees.
-7. Start the tmux session.
-8. Create a smoke task under the external operator workspace.
-9. Dispatch with --no-enter to one lane if safe, then collect a smoke handoff.
-10. Run script checks:
+5. After I approve or if the lane map is obvious, clone/install the kit if needed and run its bootstrap script.
+6. Edit operator.config.env so paths, branches, lane owners, and agent invocations match this project.
+7. Create missing lane worktrees from the stable branch under `code/`, but do not overwrite existing worktrees.
+8. Start the tmux session.
+9. Create a smoke task under the external operator workspace.
+10. Dispatch with --no-enter to one lane if safe, then collect a smoke handoff.
+11. Run script checks:
    - bash -n scripts/*.sh
    - bash scripts/operator-status.sh
    - bash scripts/operator-summary.sh
@@ -81,10 +99,10 @@ Required behavior:
    - bash scripts/operator-catalog.sh list roles
    - bash scripts/operator-recommend-lanes.sh
    - bash scripts/operator-plan-batch.sh
-11. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
-12. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-catalog.sh, scripts/operator-system-map.sh, scripts/operator-recommend-lanes.sh, scripts/operator-plan-batch.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
-13. Confirm AGENTS.md points Codex users to the global $operator skill when available.
-14. Show git status and list intended repo changes.
+12. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
+13. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-catalog.sh, scripts/operator-system-map.sh, scripts/operator-recommend-lanes.sh, scripts/operator-plan-batch.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
+14. Confirm AGENTS.md points Codex users to the global $operator skill when available.
+15. Show git status and list intended repo changes.
 
 Guardrails:
 - Do not rewrite git history.
@@ -110,8 +128,8 @@ The agent should normally run:
 
 ```bash
 git clone git@github.com:Agent-Operator-Kit/operator-kit.git /tmp/operator-kit
-bash /tmp/operator-kit/scripts/operator-bootstrap.sh /path/to/project
-cd /path/to/project
+bash /tmp/operator-kit/scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-missing
+cd /path/to/project-root/code/app
 bash -n scripts/*.sh
 bash scripts/operator-status.sh
 bash scripts/operator-task.sh setup-smoke-001 "Setup smoke"

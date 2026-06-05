@@ -24,6 +24,7 @@ lanes, collect lane work, merge code, or send text directly into tmux panes.
 
 1. Detect the Operator Kit project the same way `$operator` does:
    - walk upward for `operator.config.env`;
+   - if needed, check the scoped project-root layout `code/*/operator.config.env`;
    - if needed, check sibling worktrees for the canonical project.
 2. Read `operator.config.env` and `AGENTS.md`.
 3. Prefer project-local scripts:
@@ -84,7 +85,7 @@ Use project-local commands:
 bash scripts/operator-feedback.sh init
 bash scripts/operator-feedback.sh detect
 bash scripts/operator-feedback.sh start mobile-feedback-20260522 "Mobile feedback intake"
-bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Coach reply overflow"
+bash scripts/operator-feedback.sh capture-sim mobile-feedback-20260522 --note "Chat reply overflow"
 bash scripts/operator-feedback.sh record-sim-start mobile-feedback-20260522
 bash scripts/operator-feedback.sh record-sim-stop mobile-feedback-20260522
 bash scripts/operator-feedback.sh review mobile-feedback-20260522

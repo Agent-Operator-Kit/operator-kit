@@ -8,6 +8,7 @@ operator_load_config
 
 SYSTEM_MAP="$OPERATOR_DIR/system-map.md"
 REPO_ROOT="$(cd "$(dirname "$(operator_config_file)")" && pwd)"
+OPERATOR_DIR_NAME="$(basename "$OPERATOR_DIR")"
 
 usage() {
   cat <<'USAGE'
@@ -27,15 +28,36 @@ USAGE
 
 repo_has_path() {
   local pattern="$1"
-  find "$REPO_ROOT" -path '*/.git' -prune -o -path '*/node_modules' -prune -o -path '*/vendor' -prune -o -name "$pattern" -print -quit 2>/dev/null | grep -q .
+  find "$REPO_ROOT" \
+    -path '*/.git' -prune -o \
+    -path '*/node_modules' -prune -o \
+    -path '*/vendor' -prune -o \
+    -path '*/worktrees' -prune -o \
+    -path '*/output' -prune -o \
+    -path "*/$OPERATOR_DIR_NAME" -prune -o \
+    -name "$pattern" -print -quit 2>/dev/null | grep -q .
 }
 
 repo_has_text() {
   local pattern="$1"
   if command -v rg >/dev/null 2>&1; then
-    rg -qi --glob '!.git/**' --glob '!node_modules/**' --glob '!vendor/**' "$pattern" "$REPO_ROOT" 2>/dev/null
+    rg -qi \
+      --glob '!.git/**' \
+      --glob '!node_modules/**' \
+      --glob '!vendor/**' \
+      --glob '!worktrees/**' \
+      --glob '!output/**' \
+      --glob "!$OPERATOR_DIR_NAME/**" \
+      "$pattern" "$REPO_ROOT" 2>/dev/null
   else
-    grep -Rqi "$pattern" "$REPO_ROOT" 2>/dev/null
+    grep -RqiI \
+      --exclude-dir=.git \
+      --exclude-dir=node_modules \
+      --exclude-dir=vendor \
+      --exclude-dir=worktrees \
+      --exclude-dir=output \
+      --exclude-dir="$OPERATOR_DIR_NAME" \
+      "$pattern" "$REPO_ROOT" 2>/dev/null
   fi
 }
 
@@ -83,8 +105,8 @@ detect_roles() {
   if repo_has_text "sentry|otel|opentelemetry|logging|metrics|healthcheck|incident"; then
     emit observability
   fi
-  if repo_has_text "broker|trading|portfolio|risk|position sizing|order"; then
-    emit trading-risk
+  if repo_has_text "regulated|safety-critical|payment|privileged action|risk|approval gate|audit log|irreversible"; then
+    emit high-risk-operations
   fi
   if repo_has_text "design system|tokens|figma|storybook|tailwind|component library"; then
     emit design-system
@@ -95,6 +117,10 @@ print_architecture_docs() {
   find "$REPO_ROOT" \
     -path '*/.git' -prune -o \
     -path '*/node_modules' -prune -o \
+    -path '*/vendor' -prune -o \
+    -path '*/worktrees' -prune -o \
+    -path '*/output' -prune -o \
+    -path "*/$OPERATOR_DIR_NAME" -prune -o \
     \( -iname 'architecture.md' -o -iname 'ARCHITECTURE.md' -o -name 'README.md' -o -name 'AGENTS.md' \) \
     -print 2>/dev/null | sort | sed "s#^$REPO_ROOT/##"
 }
@@ -136,8 +162,8 @@ recommend_lanes() {
   if printf '%s\n' "$roles" | grep -qx 'deployment-recovery'; then
     printf '%s\n' '- `release`: deployment, CI/CD, release gates, rollback and recovery.'
   fi
-  if printf '%s\n' "$roles" | grep -qx 'trading-risk'; then
-    printf '%s\n' '- `risk-trading`: broker, portfolio, order, exposure, and live-money gates.'
+  if printf '%s\n' "$roles" | grep -qx 'high-risk-operations'; then
+    printf '%s\n' '- `risk-operations`: regulated actions, approvals, auditability, and safety gates.'
   fi
 
   printf '\n## Recommended Role Overlays\n\n'
@@ -148,7 +174,7 @@ recommend_lanes() {
   fi
 
   printf '\n## Serialized Or Approval-Gated Domains\n\n'
-  printf '%s\n' '- production deployments, release submissions, provider console changes, destructive migrations, secrets, live-money behavior'
+  printf '%s\n' '- production deployments, release submissions, provider console changes, destructive migrations, secrets, regulated or safety-critical behavior'
 }
 
 refresh_map() {

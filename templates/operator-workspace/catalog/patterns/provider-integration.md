@@ -6,7 +6,7 @@
 
 ## Use When
 
-- integrating external APIs such as Strava, Wahoo, Apple Health, brokers, payments, or CRM systems
+- integrating external APIs such as health platforms, payment services, CRM systems, or other third-party providers
 
 ## Approved Packages And Repos
 

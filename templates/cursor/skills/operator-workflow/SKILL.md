@@ -50,6 +50,10 @@ fill remaining lanes from the agents you have.
    - `bash scripts/operator-catalog.sh list roles`
 7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
+   For an empty scoped project folder, first suggest this top-level layout:
+   `<project-root>/code/app` for the canonical repo worktree,
+   `<project-root>/code/<lane-worktree>` for permanent agent lanes, and
+   `<project-root>/operator` for generated operator state.
 8. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
 9. Confirm the stable branch and lane map.
 10. Ensure `OPERATOR_DIR` is outside the repo.
@@ -124,4 +128,5 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Do not start production builds, deployments, or provider-console changes during setup.
 - Ask before destructive commands.
 - Ask before credential/provider-console changes, release submissions,
-  live-money enablement, or product decisions that cannot be safely inferred.
+  regulated or safety-critical behavior, or product decisions that cannot be
+  safely inferred.

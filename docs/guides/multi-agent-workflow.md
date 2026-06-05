@@ -17,8 +17,8 @@
 Once the user authorizes a feature track, the operator should keep dispatching
 lane follow-ups until the feature is completed, integrated, validated, or
 blocked. Pause for user input before destructive cleanup, credential/provider
-changes, production deploys, release submissions, live-money enablement, or
-product decisions that cannot be safely inferred.
+changes, production deploys, release submissions, regulated or safety-critical
+behavior, or product decisions that cannot be safely inferred.
 
 Example:
 
