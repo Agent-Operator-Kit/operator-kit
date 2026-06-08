@@ -1,0 +1,35 @@
+{
+  "name": "operator-kit",
+  "version": "0.1.0",
+  "description": "Agent Operator Kit for Codex: project-local operator workflows, task packets, lanes, memory, feedback intake, planning, design review, UX audit, journeys, and incubation.",
+  "author": {
+    "name": "Agent Operator Kit"
+  },
+  "homepage": "https://agent-operator-kit.github.io/operator-kit/",
+  "repository": "https://github.com/Agent-Operator-Kit/operator-kit",
+  "license": "MIT",
+  "keywords": [
+    "operator",
+    "codex",
+    "multi-agent",
+    "worktrees",
+    "tmux",
+    "project-setup",
+    "task-packets"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Agent Operator Kit",
+    "shortDescription": "Coordinate project-local agent lanes",
+    "longDescription": "Install Agent Operator Kit skills globally in Codex while keeping each project's execution substrate explicit: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, lanes, task packets, memory, roadmap, and handoffs stay project-local.",
+    "developerName": "Agent Operator Kit",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://agent-operator-kit.github.io/operator-kit/",
+    "defaultPrompt": "Use $operator to inspect an installed Agent Operator Kit project, coordinate lanes, create or dispatch task packets, collect handoffs, summarize blockers, or update project-local Operator Kit scripts."
+  }
+}

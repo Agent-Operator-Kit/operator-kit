@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operator"
+  short_description: "Manage Agent Operator Kit lanes"
+  default_prompt: "Use $operator to check status, create task packets, dispatch lanes, collect handoffs, summarize blockers, or coordinate Agent Operator Kit work."
