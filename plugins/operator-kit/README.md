@@ -62,6 +62,30 @@ Installing this plugin must not create or mutate project-local state. Project
 setup and sync stay explicit through `operator-sync.sh`, `operator-upgrade.sh`,
 or project-local `scripts/operator-*.sh`.
 
+After this plugin owns global Codex skills, scoped project setup should skip
+legacy direct skill installation:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-missing --skip-skills
+```
+
+## Legacy Skill Migration
+
+Users who previously installed Operator Kit through `codex-skills-install.sh`
+may have direct skill directories under `~/.codex/skills`. During V3 migration,
+install the plugin first and then retire Operator-owned direct skill copies:
+
+```bash
+bash scripts/operator-plugin-migrate.sh --dry-run
+bash scripts/operator-plugin-migrate.sh
+```
+
+The migration backs up retired skills under
+`~/.codex/skills/.operator-kit-legacy-backups/<timestamp>/`. Changed
+Operator-owned direct skill directories are backed up too, so older V2 direct
+skills do not keep competing with the V3 plugin while local customizations stay
+recoverable.
+
 ## Sticky Operator Mode
 
 The V3 package advertises sticky Operator mode as a shared host contract:

@@ -76,6 +76,38 @@ Global-only refresh stays separate:
 bash scripts/operator-sync.sh --skip-project
 ```
 
+For V3 plugin installs, project setup should normally skip the legacy direct
+Codex skill installer because the plugin owns global skills:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-missing --skip-skills
+```
+
+See [V3 install flow](v3-install-flow.md) for the complete global-plus-scoped
+contract.
+
+## Legacy Skill Migration
+
+Existing users may already have Operator Kit installed as direct skill
+directories under `~/.codex/skills`. V3 plugin installation should not leave
+those direct copies competing with plugin-provided skills, but it also must not
+silently remove user customizations.
+
+Use the migration helper:
+
+```bash
+bash scripts/operator-plugin-migrate.sh --dry-run
+bash scripts/operator-plugin-migrate.sh
+```
+
+The helper installs the plugin first, then moves legacy Operator-owned
+skill copies into `~/.codex/skills/.operator-kit-legacy-backups/<timestamp>/`.
+Changed legacy Operator skill directories are backed up too, because V2.1 direct
+skills naturally differ from V3 plugin skills. Unrelated custom skills are left
+in place.
+
+See [Codex plugin migration](codex-plugin-migration.md).
+
 ## Sticky Activation
 
 The Codex plugin can make Operator easier to invoke, but sticky mode is still a

@@ -203,10 +203,26 @@ Install or refresh Codex Desktop skills:
 bash scripts/codex-skills-install.sh
 ```
 
+Migrate a legacy direct-skill install to the V3 Codex plugin:
+
+```bash
+bash scripts/operator-plugin-migrate.sh --dry-run
+bash scripts/operator-plugin-migrate.sh
+```
+
+After the global plugin is installed, scoped project setup should skip legacy
+global skill installation and only install project-local Operator Kit files:
+
+```bash
+bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-missing --skip-skills
+```
+
 ## Docs
 
 - [V3 host adapter packaging](docs/guides/v3-host-adapters.md)
+- [V3 install flow](docs/guides/v3-install-flow.md)
 - [Codex plugin packaging](docs/guides/codex-plugin-package.md)
+- [Codex plugin migration](docs/guides/codex-plugin-migration.md)
 - [Agent-run bootstrap](docs/guides/agent-run-bootstrap.md)
 - [Getting started with agents](docs/guides/getting-started-with-agents.md)
 - [Cursor operator workflow](docs/guides/cursor-operator-workflow.md)
