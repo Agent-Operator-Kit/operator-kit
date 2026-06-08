@@ -13,6 +13,12 @@
   "requiresSourceRootOperatorConfig": false,
   "writesUserGlobalStateDuringValidation": false,
   "runtimeApiAssumptions": [],
+  "stickyMode": {
+    "supported": true,
+    "defaultMode": "observe",
+    "stateModel": "slash-commands-subagents-docs",
+    "semantics": "default routing, not automatic execution"
+  },
   "assets": {
     "workflowSkills": "skills/",
     "projectCommands": "project-templates/.claude/commands/",

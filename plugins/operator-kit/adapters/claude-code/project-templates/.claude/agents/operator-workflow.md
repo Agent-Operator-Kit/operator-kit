@@ -31,6 +31,10 @@ When operating an authorized feature track:
 - Keep dispatching necessary follow-up work to the appropriate lanes until the
   feature is completed, integrated, validated, or blocked.
 - Do not ask the user to approve every obvious handoff-to-handoff transition.
+- Treat sticky Operator mode as default routing, not automatic execution:
+  `operator observe` can run read-only cockpit checks, `operator active` can
+  route feedback/planning/task creation when clear, and `operator dispatch` can
+  execute only after explicit user intent and preflight.
 - Pause for user input before destructive cleanup, credential changes,
   provider-console changes, production deploys, release submissions,
   regulated, financial, or safety-critical behavior, or product decisions that

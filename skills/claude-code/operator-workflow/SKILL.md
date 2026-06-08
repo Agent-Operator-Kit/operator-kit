@@ -37,6 +37,26 @@ You can also ask:
 Use the operator-workflow subagent to set up Agent Operator Kit for this repo.
 ```
 
+## Sticky Operator Mode
+
+Claude Code can expose sticky Operator behavior through slash commands,
+subagents, and project instructions. Sticky mode means default routing, not
+automatic execution:
+
+```text
+operator off       # normal Claude Code behavior
+operator observe   # status, summaries, memory/roadmap reads, feedback/planning summaries
+operator active    # observe plus feedback intake, planning, and task-packet creation
+operator dispatch  # execution allowed only when the user clearly asks and preflight passes
+```
+
+Use `operator observe` as the safest default after setup. Natural phrases such
+as `status`, `what is blocked?`, and `summarize lanes` may route through
+Operator when exactly one Operator config is bound. Dispatch, collection,
+source integration, push, tag, release, destructive cleanup, provider changes,
+and credential changes still require explicit intent, a clear target, preflight,
+and review.
+
 ## Workflow
 
 1. Inspect the repo and git status.

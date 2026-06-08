@@ -30,6 +30,15 @@ Project refresh stays explicit:
 bash scripts/operator-sync.sh --target /path/to/project
 ```
 
+## Sticky Operator Mode
+
+Claude Code should expose sticky mode through slash commands, subagents, and
+project docs rather than a hidden runtime API. Sticky mode means default
+routing, not automatic execution: `operator observe` can answer status and
+blocker questions, `operator active` can route feedback/planning/task creation,
+and `operator dispatch` can execute only after explicit user intent and
+preflight.
+
 ## Host Limitations
 
 - Slash commands and subagents are explicit project assets under `.claude/`.

@@ -81,6 +81,26 @@ Global-only refresh remains separate:
 bash scripts/operator-sync.sh --skip-project
 ```
 
+## Sticky Operator Mode
+
+V3 adapters share one sticky-mode contract across Codex, Cursor, and Claude
+Code:
+
+- sticky mode changes routing, not execution authority;
+- exactly one Operator config or external cockpit profile must be bound;
+- `operator observe` is the safest default for initialized sessions;
+- feedback requests route to feedback intake, planning requests route to
+  planning, and execution requests remain gated by Operator preflight;
+- dispatch, collect, merge, push, tag, release, destructive cleanup, provider
+  changes, and credential changes require explicit user intent and review.
+
+Codex can expose this as plugin activation and visible mode state when the host
+supports it. Cursor and Claude Code should expose the same behavior through
+adapter rules, skills, prompts, slash commands, subagents, or docs unless their
+hosts provide durable session state.
+
+The durable concept page is `docs/concepts/sticky-operator-mode.md`.
+
 ## Project-Local State
 
 These remain project-local or external-cockpit-local:

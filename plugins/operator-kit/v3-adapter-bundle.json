@@ -7,6 +7,29 @@
     "2"
   ],
   "projectScopedSetupRequired": true,
+  "stickyMode": {
+    "supported": true,
+    "defaultMode": "observe",
+    "modes": [
+      "off",
+      "observe",
+      "active",
+      "dispatch"
+    ],
+    "semantics": "default routing, not automatic execution",
+    "requiresSingleProjectBinding": true,
+    "gatedActions": [
+      "dispatch",
+      "collect",
+      "merge",
+      "push",
+      "tag",
+      "release",
+      "destructive-cleanup",
+      "provider-changes",
+      "credential-changes"
+    ]
+  },
   "projectLocalState": [
     "operator.config.env",
     "scripts/operator-*.sh",

@@ -58,3 +58,16 @@ If the user says to "always use operator" for this project or session, treat
 `operator` as the default Cursor skill for future execution requests unless the
 user explicitly asks for feedback, planning, design, UX audit, journey mapping,
 incubation, setup, or a non-operator task.
+
+Sticky Operator mode:
+
+- Treat sticky mode as default routing, not automatic execution.
+- `operator observe` allows status, summary, memory, roadmap, feedback-summary,
+  and planning-summary behavior.
+- `operator active` also allows feedback intake, planning updates, and task
+  packet creation when the user's wording is clear.
+- `operator dispatch` allows lane execution only when the user clearly asks and
+  lane/task/git preflight passes.
+- `operator off` returns to normal Cursor behavior.
+- Never implicitly dispatch, collect, merge, push, tag, release, delete files,
+  mutate providers, or change credentials because sticky mode is active.

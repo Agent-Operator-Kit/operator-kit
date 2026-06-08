@@ -76,6 +76,30 @@ Global-only refresh stays separate:
 bash scripts/operator-sync.sh --skip-project
 ```
 
+## Sticky Activation
+
+The Codex plugin can make Operator easier to invoke, but sticky mode is still a
+routing contract rather than an execution grant. After a user initializes
+Operator for a chat/project, the supported mode vocabulary is:
+
+```text
+operator off
+operator observe
+operator active
+operator dispatch
+```
+
+`operator observe` should be the safe default. It allows natural phrases such as
+`status`, `what is blocked?`, and `summarize lanes` to route through Operator
+status, roadmap, memory, and handoff context when exactly one Operator config is
+bound. `operator active` can also capture feedback, shape roadmap/planning
+items, and create task packets when the user's wording is clear. `operator
+dispatch` can run lane execution only after explicit user intent and preflight.
+
+Sticky activation must not silently dispatch, collect, merge, push, tag,
+release, delete files, change providers, or mutate credentials. See
+`docs/concepts/sticky-operator-mode.md` for the full shared contract.
+
 ## Compatibility Strategy
 
 The plugin version and the project-local script/template version are separate

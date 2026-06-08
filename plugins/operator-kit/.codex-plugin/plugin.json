@@ -15,7 +15,8 @@
     "worktrees",
     "tmux",
     "project-setup",
-    "task-packets"
+    "task-packets",
+    "sticky-mode"
   ],
   "skills": "./skills/",
   "interface": {
@@ -30,6 +31,6 @@
       "Write"
     ],
     "websiteURL": "https://agent-operator-kit.github.io/operator-kit/",
-    "defaultPrompt": "Use $operator to inspect an installed Agent Operator Kit project, coordinate lanes, create or dispatch task packets, collect handoffs, summarize blockers, or update project-local Operator Kit scripts."
+    "defaultPrompt": "Use $operator to inspect an installed Agent Operator Kit project, coordinate lanes, create or dispatch task packets, collect handoffs, summarize blockers, or update project-local Operator Kit scripts. When a user initializes sticky Operator mode, treat it as default routing rather than automatic execution: observe, active, dispatch, and off modes still preserve explicit safety gates."
   }
 }

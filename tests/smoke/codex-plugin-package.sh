@@ -85,6 +85,8 @@ else:
     default_prompt = interface.get("defaultPrompt") or interface.get("default_prompt")
     if not isinstance(default_prompt, str) or not default_prompt.strip():
         errors.append("interface.defaultPrompt must be a non-empty string")
+    elif "sticky Operator mode" not in default_prompt or "automatic execution" not in default_prompt:
+        errors.append("interface.defaultPrompt must describe sticky Operator mode as non-automatic execution")
 
 if errors:
     for error in errors:

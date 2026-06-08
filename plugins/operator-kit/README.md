@@ -62,6 +62,18 @@ Installing this plugin must not create or mutate project-local state. Project
 setup and sync stay explicit through `operator-sync.sh`, `operator-upgrade.sh`,
 or project-local `scripts/operator-*.sh`.
 
+## Sticky Operator Mode
+
+The V3 package advertises sticky Operator mode as a shared host contract:
+default routing without automatic execution. Use `operator observe` as the safe
+default for initialized chats, `operator active` for feedback/planning/task
+creation, and `operator dispatch` only when the user clearly asks to execute and
+preflight passes.
+
+Sticky mode does not permit implicit dispatch, collect, merge, push, tag,
+release, destructive cleanup, provider changes, or credential changes. The full
+contract lives in `docs/concepts/sticky-operator-mode.md`.
+
 ## Version Compatibility
 
 `plugin.json` uses semver for the global Codex adapter package. Slice 1 starts

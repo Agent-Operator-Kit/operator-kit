@@ -13,6 +13,12 @@
   "requiresSourceRootOperatorConfig": false,
   "writesUserGlobalStateDuringValidation": false,
   "runtimeApiAssumptions": [],
+  "stickyMode": {
+    "supported": true,
+    "defaultMode": "observe",
+    "stateModel": "adapter-guidance",
+    "semantics": "default routing, not automatic execution"
+  },
   "assets": {
     "canonicalSkills": "skills/",
     "projectCursorSkills": "project-templates/.cursor/skills/",

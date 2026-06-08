@@ -54,6 +54,18 @@ require(bundle.get("releaseTrack") == "v3", "bundle releaseTrack must be v3")
 require(bundle.get("projectScopedSetupRequired") is True, "bundle must require project-scoped setup")
 require("2" in bundle.get("compatibleProjectKitVersions", []), "bundle must target Operator Kit V2")
 
+sticky = bundle.get("stickyMode")
+require(isinstance(sticky, dict), "bundle must declare stickyMode")
+if isinstance(sticky, dict):
+    require(sticky.get("supported") is True, "bundle stickyMode must be supported")
+    require(sticky.get("defaultMode") == "observe", "bundle stickyMode defaultMode must be observe")
+    require(sticky.get("semantics") == "default routing, not automatic execution", "bundle stickyMode semantics mismatch")
+    require(sticky.get("requiresSingleProjectBinding") is True, "bundle stickyMode must require single binding")
+    modes = sticky.get("modes")
+    require(isinstance(modes, list) and set(modes) == {"off", "observe", "active", "dispatch"}, "bundle stickyMode modes mismatch")
+    gated = sticky.get("gatedActions")
+    require(isinstance(gated, list) and "dispatch" in gated and "credential-changes" in gated, "bundle stickyMode gated actions incomplete")
+
 bundle_adapters = bundle.get("adapters")
 require(isinstance(bundle_adapters, list) and len(bundle_adapters) == 3, "bundle must list three host adapters")
 
@@ -71,6 +83,12 @@ for adapter_path in adapter_paths:
     require(adapter.get("writesUserGlobalStateDuringValidation") is False, f"{host} validation must not write user-global state")
     require(adapter.get("runtimeApiAssumptions") == [], f"{host} must not invent runtime API assumptions")
     require("2" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V2")
+    adapter_sticky = adapter.get("stickyMode")
+    require(isinstance(adapter_sticky, dict), f"{host} must declare stickyMode")
+    if isinstance(adapter_sticky, dict):
+        require(adapter_sticky.get("supported") is True, f"{host} stickyMode must be supported")
+        require(adapter_sticky.get("defaultMode") == "observe", f"{host} stickyMode defaultMode must be observe")
+        require(adapter_sticky.get("semantics") == "default routing, not automatic execution", f"{host} stickyMode semantics mismatch")
 
     assets = adapter.get("assets")
     require(isinstance(assets, dict) and assets, f"{host} assets must be an object")

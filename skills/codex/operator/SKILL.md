@@ -24,6 +24,30 @@ prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
 Use UX Auditor (`$ux-auditor`) for assessment, `$user-journey` for journey
 artifacts, and `$operator` when work is ready to become execution.
 
+## Sticky Operator Mode
+
+When a user initializes Operator for a chat or project, treat sticky Operator
+mode as default routing, not automatic execution. The practical modes are:
+
+```text
+operator off       # normal assistant behavior
+operator observe   # status, summaries, memory/roadmap reads, feedback/planning summaries
+operator active    # observe plus feedback intake, planning, and task-packet creation
+operator dispatch  # execution allowed only when the user clearly asks and preflight passes
+```
+
+Use `operator observe` as the safest default for a newly initialized sticky
+session. Natural phrases like `status`, `what is blocked?`, and `summarize
+lanes` can route through Operator when exactly one project config is bound.
+Feedback-like phrases route through `$operator-feedback`; planning phrases route
+through `$operator-planner`; execution phrases stay under `$operator`.
+
+Sticky mode never permits implicit dispatch, collection, merge, push, tag,
+release, destructive cleanup, provider-console changes, or credential changes.
+Those actions still require clear user intent, an explicit target, status/git
+preflight, conflict review, and any separate confirmation required by the
+action class.
+
 ## Detect The Project
 
 Before operator work, resolve the project root:

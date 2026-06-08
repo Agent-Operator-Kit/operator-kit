@@ -34,6 +34,15 @@ Project refresh stays explicit:
 bash scripts/operator-sync.sh --target /path/to/project
 ```
 
+## Sticky Operator Mode
+
+Cursor should expose sticky mode through rules, skills, prompts, or agent
+instructions unless the host provides durable session state. Sticky mode means
+default routing, not automatic execution: `operator observe` can answer status
+and blocker questions, `operator active` can route feedback/planning/task
+creation, and `operator dispatch` can execute only after explicit user intent
+and preflight.
+
 ## Host Limitations
 
 - Cursor rules and skills are project assets, not a hidden runtime state store.
