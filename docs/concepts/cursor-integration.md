@@ -160,6 +160,19 @@ incubation, UX audits, journey artifacts, and setup/repair. The environment exam
 Cloud Agents and should be adapted per project before being renamed to
 `.cursor/environment.json`.
 
+## Sticky Operator Mode In Cursor
+
+Sticky Operator mode can make Cursor-first projects feel less command-heavy once
+a chat or agent session is bound to an Operator project. Cursor should treat the
+mode as adapter guidance through rules, skills, prompts, or agent instructions
+unless the host provides durable session state.
+
+The safety contract is the same as other hosts: natural phrases can route to
+Operator status, feedback, planning, and task creation, but dispatch,
+collection, source integration, push, tag, destructive cleanup, provider
+changes, and credential changes still require explicit intent and preflight.
+See [Sticky Operator mode](sticky-operator-mode.md).
+
 ## References
 
 - Cursor Agent modes: https://docs.cursor.com/agent

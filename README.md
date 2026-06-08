@@ -197,6 +197,7 @@ bash scripts/codex-skills-install.sh
 - [Agent-run bootstrap](docs/guides/agent-run-bootstrap.md)
 - [Getting started with agents](docs/guides/getting-started-with-agents.md)
 - [Cursor operator workflow](docs/guides/cursor-operator-workflow.md)
+- [Sticky Operator mode](docs/concepts/sticky-operator-mode.md)
 - [Operator memory](docs/concepts/operator-memory.md)
 - [Operator roadmap](docs/concepts/operator-roadmap.md)
 - [Design-agent collaboration](docs/guides/design-agent-collaboration.md)

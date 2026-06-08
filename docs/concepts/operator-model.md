@@ -69,6 +69,17 @@ direction, requires credentials, touches provider consoles, runs destructive
 cleanup, starts a deployment or release submission, or enables regulated,
 financial, or safety-critical behavior.
 
+## Sticky Operator Mode
+
+Sticky Operator mode reduces repeated activation syntax for chats that are
+already bound to an Operator project, but it does not change execution
+authority. Natural phrases such as `status`, `what is blocked?`, and `summarize
+lanes` can route through Operator by default in observe or stronger modes.
+
+Mutating actions still need explicit intent, a clear target, and the normal
+Operator preflight. See [Sticky Operator mode](sticky-operator-mode.md) for the
+binding rules, mode semantics, and host adapter caveats.
+
 ## Memory Routing
 
 Operator Kit treats memory as retrieved context, not as an always-on prompt
