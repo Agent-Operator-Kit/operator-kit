@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operator Planner"
+  short_description: "Prioritize and shape roadmap"
+  default_prompt: "Use $operator-planner to review local Operator FB-* intake and RM-* roadmap items, prioritize backlog, shape ready-for-execution plans, and draft PR trace notes while leaving dispatch and integration to $operator."

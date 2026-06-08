@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operator Workflow"
+  short_description: "Set up or repair Operator Kit"
+  default_prompt: "Use operator-workflow to inspect a project, propose a lane map, install or repair Agent Operator Kit, create worktrees and tmux lanes, run a smoke task, and report whether the setup is ready to commit."

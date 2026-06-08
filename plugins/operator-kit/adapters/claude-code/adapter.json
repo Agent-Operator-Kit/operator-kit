@@ -1,0 +1,30 @@
+{
+  "name": "operator-kit-claude-code-adapter",
+  "host": "claude-code",
+  "version": "0.1.0",
+  "bundleVersion": "0.1.0",
+  "releaseTrack": "v3",
+  "kind": "host-adapter-package",
+  "description": "Claude Code adapter package for Agent Operator Kit workflow skills, slash commands, and project subagent templates.",
+  "compatibleProjectKitVersions": [
+    "2"
+  ],
+  "requiresProjectScopedSetup": true,
+  "requiresSourceRootOperatorConfig": false,
+  "writesUserGlobalStateDuringValidation": false,
+  "runtimeApiAssumptions": [],
+  "assets": {
+    "workflowSkills": "skills/",
+    "projectCommands": "project-templates/.claude/commands/",
+    "projectAgents": "project-templates/.claude/agents/"
+  },
+  "explicitProjectSetup": [
+    "bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing",
+    "bash scripts/operator-sync.sh --target /path/to/project"
+  ],
+  "limitations": [
+    "Claude Code package metadata does not imply a hidden Claude runtime plugin API.",
+    "Claude slash commands and project subagents are installed into explicit project-local .claude directories.",
+    "Project-local state remains explicit and inspectable in the target project."
+  ]
+}

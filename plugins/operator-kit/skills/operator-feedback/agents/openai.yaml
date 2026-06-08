@@ -1,0 +1,4 @@
+interface:
+  display_name: "Operator Feedback"
+  short_description: "Capture feedback intake"
+  default_prompt: "Use $operator-feedback to capture testing notes, annotations, screenshots, videos, and UX observations into local Operator FB-* intake without creating implementation tasks or dispatching agents."

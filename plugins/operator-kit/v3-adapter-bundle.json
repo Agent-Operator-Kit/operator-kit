@@ -1,0 +1,45 @@
+{
+  "name": "operator-kit-v3-adapter-bundle",
+  "version": "0.1.0",
+  "releaseTrack": "v3",
+  "description": "V3 global adapter bundle metadata for Agent Operator Kit across Codex, Cursor, and Claude Code.",
+  "compatibleProjectKitVersions": [
+    "2"
+  ],
+  "projectScopedSetupRequired": true,
+  "projectLocalState": [
+    "operator.config.env",
+    "scripts/operator-*.sh",
+    "OPERATOR_DIR",
+    "lane worktrees",
+    "task packets",
+    "handoffs",
+    "memory",
+    "roadmap",
+    "captures",
+    "catalog"
+  ],
+  "adapters": [
+    {
+      "host": "codex",
+      "name": "operator-kit",
+      "kind": "codex-plugin",
+      "path": ".",
+      "metadata": ".codex-plugin/plugin.json"
+    },
+    {
+      "host": "cursor",
+      "name": "operator-kit-cursor-adapter",
+      "kind": "host-adapter-package",
+      "path": "adapters/cursor",
+      "metadata": "adapters/cursor/adapter.json"
+    },
+    {
+      "host": "claude-code",
+      "name": "operator-kit-claude-code-adapter",
+      "kind": "host-adapter-package",
+      "path": "adapters/claude-code",
+      "metadata": "adapters/claude-code/adapter.json"
+    }
+  ]
+}

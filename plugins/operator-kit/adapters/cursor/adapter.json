@@ -1,0 +1,32 @@
+{
+  "name": "operator-kit-cursor-adapter",
+  "host": "cursor",
+  "version": "0.1.0",
+  "bundleVersion": "0.1.0",
+  "releaseTrack": "v3",
+  "kind": "host-adapter-package",
+  "description": "Cursor adapter package for Agent Operator Kit rules, skills, project templates, and Cursor Agent setup prompts.",
+  "compatibleProjectKitVersions": [
+    "2"
+  ],
+  "requiresProjectScopedSetup": true,
+  "requiresSourceRootOperatorConfig": false,
+  "writesUserGlobalStateDuringValidation": false,
+  "runtimeApiAssumptions": [],
+  "assets": {
+    "canonicalSkills": "skills/",
+    "projectCursorSkills": "project-templates/.cursor/skills/",
+    "projectRules": "project-templates/.cursor/rules/",
+    "environmentExample": "project-templates/.cursor/environment.json.example",
+    "setupPrompts": "prompts/"
+  },
+  "explicitProjectSetup": [
+    "bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills",
+    "bash scripts/operator-sync.sh --target /path/to/project"
+  ],
+  "limitations": [
+    "Cursor package metadata does not imply a Cursor runtime plugin API.",
+    "Cursor Cloud Agents are remote branch workers and cannot assume local tmux, simulators, OPERATOR_DIR, or local operator memory.",
+    "Project-local state remains explicit and inspectable in the target project."
+  ]
+}

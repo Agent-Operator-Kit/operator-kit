@@ -155,6 +155,17 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 
 ## Agent Assets
 
+Codex plugin package scaffold:
+
+```text
+plugins/operator-kit/.codex-plugin/plugin.json
+plugins/operator-kit/marketplace-entry.json
+plugins/operator-kit/v3-adapter-bundle.json
+plugins/operator-kit/skills/
+plugins/operator-kit/adapters/cursor/
+plugins/operator-kit/adapters/claude-code/
+```
+
 Codex Desktop skills:
 
 ```text
@@ -194,6 +205,8 @@ bash scripts/codex-skills-install.sh
 
 ## Docs
 
+- [V3 host adapter packaging](docs/guides/v3-host-adapters.md)
+- [Codex plugin packaging](docs/guides/codex-plugin-package.md)
 - [Agent-run bootstrap](docs/guides/agent-run-bootstrap.md)
 - [Getting started with agents](docs/guides/getting-started-with-agents.md)
 - [Cursor operator workflow](docs/guides/cursor-operator-workflow.md)
