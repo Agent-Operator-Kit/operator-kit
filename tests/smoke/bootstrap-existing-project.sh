@@ -72,6 +72,13 @@ feature_b="$(bash scripts/operator-feature.sh start onboarding "Onboarding" --st
 test -f "$feature_a/status.json"
 test -f "$feature_b/status.json"
 bash scripts/operator-feature.sh bind FS-0001 --tool codex --chat smoke-a --mode feature >/dev/null
+bash scripts/operator-feature.sh current --tool codex --chat smoke-a | grep -q 'FS-0001'
+bash scripts/operator-feature.sh open --tool codex --chat smoke-a | grep -q 'Current feature: `FS-0001`'
+bash scripts/operator-feature.sh open --tool cursor --chat cursor-smoke | grep -q 'Current feature: none'
+bash scripts/operator-feature.sh open --tool cursor --chat cursor-smoke --feature FS-0001 >/dev/null
+bash scripts/operator-feature.sh current --tool cursor --chat cursor-smoke --json | grep -q '"id": "FS-0001"'
+bash scripts/operator-feature.sh list --json | grep -q '"id": "FS-0001"'
+bash scripts/operator-feature.sh status FS-0001 --json | grep -q '"title": "Training Zones"'
 bash scripts/operator-feature.sh claim FS-0001 \
   --files apps/mobile/src/training-zones/** \
   --surfaces mobile.feature.training-zones \

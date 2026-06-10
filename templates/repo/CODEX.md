@@ -18,6 +18,16 @@ files, contracts, surfaces, branches, worktrees, and shared resources. The
 operator owns the merge plan and final cohesion for the feature session, and
 unblocked discovery or design work can continue while implementation is blocked.
 
+Codex should enter V4 through the host-session protocol:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <codex-thread-id>
+bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> --json
+```
+
+Use native Codex thread titles, pins, archives, and monitors as convenience
+indexes when available, but keep `OPERATOR_DIR/features` as the source of truth.
+
 If the user says to always use operator for this project or session, treat
 `$operator` as the default for future execution requests in this Codex chat and
 related project chats. Still use `$operator-feedback` for observation-only

@@ -73,12 +73,15 @@ feature session. Worker agents own scoped execution and handoff evidence.
 Expected V4 command shape:
 
 ```bash
-bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 ```
 
-See [Operator V4 feature sessions](operator-v4-feature-sessions.md) for the
-full model.
+Codex, Cursor, and other host adapters should use `open`, `current`, and the
+`--json` output flags as their native feature-session protocol, while keeping
+`OPERATOR_DIR/features` as the source of truth. See
+[Operator V4 feature sessions](operator-v4-feature-sessions.md) for the full
+model.
 
 ## V2 Catalog And Scheduler
 

@@ -157,6 +157,8 @@ The V4 command family is expected to look roughly like this:
 bash scripts/operator-feature.sh start
 bash scripts/operator-feature.sh list
 bash scripts/operator-feature.sh active
+bash scripts/operator-feature.sh open
+bash scripts/operator-feature.sh current
 bash scripts/operator-feature.sh status
 bash scripts/operator-feature.sh bind
 bash scripts/operator-feature.sh link-roadmap
@@ -174,3 +176,35 @@ Until every host adapter has first-class V4 commands, use existing V2 task,
 dispatch, collect, memory, roadmap, system-map, catalog, and batch-planning
 commands as the execution primitives. Keep V4 feature-session identity in the
 packet, folder names, handoffs, and merge plan.
+
+## Host Session Protocol
+
+Codex, Cursor, and future host adapters should use the same script-backed
+protocol before adding native UX:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <host-chat-id>
+bash scripts/operator-feature.sh open --tool cursor --chat <host-chat-id>
+bash scripts/operator-feature.sh current --tool codex --chat <host-chat-id> --json
+bash scripts/operator-feature.sh status <feature> --json
+bash scripts/operator-feature.sh list --json
+```
+
+`open` is the chat/session entrypoint. It resolves an existing binding when the
+host supplies a stable chat id; otherwise it shows active feature sessions and
+the bind/start commands. `current` is the lightweight lookup for adapters that
+already know their host chat id. `--json` is for native adapter code, while the
+default Markdown output is optimized for agent chat context.
+
+Host adapters may store convenience metadata in their own native layer:
+
+- Codex can set thread titles, pin active feature chats, archive closed feature
+  chats, and schedule monitors.
+- Cursor can persist rules, skills, command prompts, and chat labels that point
+  back to the feature session.
+- Remote machines can receive feature id, branch, worktree, and resource claims
+  as lane boot parameters.
+
+Those native affordances must not become the source of truth. A host adapter
+should always be able to rebuild its view from `OPERATOR_DIR/features`,
+`status.json`, `events.jsonl`, and the feature-session Markdown files.

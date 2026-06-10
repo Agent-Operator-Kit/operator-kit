@@ -157,6 +157,23 @@ $design-agent -> UX/design-system reasoning and task content
 
 Do not initialize Agent Operator Kit inside `$HOME/Incubation`; initialize it only after promotion into `$HOME/Projects/<product-slug>/code/app`.
 
+## Codex V4 Feature Sessions
+
+When a project has V4 feature-session scripts, Codex should treat the current
+thread as a host session over the portable Operator Kit state:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <codex-thread-id>
+bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> --json
+bash scripts/operator-feature.sh bind <feature> --tool codex --chat <codex-thread-id> --mode feature
+```
+
+If the host exposes thread management tools, Codex can make the UX native by
+renaming the thread to include the feature id, pinning active feature threads,
+archiving closed feature threads, and scheduling monitors. These are host
+indexes only. `OPERATOR_DIR/features` remains the durable source of truth and
+Cursor should be able to continue from the same files.
+
 ## Codex Main Operator With Cursor Lanes
 
 Cursor support does not require changing the core operator model. The important

@@ -15,9 +15,13 @@ Commands:
       Create the V4 feature-session workspace.
   start <slug> "<title>" [--status idea] [--roadmap RM-0001]
       Create a feature session under OPERATOR_DIR/features.
-  list|active
-      List active feature sessions as chat-facing Markdown.
-  status <feature>
+  list|active [--json]
+      List active feature sessions as chat-facing Markdown or JSON.
+  open [--tool codex|cursor|claude] [--chat <id>] [--feature <feature>] [--json]
+      Host-session entrypoint. Show current binding, active sessions, and next commands.
+  current [--tool codex|cursor|claude] [--chat <id>] [--json]
+      Resolve the current host chat binding when one exists.
+  status <feature> [--json]
       Show one feature-session status summary.
   bind <feature> [--tool codex|cursor|claude] [--chat <id>] [--mode <mode>]
       Record that the current chat/tool is working on a feature session.
@@ -52,7 +56,7 @@ command="${1:-}"
 shift || true
 
 case "$command" in
-  init|start|list|active|status|bind|set-status|link-roadmap|claim|workspace|spawn-lane|close|archive|cleanup)
+  init|start|list|active|open|current|status|bind|set-status|link-roadmap|claim|workspace|spawn-lane|close|archive|cleanup)
     ;;
   -h|--help|"")
     usage
@@ -151,6 +155,10 @@ def load_state(feature_dir):
         return json.load(fh)
 
 
+def print_json(payload):
+    print(json.dumps(payload, indent=2, sort_keys=True))
+
+
 def write_state(feature_dir, state):
     state["updatedAt"] = now()
     state["lastActivity"] = state["updatedAt"]
@@ -179,6 +187,47 @@ def feature_dirs(include_archive=False):
         if (path / "status.json").exists():
             dirs.append(path)
     return dirs
+
+
+def feature_summary(path, state):
+    claims = state.get("claims", {})
+    return {
+        "id": state.get("id", ""),
+        "slug": state.get("slug", ""),
+        "title": state.get("title", ""),
+        "status": state.get("status", ""),
+        "project": state.get("project", project_name),
+        "folder": str(path),
+        "roadmap": state.get("roadmap", []),
+        "branch": state.get("branch", ""),
+        "worktree": state.get("worktree", ""),
+        "baseBranch": state.get("baseBranch", ""),
+        "claims": {
+            "files": claims.get("files", []),
+            "surfaces": claims.get("surfaces", []),
+            "contracts": claims.get("contracts", []),
+            "resources": claims.get("resources", []),
+            "roles": claims.get("roles", []),
+            "lockLevel": claims.get("lockLevel", "soft"),
+        },
+        "roleInstances": state.get("roleInstances", []),
+        "merge": state.get("merge", {}),
+        "createdAt": state.get("createdAt", ""),
+        "updatedAt": state.get("updatedAt", ""),
+        "lastActivity": state.get("lastActivity", ""),
+        "boundChats": state.get("boundChats", []),
+    }
+
+
+def active_feature_rows():
+    rows = []
+    for path in feature_dirs():
+        state = load_state(path)
+        if state.get("status") not in ACTIVE_STATUSES:
+            continue
+        rows.append((state.get("lastActivity", ""), path, state))
+    rows.sort(reverse=True)
+    return rows
 
 
 def resolve_feature(key):
@@ -228,13 +277,7 @@ def next_id():
 
 def render_active():
     features_dir.mkdir(parents=True, exist_ok=True)
-    rows = []
-    for path in feature_dirs():
-        state = load_state(path)
-        if state.get("status") not in ACTIVE_STATUSES:
-            continue
-        rows.append((state.get("lastActivity", ""), path, state))
-    rows.sort(reverse=True)
+    rows = active_feature_rows()
 
     lines = ["# Active Feature Sessions", ""]
     if not rows:
@@ -322,6 +365,49 @@ def parse_flags(items, defaults=None):
     return positional, values
 
 
+def find_current_binding(tool, chat):
+    matches = []
+    for path in feature_dirs(include_archive=True):
+        state = load_state(path)
+        for binding in state.get("boundChats", []):
+            if tool and binding.get("tool") != tool:
+                continue
+            if chat and binding.get("chat") != chat:
+                continue
+            if not chat and binding.get("chat"):
+                # Without a host chat id, prefer explicit unscoped bindings. If
+                # none exist, callers can still inspect active sessions.
+                continue
+            matches.append((binding.get("boundAt", ""), path, state, binding))
+    if matches:
+        matches.sort(reverse=True, key=lambda item: item[0])
+        return matches[0]
+    return None
+
+
+def bind_to_feature(feature_key, tool, chat, mode):
+    feature_dir = resolve_feature(feature_key)
+    state = load_state(feature_dir)
+    binding = {
+        "tool": tool or "codex",
+        "chat": chat or "",
+        "mode": mode or "feature",
+        "boundAt": now(),
+    }
+    bindings = state.setdefault("boundChats", [])
+    for existing in bindings:
+        if existing.get("tool") == binding["tool"] and existing.get("chat", "") == binding["chat"]:
+            existing.update(binding)
+            binding = existing
+            break
+    else:
+        bindings.append(binding)
+    write_state(feature_dir, state)
+    emit_event(feature_dir, "bound_chat", **binding)
+    render_active()
+    return feature_dir, state, binding
+
+
 def cmd_init():
     ensure_workspace()
     print(features_dir)
@@ -388,13 +474,26 @@ def cmd_start():
 
 def cmd_list():
     ensure_workspace()
+    _positional, flags = parse_flags(args, {"json": "no"})
+    rows = active_feature_rows()
+    if flags.get("json") == "yes":
+        print_json({
+            "features": [feature_summary(path, state) for _last, path, state in rows],
+            "featuresDir": str(features_dir),
+        })
+        return
     print(render_active())
 
 
 def cmd_status():
-    require_args(1, "status requires <feature>")
-    feature_dir = resolve_feature(args[0])
+    positional, flags = parse_flags(args, {"json": "no"})
+    if len(positional) < 1:
+        raise SystemExit("status requires <feature>")
+    feature_dir = resolve_feature(positional[0])
     state = load_state(feature_dir)
+    if flags.get("json") == "yes":
+        print_json(feature_summary(feature_dir, state))
+        return
     claims = state.get("claims", {})
     print(f"# Feature Session: {state.get('id')} {state.get('title')}\n")
     print(f"- Status: {state.get('status')}")
@@ -416,21 +515,99 @@ def cmd_status():
             print(f"- `{role.get('id')}` role={role.get('role')} branch=`{role.get('branch') or 'none'}` worktree=`{role.get('worktree') or 'none'}` resources={', '.join(role.get('resources', [])) or 'none'}")
 
 
+def cmd_current():
+    _positional, flags = parse_flags(args, {"tool": "codex", "chat": "", "json": "no"})
+    tool = flags.get("tool") or "codex"
+    chat = flags.get("chat") or ""
+    match = find_current_binding(tool, chat)
+    if flags.get("json") == "yes":
+        payload = {
+            "tool": tool,
+            "chat": chat,
+            "current": None,
+            "binding": None,
+            "featuresDir": str(features_dir),
+        }
+        if match:
+            _bound_at, path, state, binding = match
+            payload["current"] = feature_summary(path, state)
+            payload["binding"] = binding
+        print_json(payload)
+        return
+    if not match:
+        print(f"No current feature-session binding for tool={tool} chat={chat or 'unscoped'}.")
+        print()
+        print(render_active())
+        return
+    _bound_at, path, state, binding = match
+    print(f"# Current Feature Session\n")
+    print(f"- Tool: {tool}")
+    print(f"- Chat: {chat or 'unscoped'}")
+    print(f"- Feature: `{state.get('id')}` {state.get('title')}")
+    print(f"- Status: {state.get('status')}")
+    print(f"- Folder: `{path}`")
+    print(f"- Bound at: {binding.get('boundAt', '')}")
+
+
+def cmd_open():
+    _positional, flags = parse_flags(args, {"tool": "codex", "chat": "", "mode": "feature", "json": "no", "feature": ""})
+    tool = flags.get("tool") or "codex"
+    chat = flags.get("chat") or ""
+    mode = flags.get("mode") or "feature"
+    if flags.get("feature"):
+        bind_to_feature(flags["feature"], tool, chat, mode)
+    match = find_current_binding(tool, chat)
+    active = [feature_summary(path, state) for _last, path, state in active_feature_rows()]
+    if flags.get("json") == "yes":
+        payload = {
+            "tool": tool,
+            "chat": chat,
+            "mode": mode,
+            "current": None,
+            "binding": None,
+            "activeFeatures": active,
+            "featuresDir": str(features_dir),
+            "commands": {
+                "list": "bash scripts/operator-feature.sh list",
+                "bind": f"bash scripts/operator-feature.sh bind <feature> --tool {tool}" + (f" --chat {chat}" if chat else ""),
+                "start": 'bash scripts/operator-feature.sh start <slug> "<title>"',
+                "conflicts": "bash scripts/operator-conflicts.sh summary",
+            },
+        }
+        if match:
+            _bound_at, path, state, binding = match
+            payload["current"] = feature_summary(path, state)
+            payload["binding"] = binding
+        print_json(payload)
+        return
+
+    print("# Operator Host Session\n")
+    print(f"- Tool: {tool}")
+    print(f"- Chat: {chat or 'unscoped'}")
+    if match:
+        _bound_at, path, state, binding = match
+        print(f"- Current feature: `{state.get('id')}` {state.get('title')}")
+        print(f"- Status: {state.get('status')}")
+        print(f"- Folder: `{path}`")
+        print(f"- Bound at: {binding.get('boundAt', '')}")
+        print("\n## Next\n")
+        print(f"- `bash scripts/operator-feature.sh status {state.get('id')}`")
+        print(f"- `bash scripts/operator-conflicts.sh check {state.get('id')}`")
+        return
+
+    print("- Current feature: none")
+    print()
+    print(render_active())
+    print("## Next\n")
+    print(f"- Bind: `bash scripts/operator-feature.sh bind <feature> --tool {tool}" + (f" --chat {chat}" if chat else "") + f" --mode {mode}`")
+    print('- Start: `bash scripts/operator-feature.sh start <slug> "<title>"`')
+    print("- Conflicts: `bash scripts/operator-conflicts.sh summary`")
+
+
 def cmd_bind():
     require_args(1, "bind requires <feature>")
-    feature_dir = resolve_feature(args[0])
     _positional, flags = parse_flags(args[1:], {"tool": "codex", "chat": "", "mode": "feature"})
-    state = load_state(feature_dir)
-    binding = {
-        "tool": flags.get("tool") or "codex",
-        "chat": flags.get("chat") or "",
-        "mode": flags.get("mode") or "feature",
-        "boundAt": now(),
-    }
-    state.setdefault("boundChats", []).append(binding)
-    write_state(feature_dir, state)
-    emit_event(feature_dir, "bound_chat", **binding)
-    render_active()
+    _feature_dir, state, binding = bind_to_feature(args[0], flags.get("tool") or "codex", flags.get("chat") or "", flags.get("mode") or "feature")
     print(f"Bound to {state['id']} {state['title']} ({binding['tool']}, {binding['mode']})")
 
 
@@ -645,6 +822,8 @@ dispatch = {
     "start": cmd_start,
     "list": cmd_list,
     "active": cmd_list,
+    "open": cmd_open,
+    "current": cmd_current,
     "status": cmd_status,
     "bind": cmd_bind,
     "set-status": cmd_set_status,

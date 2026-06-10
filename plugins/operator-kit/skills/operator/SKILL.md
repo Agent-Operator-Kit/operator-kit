@@ -122,7 +122,7 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
-bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
@@ -176,15 +176,33 @@ Operator V4 adds a feature-session layer above V2 tasks and lanes:
 Expected V4 commands:
 
 ```bash
-bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 ```
 
-When V4 commands exist, use `operator-feature.sh active` or
-`operator-feature.sh bind` before execution so follow-up requests resolve to the
-right feature. Use `operator-feature.sh workspace` for the feature folder and
-`operator-feature.sh spawn-lane` to create a feature-specific lane instance
-from a role template.
+When V4 commands exist, use the host-session protocol before execution:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <codex-thread-id>
+bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> --json
+bash scripts/operator-feature.sh bind <feature> --tool codex --chat <codex-thread-id> --mode feature
+```
+
+If Codex exposes a stable thread id, pass it as `--chat`. If the thread id is
+not available, run `operator-feature.sh open --tool codex` and explicitly bind
+the feature before editing. `open` is the default chat entrypoint: it either
+restores the current binding or shows active feature sessions and the bind/start
+commands.
+
+Codex-native conveniences are encouraged when available: set the thread title
+to include the feature id, pin active feature chats, archive closed feature
+chats, and use automations for monitoring. Treat those host affordances as
+indexes only; `OPERATOR_DIR/features` remains the source of truth.
+
+Use `operator-feature.sh workspace` for the feature folder and
+`operator-feature.sh spawn-lane` to create a feature-specific lane instance from
+a role template. Use `--json` output when a native Codex adapter needs
+structured state; use the default Markdown output for human/chat context.
 
 If V4 commands are not installed yet, preserve the model manually: name the
 feature session in task packets, keep generated feature material under

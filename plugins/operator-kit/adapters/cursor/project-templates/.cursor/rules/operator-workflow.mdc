@@ -18,7 +18,8 @@ Core rules:
 - Operator memory under `OPERATOR_DIR/memory/` carries compact project, task, and episode context across lanes.
 - Operator V2 catalog and system-map state under `OPERATOR_DIR/catalog/` and `OPERATOR_DIR/system-map.md` carries role templates, approved architecture patterns, lane recommendations, and batch-planning context.
 - Operator V4 feature-session state lives under `OPERATOR_DIR/features/<FS-id-slug>/` when available.
-- A Cursor chat should bind to one active feature session for execution work.
+- A Cursor chat should enter through `bash scripts/operator-feature.sh open --tool cursor`
+  and bind to one active feature session for execution work.
 - Feature sessions move through `idea`, `discovery`, `design`, `shaped`,
   `active`, `in-review`, `integrated`, `shipped`, `parked`, and `blocked`.
 - Role templates are duplicable into feature-specific lane instances; the role
@@ -41,8 +42,12 @@ Before making changes:
 2. Run `bash scripts/operator-status.sh` when available.
 3. Run `bash scripts/operator-memory.sh status` when available.
 4. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` when available.
-5. For V4 work, run `bash scripts/operator-feature.sh active` and
-   `bash scripts/operator-conflicts.sh check <feature>` when available.
+5. For V4 work, run
+   `bash scripts/operator-feature.sh open --tool cursor --chat <cursor-chat-id>`
+   when a stable chat id is available, otherwise run
+   `bash scripts/operator-feature.sh open --tool cursor`. Then run
+   `bash scripts/operator-conflicts.sh check <feature>` when a feature is
+   selected.
 6. Confirm the feature session, target lane instance, branch, worktree, file
    scope, role template, contracts, and shared resources touched.
 7. Explain any shared seam before editing contracts, backend APIs, release config, or shared packages.
@@ -85,3 +90,13 @@ Sticky Operator mode:
 - `operator off` returns to normal Cursor behavior.
 - Never implicitly dispatch, collect, merge, push, tag, release, delete files,
   mutate providers, or change credentials because sticky mode is active.
+
+Host session protocol:
+
+- Use `operator-feature.sh open --tool cursor` as the Cursor entrypoint.
+- Use `operator-feature.sh current --tool cursor --chat <cursor-chat-id> --json`
+  when Cursor exposes a stable chat id or the user supplied a durable chat
+  label.
+- Cursor rules, skills, command prompts, and chat labels may reference the
+  feature id, but they do not own state. Rebuild Cursor context from
+  `OPERATOR_DIR/features` when in doubt.

@@ -90,7 +90,7 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
-bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 ```
 
@@ -108,10 +108,24 @@ Operator V4 adds a feature-session layer above V2 tasks and lanes:
 - exploration can continue while implementation is blocked on a file, contract,
   branch, worktree, or shared resource.
 
-When V4 commands exist, use `operator-feature.sh active` or
-`operator-feature.sh bind` before execution, `operator-feature.sh workspace` for
-the feature folder, and `operator-feature.sh spawn-lane` to create a
-feature-specific lane instance from a role template.
+When V4 commands exist, use the host-session protocol before execution:
+
+```bash
+bash scripts/operator-feature.sh open --tool cursor --chat <cursor-chat-id>
+bash scripts/operator-feature.sh current --tool cursor --chat <cursor-chat-id> --json
+bash scripts/operator-feature.sh bind <feature> --tool cursor --chat <cursor-chat-id> --mode feature
+```
+
+If Cursor does not expose a stable chat id, run
+`operator-feature.sh open --tool cursor` and bind explicitly before editing. A
+human-readable chat label is acceptable when the user provides one. Cursor
+rules, skills, command prompts, and chat labels may point at the feature id, but
+they are indexes only; `OPERATOR_DIR/features` remains the source of truth.
+
+Use `operator-feature.sh workspace` for the feature folder and
+`operator-feature.sh spawn-lane` to create a feature-specific lane instance from
+a role template. Use `--json` output for native Cursor adapter glue and the
+default Markdown output for chat-visible context.
 
 Conflict review must check files, directories, API/schema/event/prompt/data and
 design-system contracts, ports, databases, provider accounts, credentials,

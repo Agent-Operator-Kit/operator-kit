@@ -160,6 +160,23 @@ incubation, UX audits, journey artifacts, and setup/repair. The environment exam
 Cloud Agents and should be adapted per project before being renamed to
 `.cursor/environment.json`.
 
+## V4 Feature Sessions In Cursor
+
+Cursor should use the same feature-session protocol as Codex while exposing it
+through Cursor-native rules, skills, and prompts:
+
+```bash
+bash scripts/operator-feature.sh open --tool cursor --chat <cursor-chat-id>
+bash scripts/operator-feature.sh current --tool cursor --chat <cursor-chat-id> --json
+bash scripts/operator-feature.sh bind <feature> --tool cursor --chat <cursor-chat-id> --mode feature
+```
+
+If Cursor does not expose a stable chat id, use `open --tool cursor`, show the
+active feature sessions, and bind explicitly before editing. A human-readable
+chat label is acceptable when the user supplies one. Cursor chat labels, rules,
+and prompts should reference the feature id, but the source of truth remains
+`OPERATOR_DIR/features`.
+
 ## Sticky Operator Mode In Cursor
 
 Sticky Operator mode can make Cursor-first projects feel less command-heavy once

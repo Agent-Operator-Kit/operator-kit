@@ -45,6 +45,18 @@ durable folder, duplicate role-template lane instances when surfaces allow it,
 and keep merge plans, memory, handoffs, and working files together until the
 feature is integrated, shipped, parked, blocked, closed, or archived.
 
+Host adapters should enter feature-session work through:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <host-chat-id>
+bash scripts/operator-feature.sh open --tool cursor --chat <host-chat-id>
+bash scripts/operator-feature.sh current --tool codex --chat <host-chat-id> --json
+```
+
+Codex thread metadata, Cursor chat labels, and remote-machine lane parameters
+are indexes only. Rebuild the current state from `features/` when there is a
+disagreement.
+
 Use `system-map.md` and `catalog/` for V2 lane recommendations, specialist role
 templates, approved architecture patterns, package/repo choices, validation
 recipes, and escalation gates.

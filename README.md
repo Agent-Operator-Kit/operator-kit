@@ -144,11 +144,25 @@ bash scripts/operator-system-map.sh refresh
 bash scripts/operator-catalog.sh list roles
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
-bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-sync.sh --target /path/to/project
 bash scripts/operator-upgrade.sh
 ```
+
+Host adapters should enter V4 through the feature-session protocol:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <host-chat-id>
+bash scripts/operator-feature.sh open --tool cursor --chat <host-chat-id>
+bash scripts/operator-feature.sh current --tool codex --chat <host-chat-id> --json
+bash scripts/operator-feature.sh list --json
+```
+
+Codex can layer native thread titles, pins, archives, and automations on top of
+that protocol. Cursor can use rules, skills, and prompts against the same
+commands. Neither host should treat its own chat metadata as the source of
+truth; `OPERATOR_DIR/features` owns feature-session state.
 
 Remote update entry point:
 
