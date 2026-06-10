@@ -9,6 +9,15 @@ Operator Kit V2 adds `OPERATOR_DIR/system-map.md`, `OPERATOR_DIR/catalog/`, and
 lane choices, role templates, approved architecture patterns, dependencies, and
 approval gates are explicit.
 
+Operator Kit V4 adds feature sessions under
+`OPERATOR_DIR/features/<FS-id-slug>/`. Treat one Codex or Cursor project as the
+operator cockpit, bind execution chats to the active feature session when
+available, and spawn feature-specific lane instances from reusable role
+templates. Role templates are not mutexes: conflicts are decided by touched
+files, contracts, surfaces, branches, worktrees, and shared resources. The
+operator owns the merge plan and final cohesion for the feature session, and
+unblocked discovery or design work can continue while implementation is blocked.
+
 If the user says to always use operator for this project or session, treat
 `$operator` as the default for future execution requests in this Codex chat and
 related project chats. Still use `$operator-feedback` for observation-only

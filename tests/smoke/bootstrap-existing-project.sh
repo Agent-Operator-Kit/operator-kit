@@ -32,8 +32,13 @@ test -d "$tmp_root/operator/tasks/smoke-001/work"
 test -f "$tmp_root/operator/tasks/smoke-001/memory.md"
 test -f "$tmp_root/operator/memory/project.md"
 test -d "$tmp_root/operator/memory/episodes"
+test -d "$tmp_root/operator/features"
+test -f "$tmp_root/operator/features/README.md"
+test -f "$tmp_root/operator/features/active.md"
 test -f "$tmp_root/operator/README.md"
 test -f "$tmp_root/code/app/scripts/operator-memory.sh"
+test -f "$tmp_root/code/app/scripts/operator-feature.sh"
+test -f "$tmp_root/code/app/scripts/operator-conflicts.sh"
 test -f "$tmp_root/code/app/scripts/operator-sync.sh"
 test -f "$tmp_root/code/app/scripts/operator-update.sh"
 test -f "$tmp_root/code/app/scripts/operator-upgrade.sh"
@@ -41,7 +46,7 @@ test -f "$tmp_root/code/app/scripts/operator-catalog.sh"
 test -f "$tmp_root/code/app/scripts/operator-system-map.sh"
 test -f "$tmp_root/code/app/scripts/operator-recommend-lanes.sh"
 test -f "$tmp_root/code/app/scripts/operator-plan-batch.sh"
-grep -q 'OPERATOR_KIT_VERSION="2"' "$tmp_root/code/app/operator.config.env"
+grep -q 'OPERATOR_KIT_VERSION="4"' "$tmp_root/code/app/operator.config.env"
 test -f "$tmp_root/code/app/.claude/commands/operator-bootstrap.md"
 test -f "$tmp_root/code/app/.claude/commands/operator-status.md"
 test -f "$tmp_root/code/app/.claude/agents/operator-workflow.md"
@@ -59,6 +64,33 @@ test -f "$tmp_root/operator/system-map.md"
 bash scripts/operator-catalog.sh list roles | grep -q provider-integration
 bash scripts/operator-recommend-lanes.sh >/dev/null
 bash scripts/operator-plan-batch.sh >/dev/null
+bash scripts/operator-feature.sh active >/dev/null
+bash scripts/operator-conflicts.sh summary >/dev/null
+
+feature_a="$(bash scripts/operator-feature.sh start training-zones "Training Zones" --roadmap RM-0002)"
+feature_b="$(bash scripts/operator-feature.sh start onboarding "Onboarding" --status design)"
+test -f "$feature_a/status.json"
+test -f "$feature_b/status.json"
+bash scripts/operator-feature.sh bind FS-0001 --tool codex --chat smoke-a --mode feature >/dev/null
+bash scripts/operator-feature.sh claim FS-0001 \
+  --files apps/mobile/src/training-zones/** \
+  --surfaces mobile.feature.training-zones \
+  --contracts training-zones \
+  --resources simulator-agent-1 \
+  --roles mobile-ui \
+  --level hard >/dev/null
+bash scripts/operator-feature.sh claim FS-0002 \
+  --files apps/mobile/src/onboarding/** \
+  --surfaces mobile.feature.onboarding \
+  --resources simulator-agent-2 \
+  --roles mobile-ui \
+  --level soft >/dev/null
+bash scripts/operator-feature.sh spawn-lane FS-0001 mobile-ui --tool claude --resources simulator-agent-1 >/dev/null
+bash scripts/operator-conflicts.sh check FS-0001 | grep -q 'mobile-ui (duplicable'
+bash scripts/operator-feature.sh claim FS-0002 --contracts training-zones >/dev/null
+bash scripts/operator-conflicts.sh check FS-0001 | grep -q 'contracts: `training-zones`'
+bash scripts/operator-feature.sh close FS-0002 --reason "smoke complete" >/dev/null
+bash scripts/operator-feature.sh cleanup --dry-run | grep -q FS-0002
 
 cat > "$task_dir/tasks/backend.md" <<'EOF'
 ## Task
@@ -112,12 +144,14 @@ mkdir -p "$tmp_root/code/app/.cursor/skills/product-manager"
 printf '# Legacy Product Manager\n' > "$tmp_root/code/app/.cursor/skills/product-manager/SKILL.md"
 bash "$KIT_ROOT/scripts/operator-update.sh" \
   --source "$KIT_ROOT" \
+  --channel latest \
   --target "$tmp_root/code/app" \
   --no-fetch >/dev/null
 test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
 
 sync_output="$(bash "$tmp_root/code/app/scripts/operator-sync.sh" \
   --source "$KIT_ROOT" \
+  --channel latest \
   --target "$tmp_root/code/app" \
   --skip-skills \
   --skip-checks \

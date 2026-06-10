@@ -101,7 +101,7 @@ contract lives in `docs/concepts/sticky-operator-mode.md`.
 ## Version Compatibility
 
 `plugin.json` uses semver for the global Codex adapter package. Slice 1 starts
-at `0.1.0` and targets project-local `OPERATOR_KIT_VERSION="2"`.
+at `0.1.0`; the V4 feature-session package is `0.4.0`.
 
 Compatibility rule:
 
@@ -109,6 +109,9 @@ Compatibility rule:
   affordances for Operator Kit V2 projects;
 - plugin major releases or a future `OPERATOR_KIT_VERSION` bump are required
   for project-local breaking changes;
+- V4 skills must remain able to operate V2/V3 projects by detecting whether
+  `scripts/operator-feature.sh` and `scripts/operator-conflicts.sh` exist before
+  using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
 

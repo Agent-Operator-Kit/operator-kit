@@ -5,7 +5,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-sync.sh [options]
 
-Single-command sync for Agent Operator Kit V2:
+Single-command sync for Agent Operator Kit:
   1. resolve the latest kit source
   2. install or refresh bundled Codex Desktop skills
   3. detect the current Operator Kit project
@@ -14,6 +14,8 @@ Single-command sync for Agent Operator Kit V2:
 
 Options:
   --source <path|url>       Operator Kit source path or git URL.
+  --channel <name>          Source channel when cloning remote source.
+                            Valid channels: stable, v2.1, v3, latest.
   --target <repo>           Project repo to update. Defaults to auto-detect.
   --codex-home <path>       Codex home directory. Defaults to $CODEX_HOME or ~/.codex.
   --dry-run                 Show what would change without writing files.
@@ -29,6 +31,9 @@ Options:
 Examples:
   bash scripts/operator-sync.sh
   bash scripts/operator-sync.sh --target /path/to/project
+  bash scripts/operator-sync.sh --channel stable --target /path/to/project
+  bash scripts/operator-sync.sh --channel v3 --target /path/to/project
+  bash scripts/operator-sync.sh --channel latest --target /path/to/project
   bash scripts/operator-sync.sh --target /path/to/empty-project-root --bootstrap-if-missing
   bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
   bash /path/to/operator-kit/scripts/operator-sync.sh --target "$PWD"
@@ -43,6 +48,8 @@ DEFAULT_LOCAL_SOURCE="$HOME/Projects/Agent-Operator-Kit/operator-kit"
 DEFAULT_REMOTE_SOURCE="https://github.com/Agent-Operator-Kit/operator-kit.git"
 
 SOURCE="${OPERATOR_KIT_SOURCE:-}"
+CHANNEL="${OPERATOR_KIT_CHANNEL:-stable}"
+SOURCE_REF=""
 TARGET_REPO=""
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
 DRY_RUN=0
@@ -79,6 +86,10 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --source)
       SOURCE="${2:-}"
+      shift 2
+      ;;
+    --channel)
+      CHANNEL="${2:-}"
       shift 2
       ;;
     --target)
@@ -167,6 +178,17 @@ resolve_default_source() {
 }
 
 prepare_source() {
+  case "$CHANNEL" in
+    stable|v2.1) SOURCE_REF="v2.1" ;;
+    v3) SOURCE_REF="v3" ;;
+    latest|main) SOURCE_REF="" ;;
+    *)
+      printf 'Unknown channel: %s\n' "$CHANNEL" >&2
+      printf 'Valid channels: stable, v2.1, v3, latest\n' >&2
+      exit 1
+      ;;
+  esac
+
   SOURCE="$(resolve_default_source)"
 
   if [ -d "$SOURCE" ]; then
@@ -178,6 +200,16 @@ prepare_source() {
         git -C "$SOURCE_PATH" pull --ff-only >/dev/null
       fi
     fi
+    if [ -n "$SOURCE_REF" ]; then
+      if ! git -C "$SOURCE_PATH" rev-parse --verify "$SOURCE_REF" >/dev/null 2>&1; then
+        printf 'Source does not contain requested channel ref: %s\n' "$SOURCE_REF" >&2
+        exit 1
+      fi
+      TMP_ROOT="$(mktemp -d /tmp/operator-kit-sync.XXXXXX)"
+      mkdir -p "$TMP_ROOT/operator-kit"
+      git -C "$SOURCE_PATH" archive "$SOURCE_REF" | tar -x -C "$TMP_ROOT/operator-kit"
+      SOURCE_PATH="$TMP_ROOT/operator-kit"
+    fi
   else
     if [ "$NO_FETCH" -eq 1 ]; then
       printf 'Source is not a local directory and --no-fetch was set: %s\n' "$SOURCE" >&2
@@ -186,6 +218,10 @@ prepare_source() {
     TMP_ROOT="$(mktemp -d /tmp/operator-kit-sync.XXXXXX)"
     git clone --depth 1 "$SOURCE" "$TMP_ROOT/operator-kit" >/dev/null
     SOURCE_PATH="$TMP_ROOT/operator-kit"
+    if [ -n "$SOURCE_REF" ]; then
+      git -C "$SOURCE_PATH" fetch --depth 1 origin "refs/tags/$SOURCE_REF:refs/tags/$SOURCE_REF" >/dev/null 2>&1 || true
+      git -C "$SOURCE_PATH" checkout "$SOURCE_REF" >/dev/null
+    fi
   fi
 
   if ! is_kit_source "$SOURCE_PATH"; then
@@ -409,6 +445,12 @@ run_project_checks() {
     bash scripts/operator-summary.sh
     bash scripts/operator-memory.sh status
     bash scripts/operator-roadmap.sh status
+    if [ -f scripts/operator-feature.sh ]; then
+      bash scripts/operator-feature.sh active
+    fi
+    if [ -f scripts/operator-conflicts.sh ]; then
+      bash scripts/operator-conflicts.sh summary
+    fi
     bash scripts/operator-catalog.sh list roles >/dev/null
     bash scripts/operator-recommend-lanes.sh >/dev/null
     bash scripts/operator-plan-batch.sh >/dev/null
@@ -422,7 +464,8 @@ SOURCE_REVISION="$(git -C "$SOURCE_PATH" rev-parse --short HEAD 2>/dev/null || p
 print_section "Operator Kit Sync"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
-printf 'Default kit version: 2\n'
+printf 'Channel: %s\n' "$CHANNEL"
+printf 'Default kit version: 4\n'
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
@@ -482,6 +525,9 @@ fi
 
 print_section "Project Update"
 update_args=(--source "$SOURCE_PATH" --target "$TARGET_REPO" --no-fetch)
+if grep -q -- '--channel' "$SOURCE_PATH/scripts/operator-update.sh" 2>/dev/null; then
+  update_args+=(--channel "$CHANNEL")
+fi
 if [ "$DRY_RUN" -eq 1 ]; then
   update_args+=(--dry-run)
 fi

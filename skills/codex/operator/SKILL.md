@@ -9,6 +9,11 @@ Use this skill as the Codex Desktop operating wrapper for an installed Agent Ope
 
 Do not treat this as direct tmux chat. Operate through status checks, task packets, dispatch, collection, summaries, and reviewed integration.
 
+For V4 feature-session orchestration, treat one Codex or Cursor project as the
+operator cockpit. Bind each execution chat to one feature session when possible,
+and keep feature-session state under
+`OPERATOR_DIR/features/<FS-id-slug>/`.
+
 This is execution mode:
 
 ```text
@@ -73,6 +78,9 @@ Before operator work, resolve the project root:
    - `scripts/operator-system-map.sh`
    - `scripts/operator-plan-batch.sh`
    - `scripts/operator-upgrade.sh`
+   V4 installs may also provide `scripts/operator-feature.sh` and
+   `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
+   install partial just because these newer commands are missing.
 6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 7. Read `operator.config.env`.
 8. Read `AGENTS.md` if present.
@@ -114,6 +122,8 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
+bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-sync.sh [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
@@ -148,6 +158,55 @@ Lane recommendation principles:
 
 `operator-plan-batch.sh` is advisory. It proposes operator-approved parallel
 dispatch groups but never sends work to agents by itself.
+
+## V4 Feature Sessions
+
+Operator V4 adds a feature-session layer above V2 tasks and lanes:
+
+- a single Codex or Cursor project is the operator cockpit;
+- a chat binds to one active feature session for execution context;
+- feature state lives under `OPERATOR_DIR/features/<FS-id-slug>/`;
+- lifecycle states are `idea`, `discovery`, `design`, `shaped`, `active`,
+  `in-review`, `integrated`, `shipped`, `parked`, and `blocked`;
+- role templates are duplicable into feature-specific lane instances;
+- conflicts are based on touched surfaces, not role names alone;
+- exploration can continue while implementation is blocked on a file, contract,
+  branch, worktree, or shared resource.
+
+Expected V4 commands:
+
+```bash
+bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-conflicts.sh check <feature>|summary
+```
+
+When V4 commands exist, use `operator-feature.sh active` or
+`operator-feature.sh bind` before execution so follow-up requests resolve to the
+right feature. Use `operator-feature.sh workspace` for the feature folder and
+`operator-feature.sh spawn-lane` to create a feature-specific lane instance
+from a role template.
+
+If V4 commands are not installed yet, preserve the model manually: name the
+feature session in task packets, keep generated feature material under
+`OPERATOR_DIR/features/<FS-id-slug>/` when that folder exists, and otherwise
+fall back to `OPERATOR_DIR/tasks/<slug>/` without pretending the install has V4
+automation.
+
+Conflict review must check the actual surfaces:
+
+- files and directories;
+- API, schema, event, prompt, data, and design-system contracts;
+- ports, databases, provider accounts, credentials, simulators, fixtures,
+  deployment targets, and other shared resources;
+- branch and worktree ownership.
+
+Two lane instances with the same role template may run in parallel when these
+surfaces are disjoint. Two lanes with different role names may conflict when
+they touch the same file, contract, resource, branch, or worktree.
+
+The operator owns the merge plan and final cohesion for the feature session.
+Do not merge worker output just because every lane reports success; review the
+combined feature behavior, contracts, validation evidence, and release risk.
 
 ## Upgrade Command
 
@@ -192,8 +251,10 @@ For status requests:
 
 1. Detect the project.
 2. Run status and summary.
-3. Summarize the lane map, branch health, dirty worktrees, tmux windows, latest handoffs, memory status, blockers, and stale lanes.
-4. Mention risks before recommendations.
+3. If V4 feature commands exist, include the active feature session and feature
+   status.
+4. Summarize the lane map, branch health, dirty worktrees, tmux windows, latest handoffs, memory status, blockers, and stale lanes.
+5. Mention risks before recommendations.
 
 Keep the answer operational: what is safe to dispatch, what should be collected, what needs review, and what is blocked.
 
@@ -214,28 +275,37 @@ Keep project-specific ports, database names, env files, and backup commands in t
 For new work:
 
 1. Check status first.
-2. Clarify the target lane only if it cannot be inferred.
-3. Create the task folder with `operator-task.sh`.
-4. Use `$OPERATOR_DIR/tasks/<slug>/memory.md` for feature-track facts that should move across lanes.
-5. Keep temporary working files under `$OPERATOR_DIR/tasks/<slug>/work/`.
-6. Write lane task packets under `$OPERATOR_DIR/tasks/<slug>/tasks/`, not inside the repo.
-7. Include:
+2. Bind to or create the relevant feature session when V4 commands are
+   available.
+3. Clarify the target lane instance only if it cannot be inferred.
+4. Create the task folder with `operator-task.sh` for V2 execution, or use the
+   V4 feature workspace when `operator-feature.sh workspace` is available.
+5. Use `$OPERATOR_DIR/features/<FS-id-slug>/memory.md` for V4 feature facts, or
+   `$OPERATOR_DIR/tasks/<slug>/memory.md` for V2 feature-track facts.
+6. Keep temporary working files under the feature workspace `work/` folder in
+   V4, or under `$OPERATOR_DIR/tasks/<slug>/work/` in V2.
+7. Write lane task packets under the feature or task `tasks/` folder, not inside the repo.
+8. Include:
    - goal
    - context
-   - role template and architecture-pattern refs
+   - feature-session ID and lifecycle state when using V4
+   - lane instance, role template, and architecture-pattern refs
    - approved packages/repos or a note that existing project patterns win
    - owned files or modules
    - read-only files or modules
-   - roadmap dependencies, touched contracts, and parallel-safety notes
+   - roadmap dependencies, touched surfaces, contracts, resources, and parallel-safety notes
    - acceptance criteria
    - validation commands
-   - expected working files under `$OPERATOR_DIR/tasks/<slug>/work/`
+   - expected working files under the feature or task `work/` folder
    - expected handoff output
    - `## Memory Candidates` handoff requirements
-8. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` before dispatch and use its lane/approval/conflict findings in the packet.
-9. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
+9. For roadmap-driven work, run `bash scripts/operator-plan-batch.sh` before dispatch and use its lane/approval/conflict findings in the packet.
+10. For V4 work, run `bash scripts/operator-conflicts.sh check <feature>` when available before spawning or dispatching a lane instance.
+11. Dispatch with `operator-dispatch.sh`, using `--no-enter` when review-before-send is safer and `--with-memory` when prior project, task, or lane context matters.
 
-Before dispatch, check that no other active lane owns the same branch or file area.
+Before dispatch, check that no other active lane instance owns the same branch,
+worktree, file area, contract, or shared resource. Do not block exploration
+lanes merely because an implementation lane is resource- or file-blocked.
 
 ## Cursor Collaboration
 
@@ -466,7 +536,7 @@ When the user says `$operator update to latest version from git` or similar:
 3. If using a local source repo, run `git pull --ff-only` there only when it has no local changes. If it is dirty, report that and do not overwrite its changes.
 4. Prefer the single-command sync script when available:
    ```bash
-   bash <kit-source>/scripts/operator-sync.sh --source <kit-source> --target <project-root>
+   bash <kit-source>/scripts/operator-sync.sh --source <kit-source> --channel latest --target <project-root>
    ```
 5. If running the lower-level steps manually, refresh bundled global Codex skills from the source:
    ```bash
@@ -475,11 +545,11 @@ When the user says `$operator update to latest version from git` or similar:
 6. If the user only wants a subset, use `--skill <name>` for one or more skills. Otherwise install every bundled `skills/codex/*/SKILL.md` directory.
 7. Refresh the installed project using `operator-update.sh`:
    ```bash
-   bash scripts/operator-update.sh --source <kit-source> --target <project-root>
+   bash scripts/operator-update.sh --source <kit-source> --channel latest --target <project-root>
    ```
    If the project does not yet have `scripts/operator-update.sh`, run it from the source kit:
    ```bash
-   bash <kit-source>/scripts/operator-update.sh --source <kit-source> --target <project-root>
+   bash <kit-source>/scripts/operator-update.sh --source <kit-source> --channel latest --target <project-root>
    ```
 8. Run:
    ```bash
@@ -490,7 +560,7 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-catalog.sh list roles
    bash scripts/operator-recommend-lanes.sh
    bash scripts/operator-plan-batch.sh
-   bash scripts/operator-upgrade.sh --dry-run --skip-skills --target <project-root>
+   bash scripts/operator-upgrade.sh --channel latest --dry-run --skip-skills --target <project-root>
    git status --short
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.

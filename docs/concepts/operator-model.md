@@ -29,6 +29,57 @@ Worker agents own:
 
 This model is intentionally conservative. It favors traceability and integration quality over agents freely editing the same branch.
 
+## V4 Feature Sessions
+
+Operator V4 keeps the same conservative integration model, but changes the
+coordination unit from "one task in one lane" to "one feature session across
+many lane instances."
+
+A single Codex or Cursor project acts as the operator cockpit. Each chat should
+bind to one active feature session so status, memory, dispatch, conflict checks,
+and handoffs all resolve to the same feature folder under
+`OPERATOR_DIR/features/<FS-id-slug>/`.
+
+Feature sessions move through this lifecycle:
+
+```text
+idea -> discovery -> design -> shaped -> active -> in-review -> integrated -> shipped
+                                             \-> blocked
+                                             \-> parked
+```
+
+Role templates in `OPERATOR_DIR/catalog/roles/` are duplicable worker
+blueprints, not mutexes. The operator can spawn feature-specific lane instances
+from the same role template when their branches, worktrees, files, contracts,
+resources, and validation loops do not conflict.
+
+Conflict detection is based on the surfaces being touched, not the role name
+alone:
+
+- files and directories
+- API, schema, event, prompt, and design-system contracts
+- shared resources such as ports, databases, provider sandboxes, credentials,
+  simulators, fixtures, and deployment targets
+- branch and worktree ownership
+
+This lets exploration continue while implementation is blocked by a file,
+resource, or contract conflict. For example, a design, research, QA, or
+architecture lane can keep shaping options while a web implementation lane waits
+for a backend contract to settle.
+
+The operator owns the merge plan, conflict policy, and final cohesion of the
+feature session. Worker agents own scoped execution and handoff evidence.
+
+Expected V4 command shape:
+
+```bash
+bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-conflicts.sh check <feature>|summary
+```
+
+See [Operator V4 feature sessions](operator-v4-feature-sessions.md) for the
+full model.
+
 ## V2 Catalog And Scheduler
 
 Operator V2 keeps this conservative execution model but adds more planning

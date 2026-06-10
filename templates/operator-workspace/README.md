@@ -12,6 +12,11 @@ tasks/<slug>/handoffs/*.md
 tasks/<slug>/work/
 tasks/<slug>/work/feedback/captures/
 tasks/<slug>/work/feedback/annotations.json
+features/<FS-id-slug>/feature.md
+features/<FS-id-slug>/status.json
+features/<FS-id-slug>/events.jsonl
+features/<FS-id-slug>/memory.md
+features/<FS-id-slug>/merge-plan.md
 roadmap/items/*.md
 roadmap/inbox/*.md
 roadmap/views/*.md
@@ -33,6 +38,12 @@ Use `tasks/<slug>/work/` for temporary artifacts such as exploratory markdown, r
 Use `roadmap/` for local roadmap, backlog, feedback, prioritization, dispatch
 readiness, blocked work, and recently shipped work. Link code changes back with
 lightweight roadmap, feedback, and operator task IDs in PRs or commits.
+
+Use `features/` for V4 feature-session state when one Codex or Cursor project
+hosts multiple feature-focused chats. Feature sessions bind chat context to a
+durable folder, duplicate role-template lane instances when surfaces allow it,
+and keep merge plans, memory, handoffs, and working files together until the
+feature is integrated, shipped, parked, blocked, closed, or archived.
 
 Use `system-map.md` and `catalog/` for V2 lane recommendations, specialist role
 templates, approved architecture patterns, package/repo choices, validation

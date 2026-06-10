@@ -97,6 +97,13 @@ else
   printf 'operator-roadmap.sh: missing\n'
 fi
 
+print_section "Feature Sessions"
+if [ -f "$SCRIPT_DIR/operator-feature.sh" ]; then
+  bash "$SCRIPT_DIR/operator-feature.sh" active || true
+else
+  printf 'operator-feature.sh: unavailable\n'
+fi
+
 print_section "Recent Task Folders"
 find "$OPERATOR_DIR/tasks" -mindepth 1 -maxdepth 1 -type d 2>/dev/null \
   | sort \

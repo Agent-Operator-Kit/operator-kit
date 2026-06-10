@@ -24,6 +24,12 @@ incubation to incubation mode unless the user asks for execution.
 - Repo docs are evergreen only.
 - Feedback is not execution: annotations and testing notes become `FB-*` intake first, planner work promotes selected items into `RM-*`, and only `$operator` dispatches implementation.
 - V2 role templates and architecture patterns live under `OPERATOR_DIR/catalog`; use them like an engineering design system for approved packages, repos, contracts, and validation patterns.
+- V4 feature sessions live under `OPERATOR_DIR/features/<FS-id-slug>/`; bind execution chats to the active feature session when available.
+- V4 lifecycle states are `idea`, `discovery`, `design`, `shaped`, `active`, `in-review`, `integrated`, `shipped`, `parked`, and `blocked`.
+- Role templates are duplicable into feature-specific lane instances. They are not mutexes by role name.
+- Conflict detection is based on touched files, contracts, surfaces, branches, worktrees, and shared resources, not on role name alone.
+- Exploration can continue in unblocked lane instances while implementation is blocked on a file, contract, branch, worktree, or shared resource.
+- The operator owns the merge plan and final feature cohesion.
 
 ## Commands
 
@@ -42,6 +48,8 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
+bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```
@@ -52,6 +60,7 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 - `OPERATOR_DIR/memory/project.md` stores durable project facts.
 - `OPERATOR_DIR/tasks/<slug>/memory.md` stores feature-track facts shared across lanes.
 - `OPERATOR_DIR/tasks/<slug>/work/` stores temporary working files: scratch markdown, prototypes, screenshots, generated images, redesign options, and review READMEs.
+- `OPERATOR_DIR/features/<FS-id-slug>/` stores V4 feature-session state, memory, lane-instance packets, handoffs, merge plans, conflicts, and working files when feature sessions are enabled.
 - `OPERATOR_DIR/roadmap/` stores local roadmap, backlog, feedback, prioritization views, and PR/commit trace IDs.
 - `OPERATOR_DIR/system-map.md` and `OPERATOR_DIR/catalog/` store V2 lane recommendations, role templates, and architecture patterns.
 - `OPERATOR_DIR/memory/episodes/*.md` stores distilled lane handoffs.
@@ -62,6 +71,8 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 
 - Never let two agents work on the same branch.
 - Never let two agents edit the same file at the same time.
+- In V4, never spawn or dispatch a lane instance until the operator has checked
+  branch, worktree, file, contract, and shared-resource conflicts.
 - Never commit raw handoffs or task packets.
 - Never commit task working files unless the operator explicitly promotes them into durable source or docs.
 - Never commit raw roadmap inbox items, local feedback annotations, or planning views unless explicitly promoted into evergreen docs.

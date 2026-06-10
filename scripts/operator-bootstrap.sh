@@ -9,7 +9,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
-Installs Agent Operator Kit V2 scripts/templates into an existing git repository.
+Installs Agent Operator Kit V4 scripts/templates into an existing git repository.
 
 Profiles:
   default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
@@ -73,7 +73,7 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 [ -n "$default_branch" ] || default_branch="main"
 obsolete_cursor_skills=(product-manager)
 
-mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
+mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/features" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
@@ -88,7 +88,7 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
   chmod +x "$repo_root/scripts/$script"
 done
@@ -102,7 +102,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="2"
+OPERATOR_KIT_VERSION="4"
 
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
@@ -118,7 +118,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="2"
+OPERATOR_KIT_VERSION="4"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
@@ -216,6 +216,7 @@ fi
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-memory.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-roadmap.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feedback.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feature.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-catalog.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-system-map.sh" refresh >/dev/null
 

@@ -26,7 +26,7 @@ bash -n scripts/*.sh
 grep -q 'operator|Cursor IDE|app|main|' operator.config.env
 grep -q 'cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent' operator.config.env
 grep -q 'ui|Claude Code|app-ui|claude/ui|' operator.config.env
-grep -q 'OPERATOR_KIT_VERSION="2"' operator.config.env
+grep -q 'OPERATOR_KIT_VERSION="4"' operator.config.env
 if grep -q 'Codex CLI' operator.config.env; then
   printf 'Cursor profile should not generate Codex CLI lanes.\n' >&2
   exit 1
@@ -42,10 +42,16 @@ test -f "scripts/operator-catalog.sh"
 test -f "scripts/operator-system-map.sh"
 test -f "scripts/operator-recommend-lanes.sh"
 test -f "scripts/operator-plan-batch.sh"
+test -f "scripts/operator-feature.sh"
+test -f "scripts/operator-conflicts.sh"
+test -d "$tmp_root/operator/features"
+test -f "$tmp_root/operator/features/active.md"
 bash scripts/operator-status.sh >/dev/null
 bash scripts/operator-memory.sh status >/dev/null
 bash scripts/operator-catalog.sh list roles | grep -q provider-integration
 bash scripts/operator-recommend-lanes.sh >/dev/null
 bash scripts/operator-plan-batch.sh >/dev/null
+bash scripts/operator-feature.sh active >/dev/null
+bash scripts/operator-conflicts.sh summary >/dev/null
 
 printf 'cursor profile smoke ok: %s\n' "$tmp_root"

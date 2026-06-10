@@ -41,6 +41,13 @@ It keeps the V1 worktree, tmux, task-packet, and handoff model, then adds:
 - dependency-aware batch planning
 - operator approval before parallel dispatch
 
+V4 feature-session orchestration is being layered on top of that model. V4 uses
+one Codex or Cursor project as the operator cockpit, binds each chat to a
+feature session, stores feature state under `OPERATOR_DIR/features/<FS-id-slug>/`,
+and lets the operator spawn feature-specific lane instances from reusable role
+templates. Conflicts are checked by files, contracts, surfaces, branches,
+worktrees, and shared resources rather than by role name alone.
+
 V1 remains available at the `v1` git tag:
 
 ```bash
@@ -137,6 +144,8 @@ bash scripts/operator-system-map.sh refresh
 bash scripts/operator-catalog.sh list roles
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
+bash scripts/operator-feature.sh start|list|active|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
+bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-sync.sh --target /path/to/project
 bash scripts/operator-upgrade.sh
 ```
@@ -146,6 +155,23 @@ Remote update entry point:
 ```bash
 bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 ```
+
+Version channels:
+
+```bash
+# Stable default: current V2.1 release tag
+bash scripts/operator-sync.sh --channel stable --target /path/to/project
+
+# V3 plugin-based adapter release, after the v3 tag is published
+bash scripts/operator-sync.sh --channel v3 --target /path/to/project
+
+# Latest source, currently V4 feature-session orchestration
+bash scripts/operator-sync.sh --channel latest --target /path/to/project
+```
+
+`stable` is an alias for `v2.1` so existing users can keep updating the
+current released Operator Kit without being forced onto V4. `latest` is for
+active development and early adopters.
 
 Pin V1 for a project:
 
@@ -219,6 +245,8 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 
 ## Docs
 
+- [Operator model](docs/concepts/operator-model.md)
+- [Operator V4 feature sessions](docs/concepts/operator-v4-feature-sessions.md)
 - [V3 host adapter packaging](docs/guides/v3-host-adapters.md)
 - [V3 install flow](docs/guides/v3-install-flow.md)
 - [Codex plugin packaging](docs/guides/codex-plugin-package.md)
@@ -236,6 +264,8 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 
 - Do not let two agents share the same branch.
 - Do not let two lanes edit the same files at the same time.
+- In V4, bind execution chats to a feature session and check conflicts by
+  files, contracts, surfaces, branches, worktrees, and shared resources.
 - Keep generated operator state under `OPERATOR_DIR`.
 - Keep temporary work under `OPERATOR_DIR/tasks/<slug>/work/`.
 - Do not commit raw handoffs, task packets, pane captures, memory packs, or transient notes.

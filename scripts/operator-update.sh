@@ -3,9 +3,9 @@ set -euo pipefail
 
 usage() {
   cat <<'USAGE'
-Usage: bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>] [--dry-run] [--no-fetch]
+Usage: bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>] [--channel stable|v2.1|v3|latest] [--dry-run] [--no-fetch]
 
-Updates an installed Agent Operator Kit project from the latest V2 kit source.
+Updates an installed Agent Operator Kit project from an Operator Kit source.
 
 By default, project-specific files are preserved:
   operator.config.env
@@ -16,10 +16,17 @@ By default, project-specific files are preserved:
   .cursor/*
 
 Evergreen scripts are refreshed from the kit source.
+
+Channels:
+  stable/v2.1  Current pinned release.
+  v3           Plugin-based adapter release, once the v3 tag is published.
+  latest       Current source, including V4 feature sessions.
 USAGE
 }
 
 SOURCE="${OPERATOR_KIT_SOURCE:-https://github.com/Agent-Operator-Kit/operator-kit.git}"
+CHANNEL="${OPERATOR_KIT_CHANNEL:-stable}"
+SOURCE_REF=""
 TARGET_REPO=""
 DRY_RUN=0
 NO_FETCH=0
@@ -37,6 +44,10 @@ while [ "$#" -gt 0 ]; do
   case "$1" in
     --source)
       SOURCE="${2:-}"
+      shift 2
+      ;;
+    --channel)
+      CHANNEL="${2:-}"
       shift 2
       ;;
     --target)
@@ -81,6 +92,17 @@ if [ ! -f "$TARGET_REPO/operator.config.env" ]; then
 fi
 
 prepare_source() {
+  case "$CHANNEL" in
+    stable|v2.1) SOURCE_REF="v2.1" ;;
+    v3) SOURCE_REF="v3" ;;
+    latest|main) SOURCE_REF="" ;;
+    *)
+      printf 'Unknown channel: %s\n' "$CHANNEL" >&2
+      printf 'Valid channels: stable, v2.1, v3, latest\n' >&2
+      exit 1
+      ;;
+  esac
+
   if [ -d "$SOURCE" ] && [ -f "$SOURCE/scripts/operator-bootstrap.sh" ]; then
     SOURCE_PATH="$(cd "$SOURCE" && pwd)"
     if [ "$NO_FETCH" -eq 0 ] && git -C "$SOURCE_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -90,10 +112,24 @@ prepare_source() {
         git -C "$SOURCE_PATH" pull --ff-only >/dev/null
       fi
     fi
+    if [ -n "$SOURCE_REF" ]; then
+      if ! git -C "$SOURCE_PATH" rev-parse --verify "$SOURCE_REF" >/dev/null 2>&1; then
+        printf 'Source does not contain requested channel ref: %s\n' "$SOURCE_REF" >&2
+        exit 1
+      fi
+      TMP_ROOT="$(mktemp -d /tmp/operator-kit-update.XXXXXX)"
+      mkdir -p "$TMP_ROOT/operator-kit"
+      git -C "$SOURCE_PATH" archive "$SOURCE_REF" | tar -x -C "$TMP_ROOT/operator-kit"
+      SOURCE_PATH="$TMP_ROOT/operator-kit"
+    fi
   else
     TMP_ROOT="$(mktemp -d /tmp/operator-kit-update.XXXXXX)"
     git clone --depth 1 "$SOURCE" "$TMP_ROOT/operator-kit" >/dev/null
     SOURCE_PATH="$TMP_ROOT/operator-kit"
+    if [ -n "$SOURCE_REF" ]; then
+      git -C "$SOURCE_PATH" fetch --depth 1 origin "refs/tags/$SOURCE_REF:refs/tags/$SOURCE_REF" >/dev/null 2>&1 || true
+      git -C "$SOURCE_PATH" checkout "$SOURCE_REF" >/dev/null
+    fi
   fi
 
   if [ ! -f "$SOURCE_PATH/scripts/operator-bootstrap.sh" ]; then
@@ -224,7 +260,11 @@ source "$TARGET_REPO/operator.config.env"
 remove_obsolete_project_assets
 
 mkdir -p "$TARGET_REPO/scripts"
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+  if [ ! -f "$SOURCE_PATH/scripts/$script" ]; then
+    record unchanged "scripts/$script unavailable in selected channel"
+    continue
+  fi
   copy_refresh "$SOURCE_PATH/scripts/$script" "$TARGET_REPO/scripts/$script" "scripts/$script"
 done
 
@@ -242,11 +282,14 @@ if [ ! -f "$TARGET_REPO/.cursor/environment.json" ]; then
   install_missing "$SOURCE_PATH/templates/cursor/environment.json.example" "$TARGET_REPO/.cursor/environment.json.example" ".cursor/environment.json.example"
 fi
 
-mkdir -p "$OPERATOR_DIR/tasks" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory" "$OPERATOR_DIR/roadmap/items" "$OPERATOR_DIR/roadmap/inbox" "$OPERATOR_DIR/roadmap/views" "$OPERATOR_DIR/catalog/roles" "$OPERATOR_DIR/catalog/patterns"
+mkdir -p "$OPERATOR_DIR/tasks" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory" "$OPERATOR_DIR/features" "$OPERATOR_DIR/roadmap/items" "$OPERATOR_DIR/roadmap/inbox" "$OPERATOR_DIR/roadmap/views" "$OPERATOR_DIR/catalog/roles" "$OPERATOR_DIR/catalog/patterns"
 if [ "$DRY_RUN" -eq 0 ]; then
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-memory.sh" init >/dev/null
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-roadmap.sh" init >/dev/null
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-feedback.sh" init >/dev/null
+  if [ -f "$TARGET_REPO/scripts/operator-feature.sh" ]; then
+    OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-feature.sh" init >/dev/null
+  fi
 fi
 install_missing "$SOURCE_PATH/templates/operator-workspace/README.md" "$OPERATOR_DIR/README.md" "OPERATOR_DIR/README.md"
 install_missing "$SOURCE_PATH/templates/operator-workspace/catalog/README.md" "$OPERATOR_DIR/catalog/README.md" "OPERATOR_DIR/catalog/README.md"
@@ -288,6 +331,7 @@ print_section "Agent Operator Kit Update"
 printf 'Target: %s\n' "$TARGET_REPO"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
+printf 'Channel: %s\n' "$CHANNEL"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
 fi
@@ -318,6 +362,8 @@ printf '  - bash scripts/operator-status.sh\n'
 printf '  - bash scripts/operator-summary.sh\n'
 printf '  - bash scripts/operator-memory.sh status\n'
 printf '  - bash scripts/operator-roadmap.sh status\n'
+printf '  - bash scripts/operator-feature.sh active\n'
+printf '  - bash scripts/operator-conflicts.sh summary\n'
 printf '  - bash scripts/operator-catalog.sh list roles\n'
 printf '  - bash scripts/operator-recommend-lanes.sh\n'
 printf '  - bash scripts/operator-plan-batch.sh\n'

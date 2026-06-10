@@ -78,6 +78,7 @@ mkdir -p "$project_root"
 
 bash "$SYNC" \
   --source "$KIT_ROOT" \
+  --channel latest \
   --target "$project_root" \
   --bootstrap-if-missing \
   --skip-skills \
@@ -102,13 +103,14 @@ for skill in operator-workflow operator operator-planner operator-feedback desig
   assert_file "$repo/.cursor/skills/$skill/SKILL.md"
 done
 
-for script in operator-status.sh operator-summary.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-system-map.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-status.sh operator-summary.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-system-map.sh operator-sync.sh operator-upgrade.sh; do
   assert_file "$repo/scripts/$script"
 done
 
 assert_dir "$operator_dir/tasks"
 assert_dir "$operator_dir/captures"
 assert_dir "$operator_dir/memory"
+assert_dir "$operator_dir/features"
 assert_dir "$operator_dir/roadmap/items"
 assert_dir "$operator_dir/roadmap/inbox"
 assert_dir "$operator_dir/roadmap/views"
@@ -121,10 +123,12 @@ assert_file "$operator_dir/roadmap/inbox/_feedback-template.md"
 assert_file "$operator_dir/catalog/roles/high-risk-operations.md"
 assert_file "$operator_dir/catalog/patterns/architecture-pattern-library.md"
 assert_file "$operator_dir/memory/project.md"
+assert_file "$operator_dir/features/README.md"
+assert_file "$operator_dir/features/active.md"
 assert_file "$operator_dir/system-map.md"
 
 grep -q 'OPERATOR_DIR=.*/operator' "$repo/operator.config.env" || fail "operator.config.env does not point at sibling operator dir"
-grep -q 'OPERATOR_KIT_VERSION="2"' "$repo/operator.config.env" || fail "operator.config.env missing kit version"
+grep -q 'OPERATOR_KIT_VERSION="4"' "$repo/operator.config.env" || fail "operator.config.env missing kit version"
 grep -q 'Agent Operator Kit generated state' "$repo/.gitignore" || fail ".gitignore missing Operator Kit marker"
 test ! -e "$project_root/operator.config.env" || fail "project root should not contain operator.config.env"
 test ! -e "$KIT_ROOT/operator.config.env" || fail "source repo should not contain operator.config.env"
@@ -133,9 +137,12 @@ OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-status.
 OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-summary.sh" >/dev/null
 OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-memory.sh" status >/dev/null
 OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-roadmap.sh" status >/dev/null
+OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-feature.sh" active >/dev/null
+OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-conflicts.sh" summary >/dev/null
 
 bash "$SYNC" \
   --source "$KIT_ROOT" \
+  --channel latest \
   --target "$project_root" \
   --skip-skills \
   --no-fetch \
