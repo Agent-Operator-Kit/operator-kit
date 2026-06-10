@@ -5,9 +5,9 @@ description: "Use for product UX and design-system work in Codex Desktop project
 
 # Design Agent
 
-Use this skill as Codex Desktop's design/UX orchestration layer. It establishes, reviews, and evolves project design systems, then packages design/UI work for Claude Code Opus or Agent Operator Kit lanes.
+Use this skill as Codex Desktop's design/UX orchestration layer. It establishes, reviews, and evolves project design systems, then packages design/UI work for Claude Code Fable 5 or Agent Operator Kit lanes.
 
-Claude Code Opus is the preferred executor for production design/UI edits. Codex is the review, annotation, task-shaping, and design-system memory surface.
+Claude Code Fable 5 is the preferred executor for design exploration, design-system extraction, and production design/UI edits. Codex is the review, annotation, task-shaping, and design-system memory surface.
 
 ## Start Routine
 
@@ -21,6 +21,7 @@ Claude Code Opus is the preferred executor for production design/UI edits. Codex
 3. Choose the smallest useful workflow: review, extract, recommend starter, audit design system, package feedback, or prepare Operator Kit task.
 4. Do not edit production UI during review mode unless the user explicitly asks for implementation.
 5. When Agent Operator Kit is installed or `$operator` is requested, collaborate with `$operator` for status checks, lane safety, dispatch, collection, working-file placement, and integration review.
+   In an installed Operator project, a `$design-agent` request is dispatch-eligible by default unless the user explicitly asks for review-only chat output.
 6. In Operator Kit projects, put temporary design artifacts under `$OPERATOR_DIR/tasks/<slug>/work/`, not in the repo.
 
 ## Core Workflows
@@ -120,14 +121,40 @@ Suggested flow:
 
 1. `$operator` detects the project and runs status/summary.
 2. `$design-agent` inspects design context and drafts task packet content.
-3. `$operator` creates task folders under `$OPERATOR_DIR`, checks lane/file ownership, stores cross-lane design facts in task memory when useful, and dispatches with `operator-dispatch.sh`.
+3. `$operator` creates task folders under `$OPERATOR_DIR`, checks lane/file ownership, stores cross-lane design facts in task memory when useful, and dispatches a Claude Code Fable 5 lane with `operator-dispatch.sh`.
 4. `$design-agent` writes or asks lanes to write temporary design artifacts under `$OPERATOR_DIR/tasks/<slug>/work/`.
 5. `$operator` collects the result.
 6. `$design-agent` reviews output and packages next feedback.
 
+## Claude Code Fable 5 Dispatch Default
+
+When `$design-agent` is used in an installed Operator project and the request
+asks to explore, redesign, produce, implement, package, or otherwise advance
+design work, default to a Claude Code lane running:
+
+```bash
+claude --model fable --safe-mode --permission-mode dontAsk
+```
+
+Use this routing:
+
+1. Prefer an existing `design` lane whose owner is Claude Code.
+2. Otherwise use an existing Claude Code `ui` lane.
+3. If the selected Claude Code lane invocation does not include
+   `--model fable`, have `$operator` repair the lane invocation before dispatch
+   when project config edits are allowed; otherwise stop and report the stale
+   lane configuration.
+4. If no Claude Code design/UI lane exists, stop and ask for a lane-map update
+   or Operator project setup rather than running ad hoc edits in the source
+   checkout.
+
+Use `$OPERATOR_DIR/tasks/<slug>/work/` for explorations, HTML prototypes,
+screenshots, generated images, PDFs, and proposal READMEs. Promote only accepted
+durable artifacts into source, `design-system/`, or evergreen docs.
+
 Do not create design/UI lanes everywhere by default. Recommend:
 
-- direct Claude Code Opus for early projects,
+- direct Claude Code Fable 5 for early projects,
 - `ui` lane only for straightforward implementation,
 - `design` + `ui` lanes when a reviewable design mockup/handoff is worthwhile.
 

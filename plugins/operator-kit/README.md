@@ -70,6 +70,16 @@ Installing this plugin must not create or mutate project-local state. Project
 setup and sync stay explicit through `operator-sync.sh`, `operator-upgrade.sh`,
 or project-local `scripts/operator-*.sh`.
 
+When the global plugin is available, a user can explicitly ask for project setup
+with phrases such as `operator install`, `operator init`, or `set up Operator
+for this project`. The skill should then run project-local setup through
+`operator-sync.sh` with `--bootstrap-if-missing --skip-skills`, using a pinned
+local source when provided or the GitHub raw script fallback when no local kit
+source is available.
+
+For the agent-chat quickstart, see
+`docs/guides/operator-plugin-mode-cheatsheet.md` in the source repo.
+
 After this plugin owns global Codex skills, scoped project setup should skip
 legacy direct skill installation:
 

@@ -143,7 +143,7 @@ OPERATOR_KIT_VERSION="5"
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
 cursor|Cursor CLI|$repo_name-cursor|cursor/operator|cursor agent
-ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
+ui|Claude Code|$repo_name-ui|claude/ui|claude --model fable --permission-mode dontAsk
 '
 EOF
   else
@@ -159,7 +159,7 @@ OPERATOR_KIT_VERSION="5"
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
 backend|Codex CLI|$repo_name-backend|codex/backend|codex --sandbox workspace-write
-ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
+ui|Claude Code|$repo_name-ui|claude/ui|claude --model fable --permission-mode dontAsk
 '
 EOF
   fi

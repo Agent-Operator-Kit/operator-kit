@@ -42,9 +42,18 @@ When a project has Agent Operator Kit installed:
 1. `$operator` detects the project and checks lane status.
 2. `$design-agent` inspects the UI, design-system, and product context.
 3. `$design-agent` drafts task packet content and acceptance criteria.
-4. `$operator` creates the task folder, checks lane/file ownership, and dispatches.
+4. `$operator` creates the task folder, checks lane/file ownership, and dispatches a Claude Code Fable 5 design/UI lane.
 5. `$operator` collects output.
 6. `$design-agent` reviews the output and classifies follow-up feedback.
+
+When a request names both `$operator` and `$design-agent`, treat that as intent
+to dispatch after Operator preflight passes unless the user explicitly asks for
+review-only chat output. Prefer an existing Claude Code `design` lane; otherwise
+use a Claude Code `ui` lane. The selected Claude lane should run:
+
+```bash
+claude --model fable --safe-mode --permission-mode dontAsk
+```
 
 Temporary design artifacts belong under the task working folder:
 
@@ -62,14 +71,14 @@ project material.
 Start simple:
 
 ```text
-Codex review + Claude Code Opus direct edits + design-system/
+Codex review + Claude Code Fable 5 direct edits + design-system/
 ```
 
 Add lanes only when the project needs them:
 
 ```text
-ui|Claude Code|app-ui|claude/ui|claude --model opus --safe-mode --permission-mode dontAsk
-design|Claude Code|app-design|claude/design|claude --model opus --safe-mode --permission-mode dontAsk
+ui|Claude Code|app-ui|claude/ui|claude --model fable --safe-mode --permission-mode dontAsk
+design|Claude Code|app-design|claude/design|claude --model fable --safe-mode --permission-mode dontAsk
 ```
 
 Use a `design` lane when the project benefits from reviewable mockups or design handoffs before production UI implementation.

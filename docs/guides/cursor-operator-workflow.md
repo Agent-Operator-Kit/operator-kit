@@ -55,7 +55,7 @@ The generated lane map starts with:
 ```text
 operator|Cursor IDE|app|main|
 cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent
-ui|Claude Code|app-ui|claude/ui|claude --safe-mode --permission-mode dontAsk
+ui|Claude Code|app-ui|claude/ui|claude --model fable --safe-mode --permission-mode dontAsk
 ```
 
 Review `operator.config.env` before creating worktrees or starting workers. Some

@@ -215,7 +215,57 @@ bash scripts/operator-summary.sh
 ```
 
 If partial, explain what was found and what is missing; do not dispatch or collect until repaired.
-If not installed, say Operator Kit is not installed in this project and offer setup or a path switch.
+If not installed, say Operator Kit is not installed in this project. If the user
+asked to observe or check status, offer setup or a path switch. If the user
+asked to install, initialize, bootstrap, or set up Operator Kit for the current
+project, use the project install flow below.
+
+## Project Install Flow
+
+When Operator is globally available through the Codex plugin, project setup is
+still explicit and project-local. Treat phrases like `operator install`,
+`operator init`, `install Operator here`, `set up Operator for this project`, or
+`bootstrap Operator in this repo` as setup requests and route them through the
+`$operator-workflow` skill.
+
+Install rules:
+
+1. Resolve the target. Prefer the explicit path from the user. Otherwise use
+   the current working directory. For an empty scoped project root, use the
+   layout `code/app` for the canonical repo and `operator/` for Operator state.
+2. Inspect the target and git status before writing files.
+3. Use `operator-sync.sh` with `--bootstrap-if-missing` and always include
+   `--skip-skills`, because the Codex plugin now owns global skills.
+4. Prefer an explicit source from the user or current context. Otherwise use a
+   local Operator Kit checkout when one is available. If no local source exists,
+   use the GitHub `operator-sync.sh` fallback.
+5. For pinned review branches or local test candidates, include `--source` and
+   `--no-fetch` so setup uses the intended source revision.
+6. After install, run status, summary, memory, roadmap, catalog, and lane
+   recommendation checks before declaring the project ready.
+
+Typical local-source command:
+
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh \
+  --source /path/to/operator-kit \
+  --target /path/to/project-root \
+  --bootstrap-if-missing \
+  --skip-skills \
+  --no-fetch
+```
+
+Fallback command when no local kit source is available:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh) \
+  --target /path/to/project-root \
+  --bootstrap-if-missing \
+  --skip-skills
+```
+
+Do not install Operator Kit into the Operator Kit source checkout itself unless
+the user explicitly targets that checkout as a project.
 
 ## V5 Control Runtime
 
@@ -523,7 +573,13 @@ When the user asks for design, UX, UI consistency, design-system extraction, vis
 
 1. If the request names `$design-agent` or clearly needs design-system/UX reasoning, suggest using `$design-agent` before dispatch unless the user already did.
 2. Run normal operator detection, status, and summary before any lane work.
-3. Ask for confirmation before dispatch when the design task is broad, subjective, or could touch many UI files.
+3. When the request names both `$operator` and `$design-agent`, treat that as
+   explicit intent to prepare and dispatch a Claude Code Fable 5 design/UI lane
+   after status, lane ownership, and file-conflict preflight pass. Do not ask
+   for extra confirmation merely because the design task is broad or
+   subjective; instead scope exploratory output to
+   `$OPERATOR_DIR/tasks/<slug>/work/` and keep production file edits behind the
+   task packet's acceptance criteria.
 4. Let `$design-agent` own the design/UX content:
    - scenario classification,
    - starter recommendation,
@@ -534,15 +590,30 @@ When the user asks for design, UX, UI consistency, design-system extraction, vis
 5. Keep `$operator` responsible for:
    - lane safety,
    - task folder creation under `$OPERATOR_DIR`,
+   - Claude Code Fable 5 lane selection,
    - dispatch,
    - collection,
    - integration review.
+
+Default design-agent lane selection:
+
+1. Prefer an existing `design` lane whose owner is Claude Code.
+2. Otherwise use an existing Claude Code `ui` lane.
+3. The selected lane invocation must include:
+   `claude --model fable --dangerously-skip-permissions --permission-mode bypassPermissions`.
+4. If the lane is Claude Code but lacks `--model fable`, repair
+   `operator.config.env` before dispatch when project config edits are allowed;
+   otherwise stop and report the stale lane configuration.
+5. If no Claude Code design/UI lane exists, stop and request a lane-map update
+   or project setup instead of running ad hoc design work in the operator
+   checkout.
 
 Suggested combined requests:
 
 ```text
 Use $design-agent with $operator. Do a comprehensive UX and consistency review.
 Use $design-agent with $operator. Extract a design system and prepare a UI lane task.
+Use $design-agent with $operator. Explore a fresh website direction in a Claude Code Fable 5 design lane.
 Use $design-agent with $operator-feedback. Capture my annotations as feedback.
 Use $operator-planner with $operator. Turn ready design feedback into an execution plan.
 ```

@@ -10,7 +10,7 @@ brief + references
   -> optionally explore 2-3 foundation directions
   -> generate design-system/
   -> create 1-2 kits
-  -> run Claude Code Opus UI task
+  -> run Claude Code Fable 5 UI task
   -> review in Codex
 ```
 

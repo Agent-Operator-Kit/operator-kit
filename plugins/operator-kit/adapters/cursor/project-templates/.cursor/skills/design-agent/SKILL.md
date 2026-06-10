@@ -7,7 +7,7 @@ description: Perform UX and design-system work from Cursor. Use for product UX r
 
 Use this skill as Cursor's design and UX orchestration mode. It establishes,
 reviews, and evolves project design systems, then packages design/UI work for
-Claude Code, Cursor CLI, or Agent Operator Kit lanes.
+Claude Code Fable 5, Cursor CLI, or Agent Operator Kit lanes.
 
 Do not edit production UI during review mode unless the user explicitly asks for
 implementation.
@@ -27,6 +27,8 @@ implementation.
 4. If Agent Operator Kit is installed, collaborate with `operator` for project
    detection, lane safety, dispatch, collection, working-file placement, and
    integration review.
+   In an installed Operator project, a design-agent request is dispatch-eligible
+   by default unless the user explicitly asks for review-only chat output.
 5. In Operator Kit projects, place temporary design artifacts under
    `OPERATOR_DIR/tasks/<slug>/work/`, not in the repo.
 
@@ -40,7 +42,7 @@ Review:
 - UX consistency findings;
 - visual, token, typography, spacing, and component drift;
 - flow, state, accessibility, and copy issues;
-- next Claude Code, Cursor CLI, or Operator Kit task.
+- next Claude Code Fable 5, Cursor CLI, or Operator Kit task.
 
 Extract:
 
@@ -81,7 +83,8 @@ Suggested flow:
 1. `operator` detects the project and runs status/summary.
 2. `design-agent` inspects design context and drafts task packet content.
 3. `operator` creates task folders, checks lane/file ownership, stores useful
-   design facts in task memory, and dispatches with `operator-dispatch.sh`.
+   design facts in task memory, and dispatches a Claude Code Fable 5 lane with
+   `operator-dispatch.sh`.
 4. Design artifacts stay under `OPERATOR_DIR/tasks/<slug>/work/`.
 5. `operator` collects results; `design-agent` reviews output and packages next
    feedback.
@@ -108,3 +111,20 @@ Keep these artifacts under the active feature's
 prompt response, task state, artifact file, or host-session label as approval,
 and never request graph files, actor bindings, proof descriptors, or authority
 keys for this workflow.
+
+## Claude Code Fable 5 Dispatch Default
+
+When design-agent is used in an installed Operator project and the request asks
+to explore, redesign, produce, implement, package, or otherwise advance design
+work, default to a Claude Code lane running:
+
+```bash
+claude --model fable --safe-mode --permission-mode dontAsk
+```
+
+Prefer an existing `design` lane owned by Claude Code. Otherwise use an existing
+Claude Code `ui` lane. If the selected lane invocation does not include
+`--model fable`, have `operator` repair the lane invocation before dispatch when
+project config edits are allowed; otherwise stop and report the stale lane
+configuration. If no Claude Code design/UI lane exists, stop and request a lane
+map update or Operator project setup.

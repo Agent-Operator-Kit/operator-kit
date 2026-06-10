@@ -9,6 +9,52 @@ Use this skill when a user asks Codex to set up or repair an Agent Operator Kit 
 
 For day-to-day operation inside an already installed project, prefer the runtime `$operator` skill in `skills/codex/operator/SKILL.md`.
 
+## Global Plugin To Project Install
+
+When Agent Operator Kit is globally available as a Codex plugin, the plugin
+only supplies skills and routing. A project becomes operable after explicit
+project-local setup. Treat phrases like `operator install`, `operator init`,
+`install Operator here`, `set up Operator for this project`, and `bootstrap
+Operator in this repo` as setup requests.
+
+Setup from the global plugin must:
+
+1. Resolve the target project path from the user request, or use the current
+   working directory when no explicit target is given.
+2. Inspect the target and git status before writing files.
+3. Run `operator-sync.sh` with `--bootstrap-if-missing` and `--skip-skills`.
+   Global skills are owned by the plugin and should not be copied into
+   `~/.codex/skills`.
+4. Prefer a user-provided or context-provided source path. For review branches
+   and local test candidates, pass both `--source <kit-checkout>` and
+   `--no-fetch`. If no local source exists, use the GitHub raw
+   `operator-sync.sh` fallback.
+5. Verify the install with status, summary, memory, roadmap, catalog, and lane
+   recommendation checks.
+
+Typical pinned local-source command:
+
+```bash
+bash /path/to/operator-kit/scripts/operator-sync.sh \
+  --source /path/to/operator-kit \
+  --target /path/to/project-root \
+  --bootstrap-if-missing \
+  --skip-skills \
+  --no-fetch
+```
+
+Fallback command:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh) \
+  --target /path/to/project-root \
+  --bootstrap-if-missing \
+  --skip-skills
+```
+
+Do not install Operator Kit into the Operator Kit source checkout itself unless
+the user explicitly targets that checkout as a project.
+
 ## Workflow
 
 1. Inspect the project root and git status.

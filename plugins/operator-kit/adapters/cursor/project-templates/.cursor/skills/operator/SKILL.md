@@ -188,6 +188,20 @@ For new work:
 10. Collect, review the worker branch, validate, and integrate only approved
    source changes.
 
+For design-agent work, a request that names both `operator` and `design-agent`
+is explicit intent to prepare and dispatch a Claude Code Fable 5 design/UI lane
+after status, lane ownership, and file-conflict preflight pass. Prefer an
+existing Claude Code `design` lane; otherwise use an existing Claude Code `ui`
+lane. The selected lane invocation must include:
+
+```bash
+claude --model fable --dangerously-skip-permissions --permission-mode bypassPermissions
+```
+
+If a Claude Code design/UI lane lacks `--model fable`, repair
+`operator.config.env` before dispatch when project config edits are allowed;
+otherwise stop and report the stale lane configuration.
+
 ## Guardrails
 
 - Do not let two agents share the same branch.
