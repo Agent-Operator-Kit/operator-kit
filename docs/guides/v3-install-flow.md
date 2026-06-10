@@ -14,6 +14,9 @@ The global layer makes Operator Kit available in the agent host. The
 project-scoped layer remains the operational source of truth for each repo or
 folder.
 
+For the agent-chat quickstart, see
+`docs/guides/operator-plugin-mode-cheatsheet.md`.
+
 ## Distribution Channels
 
 The final user-facing install should use a real marketplace channel:
