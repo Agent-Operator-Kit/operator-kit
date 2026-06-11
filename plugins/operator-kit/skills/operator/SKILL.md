@@ -32,8 +32,8 @@ artifacts, and `$operator` when work is ready to become execution.
 ## Codex Chat Getting Started
 
 When the user asks how to get started, how to try Operator, or how to begin
-using feature sessions, assume the primary UX is Codex Desktop chat unless the
-user explicitly asks for terminal-only, Cursor, or Claude Code instructions.
+using Operator, assume the primary UX is Codex Desktop chat unless the user
+explicitly asks for terminal-only, Cursor, or Claude Code instructions.
 If the user wants a non-Codex startup path, they should say so directly, for
 example: "get started in Cursor", "get started in Claude Code", or "give me the
 terminal setup". Do not infer Cursor or Claude Code just because their adapters
@@ -42,31 +42,58 @@ exist.
 Default to a chat-first flow:
 
 1. Detect the current Codex project from the chat workspace.
-2. If Operator Kit is installed, run status and summary yourself.
-3. If V4 feature commands exist, run:
+2. Classify the workspace before telling the user what to do:
+   - `kit-source`: this repo is the Operator Kit source checkout when
+     `plugins/operator-kit/.codex-plugin/plugin.json` and
+     `scripts/operator-bootstrap.sh` exist.
+   - `installed-project`: `operator.config.env` and the required
+     `scripts/operator-*.sh` files exist.
+   - `legacy-or-stale-project`: an Operator Kit install exists but is missing
+     current scripts such as `operator-feature.sh`, `operator-conflicts.sh`, or
+     `operator-sync.sh`.
+   - `not-installed-project`: a normal git repo without Operator Kit config.
+3. If the Codex plugin is missing but this is the kit source checkout, run the
+   plugin migration script from the source checkout:
+   ```bash
+   bash scripts/operator-plugin-migrate.sh
+   ```
+   If the plugin is already installed, do not retire or reinstall anything
+   unless the package version or source path is stale.
+4. If this is an installed or stale project, update naturally to the latest
+   project-local scripts from the local kit source when available:
+   ```bash
+   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-update.sh --source /Users/norbert/Projects/Agent-Operator-Kit/operator-kit --target <project-root> --channel latest --no-fetch
+   ```
+   Then run status and summary yourself.
+5. If this is a not-installed project and the user asked to get started with
+   Operator in that project, bootstrap it from the local kit source when
+   available:
+   ```bash
+   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-bootstrap.sh <project-root>
+   ```
+   If bootstrapping would create project files and the user's wording is only
+   exploratory, explain the install plan before writing.
+6. After install or update, open the feature-session cockpit when available:
    ```bash
    bash scripts/operator-feature.sh open --tool codex
    ```
-4. Explain the active feature sessions in chat and recommend one next action:
+7. Explain the active feature sessions in chat and recommend one next action:
    bind this chat to an existing feature, create a new feature session, update
    the project to latest, or run a safe status-only check.
-5. If no feature is selected and the user names a feature idea, create the
+8. If no feature is selected and the user names a feature idea, create the
    feature session and bind this chat:
    ```bash
    bash scripts/operator-feature.sh start <slug> "<title>"
    bash scripts/operator-feature.sh open --tool codex --feature <FS-id>
    ```
-6. If the project is stale, use the local Operator Kit source when available
-   and update to latest before testing V4:
-   ```bash
-   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-update.sh --source /Users/norbert/Projects/Agent-Operator-Kit/operator-kit --target <project-root> --channel latest --no-fetch
-   ```
 
 Do not start by giving the user a long shell checklist when the task can be
 handled from the current Codex chat. Commands are still the implementation
 surface, but the user-facing experience should be: open the project in Codex,
-start or continue a chat, ask Operator to show active feature sessions, then
-bind or create one feature session.
+start or continue a chat, ask Operator to get started, then let Operator detect,
+install, migrate, update, and bind the chat as needed. Do not require the user
+to say "V4"; current feature-session behavior is the default latest Operator
+Kit experience.
 
 ## Sticky Operator Mode
 

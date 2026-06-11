@@ -173,6 +173,23 @@ If they want Cursor, Claude Code, or terminal-only startup instructions, they
 should name that host explicitly. The adapters are portable, but the startup UX
 should not silently switch hosts.
 
+Getting started should not require the user to know or name the current kit
+version. Codex should classify the workspace first:
+
+- Operator Kit source checkout: verify or install the local
+  `operator-kit@operator-kit-local` plugin through `scripts/operator-plugin-migrate.sh`.
+- Installed project: run status and summary, update stale project-local scripts
+  with `operator-update.sh --channel latest`, then open the feature-session
+  cockpit.
+- Not-yet-installed project: bootstrap Operator Kit from the local source when
+  the user asked to start using Operator in that project.
+
+After install or update, use:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex
+```
+
 If the host exposes thread management tools, Codex can make the UX native by
 renaming the thread to include the feature id, pinning active feature threads,
 archiving closed feature threads, and scheduling monitors. These are host

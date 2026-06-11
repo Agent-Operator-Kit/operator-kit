@@ -6,7 +6,7 @@ usage() {
 Usage: bash scripts/operator-plugin-migrate.sh [options]
 
 Migrates Codex Desktop from legacy Operator Kit skill directories in
-~/.codex/skills to the V3 operator-kit Codex plugin.
+~/.codex/skills to the operator-kit Codex plugin.
 
 The migration is plugin-first and reversible:
   1. prepare a local Codex marketplace for plugins/operator-kit
