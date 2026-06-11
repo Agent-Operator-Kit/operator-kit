@@ -1,6 +1,6 @@
 {
-  "name": "operator-kit",
-  "version": "0.4.5",
+  "name": "operator",
+  "version": "0.4.6",
   "description": "Agent Operator Kit for Codex: an operator cockpit for project-local feature sessions, agent lanes, task packets, memory, feedback intake, planning, design review, UX audits, journeys, and incubation.",
   "author": {
     "name": "Agent Operator Kit"
@@ -20,9 +20,9 @@
   ],
   "skills": "./skills/",
   "interface": {
-    "displayName": "Agent Operator Kit",
-    "shortDescription": "Feature sessions and agent lanes · v0.4.5",
-    "longDescription": "Version 0.4.5. Agent Operator Kit turns Codex Desktop into an operator cockpit for real projects. It detects whether the current workspace is the kit source, an installed project, a stale install, or a new repo; installs, migrates, or updates the project-local Operator Kit files as needed; then opens the feature-session cockpit.\n\nUse it to coordinate multiple feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. The source of truth stays explicit and project-local: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, feature sessions, lanes, memory, roadmap, and handoffs.",
+    "displayName": "Operator",
+    "shortDescription": "Feature sessions and agent lanes · v0.4.6",
+    "longDescription": "Version 0.4.6. Operator is the Codex plugin for Agent Operator Kit: a cockpit for real projects. It detects whether the current workspace is the kit source, an installed project, a stale install, or a new repo; installs, migrates, or updates the project-local Operator Kit files as needed; then opens the feature-session cockpit.\n\nUse it to coordinate multiple feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. The source of truth stays explicit and project-local: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, feature sessions, lanes, memory, roadmap, and handoffs.",
     "developerName": "Agent Operator Kit",
     "category": "Developer Tools",
     "capabilities": [

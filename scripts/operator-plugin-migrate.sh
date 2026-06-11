@@ -6,11 +6,11 @@ usage() {
 Usage: bash scripts/operator-plugin-migrate.sh [options]
 
 Migrates Codex Desktop from legacy Operator Kit skill directories in
-~/.codex/skills to the operator-kit Codex plugin.
+~/.codex/skills to the Operator Codex plugin.
 
 The migration is plugin-first and reversible:
   1. prepare a local Codex marketplace for plugins/operator-kit
-  2. install/reinstall operator-kit through `codex plugin add`
+  2. install/reinstall the `operator` plugin through `codex plugin add`
   3. move legacy Operator-owned skill directories into a timestamped backup
   4. leave unrelated custom skill directories in place
 
@@ -245,7 +245,7 @@ payload = {
     },
     "plugins": [
         {
-            "name": "operator-kit",
+            "name": "operator",
             "source": {
                 "source": "local",
                 "path": "./plugins/operator-kit"
@@ -312,7 +312,8 @@ install_plugin() {
 
   if [ "$DRY_RUN" -eq 1 ]; then
     run_or_print "$CODEX_BIN" plugin marketplace add "$MARKETPLACE_ROOT"
-    run_or_print "$CODEX_BIN" plugin add "operator-kit@$MARKETPLACE_NAME"
+    run_or_print "$CODEX_BIN" plugin remove "operator-kit@$MARKETPLACE_NAME"
+    run_or_print "$CODEX_BIN" plugin add "operator@$MARKETPLACE_NAME"
     return 0
   fi
 
@@ -322,7 +323,8 @@ install_plugin() {
     "$CODEX_BIN" plugin marketplace add "$MARKETPLACE_ROOT"
   fi
 
-  "$CODEX_BIN" plugin add "operator-kit@$MARKETPLACE_NAME"
+  "$CODEX_BIN" plugin remove "operator-kit@$MARKETPLACE_NAME" >/dev/null 2>&1 || true
+  "$CODEX_BIN" plugin add "operator@$MARKETPLACE_NAME"
 }
 
 list_bundled_skills() {

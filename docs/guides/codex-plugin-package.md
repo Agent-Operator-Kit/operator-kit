@@ -174,7 +174,7 @@ for a Codex marketplace:
 
 ```json
 {
-  "name": "operator-kit",
+  "name": "operator",
   "source": {
     "source": "local",
     "path": "./plugins/operator-kit"

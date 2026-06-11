@@ -177,7 +177,7 @@ Getting started should not require the user to know or name the current kit
 version. Codex should classify the workspace first:
 
 - Operator Kit source checkout: verify or install the local
-  `operator-kit@operator-kit-local` plugin through `scripts/operator-plugin-migrate.sh`.
+  `operator@operator-kit-local` plugin through `scripts/operator-plugin-migrate.sh`.
 - Installed project: run status and summary, update stale project-local scripts
   with `operator-update.sh --channel latest`, then open the feature-session
   cockpit.

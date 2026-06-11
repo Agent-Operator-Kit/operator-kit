@@ -81,7 +81,8 @@ bash "$MIGRATE" \
 test -f "$marketplace_root/.agents/plugins/marketplace.json" || fail "marketplace file not written"
 test -f "$marketplace_root/plugins/operator-kit/.codex-plugin/plugin.json" || fail "plugin package not copied"
 grep -q 'plugin marketplace add' "$fake_log" || fail "codex marketplace add was not called"
-grep -q 'plugin add operator-kit@operator-kit-local' "$fake_log" || fail "codex plugin add was not called"
+grep -q 'plugin remove operator-kit@operator-kit-local' "$fake_log" || fail "old codex plugin remove was not called"
+grep -q 'plugin add operator@operator-kit-local' "$fake_log" || fail "codex plugin add was not called"
 
 backup_dir="$(find "$codex_home/skills/.operator-kit-legacy-backups" -mindepth 1 -maxdepth 1 -type d | sort | tail -1)"
 test -n "$backup_dir" || fail "backup directory not created"
@@ -102,7 +103,7 @@ with open(sys.argv[1], encoding="utf-8") as handle:
 
 assert payload["name"] == "operator-kit-local"
 plugin = payload["plugins"][0]
-assert plugin["name"] == "operator-kit"
+assert plugin["name"] == "operator"
 assert plugin["source"] == {"source": "local", "path": "./plugins/operator-kit"}
 assert plugin["policy"]["installation"] == "AVAILABLE"
 assert plugin["policy"]["authentication"] == "ON_INSTALL"

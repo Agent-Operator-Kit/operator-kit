@@ -40,8 +40,8 @@ def require_string(payload, key, label):
         errors.append(f"{label}.{key} must be a non-empty string")
     return value
 
-if manifest.get("name") != "operator-kit":
-    errors.append("manifest name must be operator-kit")
+if manifest.get("name") != "operator":
+    errors.append("manifest name must be operator")
 
 version = require_string(manifest, "version", "manifest")
 if version and not re.fullmatch(r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?", version):
@@ -101,8 +101,8 @@ if errors:
 
 source = marketplace_entry.get("source")
 policy = marketplace_entry.get("policy")
-if marketplace_entry.get("name") != "operator-kit":
-    print("marketplace entry name must be operator-kit", file=sys.stderr)
+if marketplace_entry.get("name") != "operator":
+    print("marketplace entry name must be operator", file=sys.stderr)
     raise SystemExit(1)
 if source != {"source": "local", "path": "./plugins/operator-kit"}:
     print("marketplace entry source must point at ./plugins/operator-kit", file=sys.stderr)

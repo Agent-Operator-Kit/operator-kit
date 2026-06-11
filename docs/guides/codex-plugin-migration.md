@@ -10,7 +10,7 @@ release-candidate channel. The final distribution path should be an official or
 team marketplace entry, installed with:
 
 ```bash
-codex plugin add operator-kit@<marketplace>
+codex plugin add operator@<marketplace>
 ```
 
 After global plugin install, each project still needs explicit scoped setup with
@@ -61,7 +61,8 @@ bash scripts/operator-plugin-migrate.sh \
 - copies `plugins/operator-kit` into a durable local marketplace root;
 - writes `.agents/plugins/marketplace.json` for that local marketplace;
 - runs `codex plugin marketplace add <marketplace-root>`;
-- runs `codex plugin add operator-kit@operator-kit-local`;
+- removes any previous `operator-kit@operator-kit-local` local install;
+- runs `codex plugin add operator@operator-kit-local`;
 - compares each bundled legacy skill in `~/.codex/skills/<skill>` against
   `skills/codex/<skill>`;
 - moves exact and changed bundled Operator skill directories into the backup;

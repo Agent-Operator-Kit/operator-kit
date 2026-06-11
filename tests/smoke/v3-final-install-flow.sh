@@ -66,7 +66,7 @@ bash "$MIGRATE" \
 assert_file "$marketplace_root/.agents/plugins/marketplace.json"
 assert_file "$marketplace_root/plugins/operator-kit/.codex-plugin/plugin.json"
 grep -q 'plugin marketplace add' "$fake_log" || fail "Codex marketplace add was not called"
-grep -q 'plugin add operator-kit@operator-kit-local' "$fake_log" || fail "Codex plugin add was not called"
+grep -q 'plugin add operator@operator-kit-local' "$fake_log" || fail "Codex plugin add was not called"
 
 assert_dir "$codex_home/skills/.operator-kit-legacy-backups"
 test ! -e "$codex_home/skills/operator" || fail "legacy operator skill still active"

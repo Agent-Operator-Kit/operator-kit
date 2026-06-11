@@ -22,7 +22,7 @@ For the agent-chat quickstart, see
 The final user-facing install should use a real marketplace channel:
 
 ```bash
-codex plugin add operator-kit@<marketplace>
+codex plugin add operator@<marketplace>
 ```
 
 For development, release-candidate, and local validation, use a local Codex
