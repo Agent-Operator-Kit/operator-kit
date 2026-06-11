@@ -168,6 +168,11 @@ bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> -
 bash scripts/operator-feature.sh bind <feature> --tool codex --chat <codex-thread-id> --mode feature
 ```
 
+When a user asks how to get started from Codex, default to Codex Desktop chat.
+If they want Cursor, Claude Code, or terminal-only startup instructions, they
+should name that host explicitly. The adapters are portable, but the startup UX
+should not silently switch hosts.
+
 If the host exposes thread management tools, Codex can make the UX native by
 renaming the thread to include the feature id, pinning active feature threads,
 archiving closed feature threads, and scheduling monitors. These are host

@@ -1,6 +1,6 @@
 {
   "name": "operator-kit",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Agent Operator Kit for Codex: project-local operator workflows, feature sessions, task packets, lanes, memory, feedback intake, planning, design review, UX audit, journeys, and incubation.",
   "author": {
     "name": "Agent Operator Kit"

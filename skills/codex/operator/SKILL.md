@@ -33,7 +33,11 @@ artifacts, and `$operator` when work is ready to become execution.
 
 When the user asks how to get started, how to try Operator, or how to begin
 using feature sessions, assume the primary UX is Codex Desktop chat unless the
-user explicitly asks for terminal-only instructions.
+user explicitly asks for terminal-only, Cursor, or Claude Code instructions.
+If the user wants a non-Codex startup path, they should say so directly, for
+example: "get started in Cursor", "get started in Claude Code", or "give me the
+terminal setup". Do not infer Cursor or Claude Code just because their adapters
+exist.
 
 Default to a chat-first flow:
 
