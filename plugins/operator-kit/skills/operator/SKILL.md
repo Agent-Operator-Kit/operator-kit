@@ -29,6 +29,41 @@ prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
 Use UX Auditor (`$ux-auditor`) for assessment, `$user-journey` for journey
 artifacts, and `$operator` when work is ready to become execution.
 
+## Codex Chat Getting Started
+
+When the user asks how to get started, how to try Operator, or how to begin
+using feature sessions, assume the primary UX is Codex Desktop chat unless the
+user explicitly asks for terminal-only instructions.
+
+Default to a chat-first flow:
+
+1. Detect the current Codex project from the chat workspace.
+2. If Operator Kit is installed, run status and summary yourself.
+3. If V4 feature commands exist, run:
+   ```bash
+   bash scripts/operator-feature.sh open --tool codex
+   ```
+4. Explain the active feature sessions in chat and recommend one next action:
+   bind this chat to an existing feature, create a new feature session, update
+   the project to latest, or run a safe status-only check.
+5. If no feature is selected and the user names a feature idea, create the
+   feature session and bind this chat:
+   ```bash
+   bash scripts/operator-feature.sh start <slug> "<title>"
+   bash scripts/operator-feature.sh open --tool codex --feature <FS-id>
+   ```
+6. If the project is stale, use the local Operator Kit source when available
+   and update to latest before testing V4:
+   ```bash
+   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-update.sh --source /Users/norbert/Projects/Agent-Operator-Kit/operator-kit --target <project-root> --channel latest --no-fetch
+   ```
+
+Do not start by giving the user a long shell checklist when the task can be
+handled from the current Codex chat. Commands are still the implementation
+surface, but the user-facing experience should be: open the project in Codex,
+start or continue a chat, ask Operator to show active feature sessions, then
+bind or create one feature session.
+
 ## Sticky Operator Mode
 
 When a user initializes Operator for a chat or project, treat sticky Operator
