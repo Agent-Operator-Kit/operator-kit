@@ -1,7 +1,7 @@
 {
   "name": "operator-kit",
-  "version": "0.4.4",
-  "description": "Agent Operator Kit for Codex: project-local operator workflows, feature sessions, task packets, lanes, memory, feedback intake, planning, design review, UX audit, journeys, and incubation.",
+  "version": "0.4.5",
+  "description": "Agent Operator Kit for Codex: an operator cockpit for project-local feature sessions, agent lanes, task packets, memory, feedback intake, planning, design review, UX audits, journeys, and incubation.",
   "author": {
     "name": "Agent Operator Kit"
   },
@@ -21,8 +21,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Agent Operator Kit",
-    "shortDescription": "Coordinate project-local agent lanes",
-    "longDescription": "Install Agent Operator Kit skills globally in Codex while keeping each project's execution substrate explicit: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, feature sessions, lanes, task packets, memory, roadmap, and handoffs stay project-local.",
+    "shortDescription": "Feature sessions and agent lanes · v0.4.5",
+    "longDescription": "Version 0.4.5. Agent Operator Kit turns Codex Desktop into an operator cockpit for real projects. It detects whether the current workspace is the kit source, an installed project, a stale install, or a new repo; installs, migrates, or updates the project-local Operator Kit files as needed; then opens the feature-session cockpit.\n\nUse it to coordinate multiple feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. The source of truth stays explicit and project-local: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, feature sessions, lanes, memory, roadmap, and handoffs.",
     "developerName": "Agent Operator Kit",
     "category": "Developer Tools",
     "capabilities": [
@@ -31,6 +31,15 @@
       "Write"
     ],
     "websiteURL": "https://agent-operator-kit.github.io/operator-kit/",
-    "defaultPrompt": "Use $operator to inspect an installed Agent Operator Kit project, coordinate lanes, create or dispatch task packets, collect handoffs, summarize blockers, or update project-local Operator Kit scripts. When a user initializes sticky Operator mode, treat it as default routing rather than automatic execution: observe, active, dispatch, and off modes still preserve explicit safety gates."
+    "defaultPrompt": [
+      "Get started in this project",
+      "Show active feature sessions and conflicts",
+      "Create a feature session and bind this chat",
+      "Update this project to the latest Operator Kit"
+    ],
+    "brandColor": "#6378FF",
+    "composerIcon": "./assets/composerIcon.svg",
+    "logo": "./assets/logo.svg",
+    "screenshots": []
   }
 }

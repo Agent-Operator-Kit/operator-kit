@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Agent Operator Kit">
+  <rect width="128" height="128" rx="28" fill="#101216"/>
+  <rect x="54" y="18" width="20" height="20" rx="6" fill="#8FA0FF"/>
+  <rect x="27" y="78" width="20" height="20" rx="6" fill="#6378FF"/>
+  <rect x="54" y="78" width="20" height="20" rx="6" fill="#6378FF"/>
+  <rect x="81" y="78" width="20" height="20" rx="6" fill="#6378FF"/>
+  <path d="M64 38v18M37 78V66c0-6 5-10 11-10h32c6 0 11 4 11 10v12M64 56v22" stroke="#DDE3FF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="64" cy="56" r="7" fill="#DDE3FF"/>
+</svg>
