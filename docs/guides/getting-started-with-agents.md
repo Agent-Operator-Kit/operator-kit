@@ -74,19 +74,21 @@ skills/codex/user-journey/SKILL.md
 skills/codex/incubation/SKILL.md
 ```
 
-Use `operator-workflow` for setup and repair. After the kit is installed, install or refresh the bundled Codex Desktop skills globally:
+Use `operator-workflow` for setup and repair. After the kit is installed,
+install or refresh bundled global host skills:
+
+```bash
+bash scripts/operator-sync.sh --channel latest --skip-project
+```
+
+To install only Codex Desktop or only Cursor personal skills:
 
 ```bash
 bash scripts/codex-skills-install.sh
+bash scripts/cursor-skills-install.sh
 ```
 
-To update from the latest kit source first:
-
-```bash
-bash scripts/operator-sync.sh --skip-project
-```
-
-To refresh this Codex Desktop instance and every installed Operator Kit project
+To refresh this host and every installed Operator Kit project
 on the machine:
 
 ```bash

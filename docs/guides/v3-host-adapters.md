@@ -50,7 +50,8 @@ hosts.
 Global adapter install makes host-specific Operator Kit affordances available:
 
 - Codex: plugin manifest plus direct `skills/<skill>/SKILL.md` bundle;
-- Cursor: rules, skills, environment hints, and setup prompts;
+- Cursor: personal skills under `~/.cursor/skills`, environment hints, and setup
+  prompts;
 - Claude Code: workflow skill docs, slash commands, and project subagent
   templates.
 
@@ -78,7 +79,7 @@ bash scripts/operator-sync.sh --target /path/to/project
 Global-only refresh remains separate:
 
 ```bash
-bash scripts/operator-sync.sh --skip-project
+bash scripts/operator-sync.sh --channel latest --skip-project
 ```
 
 ## Sticky Operator Mode
@@ -155,7 +156,8 @@ Codex:
 Cursor:
 
 - adapter package only;
-- rules and skills are explicit Cursor project assets;
+- global install writes personal skills under `~/.cursor/skills`;
+- rules and project-specific skills remain explicit Cursor project assets;
 - Cursor Cloud Agents are remote branch workers and cannot assume local tmux,
   simulators, `OPERATOR_DIR`, or local memory;
 - include task packets and relevant memory directly in Cursor Cloud Agent

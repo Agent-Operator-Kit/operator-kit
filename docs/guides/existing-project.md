@@ -2,7 +2,7 @@
 
 1. Clone or update this kit.
 2. Run the sync script against your repo.
-3. Let it refresh bundled Codex Desktop skills.
+3. Let it refresh bundled global host skills.
 4. Let it detect whether the target repo already has Operator Kit.
 5. Let it update the installed project and run checks.
 
@@ -33,8 +33,8 @@ If the repo has never had Operator Kit installed, bootstrap intentionally:
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing
 ```
 
-For Cursor-first environments without Codex, use the Cursor bootstrap profile
-and skip global Codex skill installation:
+For Cursor-first environments, use the Cursor bootstrap profile and skip global
+host skill installation when personal skills are already installed:
 
 ```bash
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --bootstrap-if-missing --bootstrap-profile cursor --skip-skills
@@ -43,15 +43,15 @@ bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo --boo
 This keeps Cursor IDE as the operator lane, adds a Cursor CLI worker lane, and
 keeps Claude Code as an optional UI lane when available.
 
-## Codex Desktop Operation
+## Global Host Skills
 
-After installation, Codex Desktop can use the bundled global skills:
+After installation, Codex Desktop and Cursor can use the bundled global skills:
 
 ```bash
-bash /path/to/operator-kit/scripts/operator-sync.sh --skip-project
+bash /path/to/operator-kit/scripts/operator-sync.sh --channel latest --skip-project
 ```
 
-Then reopen Codex Desktop and run:
+Then reopen Codex Desktop or reload Cursor and run:
 
 ```text
 Use $operator. Show project status.

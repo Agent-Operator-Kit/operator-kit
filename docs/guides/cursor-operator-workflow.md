@@ -196,7 +196,19 @@ unless the local Cursor CLI documents and supports them.
 
 ## Upgrade
 
-Cursor-only machines can skip Codex Desktop skill refresh:
+Install or refresh global Cursor skills:
+
+```bash
+bash scripts/cursor-skills-install.sh
+```
+
+Refresh global Codex and Cursor skills without touching a project:
+
+```bash
+bash scripts/operator-sync.sh --channel latest --skip-project
+```
+
+Cursor-only project refreshes can skip global host skill refresh:
 
 ```bash
 bash scripts/operator-upgrade.sh --skip-skills

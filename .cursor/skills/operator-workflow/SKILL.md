@@ -15,6 +15,8 @@ fill remaining lanes from the agents you have.
 
 ## Cursor Primitives
 
+- Personal skills live under `~/.cursor/skills/` and can make Operator Kit
+  procedures available across projects.
 - Rules are persistent project instructions. Keep lane boundaries, external
   state policy, and safety guardrails in `.cursor/rules/*.mdc`.
 - Skills are reusable procedures. Use `operator` for execution,
@@ -42,28 +44,30 @@ fill remaining lanes from the agents you have.
    project or source kit.
 4. If partial, repair from the source kit while preserving `operator.config.env`,
    `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
-5. If missing, install with `operator-sync.sh --bootstrap-if-missing
+5. If global Cursor skills are not installed and the user wants personal skills,
+   run `bash scripts/cursor-skills-install.sh` from the kit source.
+6. If missing, install with `operator-sync.sh --bootstrap-if-missing
    --bootstrap-profile cursor --skip-skills`.
-6. Initialize or refresh the V2 system map and catalog:
+7. Initialize or refresh the V2 system map and catalog:
    - `bash scripts/operator-system-map.sh refresh`
    - `bash scripts/operator-recommend-lanes.sh`
    - `bash scripts/operator-catalog.sh list roles`
-7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+8. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
-8. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
-9. Confirm the stable branch and lane map.
-10. Ensure `OPERATOR_DIR` is outside the repo.
-11. Create or verify lane worktrees.
-12. Start or inspect tmux.
-13. Create a smoke task under `OPERATOR_DIR`.
-14. Run:
+9. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
+10. Confirm the stable branch and lane map.
+11. Ensure `OPERATOR_DIR` is outside the repo.
+12. Create or verify lane worktrees.
+13. Start or inspect tmux.
+14. Create a smoke task under `OPERATOR_DIR`.
+15. Run:
    - `bash -n scripts/*.sh`
    - `bash scripts/operator-status.sh`
    - `bash scripts/operator-summary.sh`
    - `bash scripts/operator-memory.sh status`
    - `bash scripts/operator-roadmap.sh status`
    - `bash scripts/operator-plan-batch.sh`
-15. Report installed files, lane map, V2 catalog/system-map status, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
+16. Report installed files, lane map, V2 catalog/system-map status, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
 
 For first-time setup without Codex, use the Cursor bootstrap profile:
 

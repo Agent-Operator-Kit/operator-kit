@@ -22,6 +22,18 @@ mirror the assets that `operator-sync.sh` installs into target repos.
 Global adapter install can make these Cursor assets discoverable to a user or
 distribution channel, but it must not bootstrap a project.
 
+Global Cursor skill install writes only personal skills under `~/.cursor/skills`:
+
+```bash
+bash scripts/cursor-skills-install.sh
+```
+
+From the all-in-one sync entrypoint, use a global-only refresh:
+
+```bash
+bash scripts/operator-sync.sh --channel latest --skip-project
+```
+
 Project setup stays explicit:
 
 ```bash
@@ -45,7 +57,9 @@ and preflight.
 
 ## Host Limitations
 
-- Cursor rules and skills are project assets, not a hidden runtime state store.
+- Cursor rules are project assets, not a hidden runtime state store.
+- Global Cursor skills make procedures discoverable, but they do not create
+  `operator.config.env`, `scripts/operator-*.sh`, or `OPERATOR_DIR`.
 - Cursor Cloud Agents are remote branch workers; include task packets and memory
   context directly in their prompts.
 - Do not assume local tmux, local simulators, local `OPERATOR_DIR`, or local

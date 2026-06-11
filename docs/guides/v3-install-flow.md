@@ -37,6 +37,20 @@ The local marketplace path is intentionally a test/distribution channel, not the
 core architecture. It lets us exercise the same Codex plugin install mechanism
 before a public or team marketplace entry exists.
 
+Cursor does not expose a Codex-style runtime plugin in this package. Its global
+host layer is a personal skill install under `~/.cursor/skills`:
+
+```bash
+bash scripts/cursor-skills-install.sh
+```
+
+Use the all-in-one sync command for global Codex and Cursor skills without
+touching a project:
+
+```bash
+bash scripts/operator-sync.sh --channel latest --skip-project
+```
+
 ## Legacy Codex Skill Migration
 
 Existing users may have direct Operator Kit skills under `~/.codex/skills` from
@@ -58,8 +72,8 @@ bash scripts/operator-plugin-migrate.sh --restore <backup-dir>
 
 ## Scoped Project Setup
 
-After the global plugin is installed, project setup should skip legacy global
-skill installation and only install project-local Operator Kit files:
+After global host skills are installed, project setup should skip global skill
+installation and only install project-local Operator Kit files:
 
 ```bash
 bash scripts/operator-sync.sh \

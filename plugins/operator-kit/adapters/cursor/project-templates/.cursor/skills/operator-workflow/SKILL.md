@@ -24,6 +24,8 @@ worker lane, and Claude Code lanes only where Claude is available.
 
 ## Cursor Primitives
 
+- Personal skills live under `~/.cursor/skills/` and can make Operator Kit
+  procedures available across projects.
 - Rules are persistent project instructions. Keep lane boundaries, external
   state policy, and safety guardrails in `.cursor/rules/*.mdc`.
 - Skills are reusable procedures. Use `operator` for execution,
@@ -55,15 +57,16 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
    project or source kit.
 4. If partial, repair from the source kit while preserving `operator.config.env`,
    `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
-5. If missing, install with `operator-sync.sh --bootstrap-if-missing
+5. If global Cursor skills are not installed and the user wants personal skills,
+   run `bash scripts/cursor-skills-install.sh` from the kit source.
+6. If missing, install with `operator-sync.sh --bootstrap-if-missing
    --bootstrap-profile cursor --skip-skills`.
-6. Initialize or refresh the V2 system map and catalog:
+7. Initialize or refresh the V2 system map and catalog:
    - `bash scripts/operator-system-map.sh refresh`
    - `bash scripts/operator-recommend-lanes.sh`
    - `bash scripts/operator-catalog.sh list roles`
-7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+8. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
-
 For fresh `latest` setup, install V5 with the complete runtime and eleven
 schemas, initialize catalog before deriving the role map from `OPERATOR_LANES`,
 and create only private empty external runtime directories. Do not initialize
