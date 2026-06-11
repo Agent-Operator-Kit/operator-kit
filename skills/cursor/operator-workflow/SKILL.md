@@ -4,8 +4,9 @@ Use this skill when setting up or operating Agent Operator Kit from Cursor IDE, 
 
 Cursor integration has three layers:
 
+- `~/.cursor/skills/` for optional personal skills available across projects.
 - `.cursor/rules/operator-workflow.mdc` for persistent project guidance.
-- `.cursor/skills/operator-workflow/SKILL.md` for procedural setup and operations.
+- `.cursor/skills/operator-workflow/SKILL.md` for project-scoped setup and operations.
 - `.cursor/environment.json.example` as a starting point for Cloud Agent environments.
 
 Operator Kit integrates with whichever coding agents are available. When Cursor
@@ -50,13 +51,15 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
    project or source kit.
 4. If partial, repair from the source kit while preserving `operator.config.env`,
    `OPERATOR_DIR`, handoffs, tasks, memory, roadmap, docs, and source code.
-5. If missing, install with `operator-sync.sh --bootstrap-if-missing
+5. If global Cursor skills are not installed and the user wants personal skills,
+   run `bash scripts/cursor-skills-install.sh` from the kit source.
+6. If missing, install with `operator-sync.sh --bootstrap-if-missing
    --bootstrap-profile cursor --skip-skills`.
-6. Initialize or refresh the V2 system map and catalog:
+7. Initialize or refresh the V2 system map and catalog:
    - `bash scripts/operator-system-map.sh refresh`
    - `bash scripts/operator-recommend-lanes.sh`
    - `bash scripts/operator-catalog.sh list roles`
-7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
+8. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
 
 For an empty scoped project folder, first suggest this top-level layout:

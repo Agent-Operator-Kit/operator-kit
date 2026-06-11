@@ -231,6 +231,7 @@ skills/claude-code/operator-workflow/SKILL.md
 Cursor assets:
 
 ```text
+skills/cursor/
 templates/cursor/rules/operator-workflow.mdc
 templates/cursor/skills/
 templates/cursor/environment.json.example
@@ -243,6 +244,12 @@ Install or refresh Codex Desktop skills:
 bash scripts/codex-skills-install.sh
 ```
 
+Install or refresh personal Cursor skills:
+
+```bash
+bash scripts/cursor-skills-install.sh
+```
+
 Migrate a legacy direct-skill install to the V3 Codex plugin:
 
 ```bash
@@ -250,8 +257,8 @@ bash scripts/operator-plugin-migrate.sh --dry-run
 bash scripts/operator-plugin-migrate.sh
 ```
 
-After the global plugin is installed, scoped project setup should skip legacy
-global skill installation and only install project-local Operator Kit files:
+After global host skills are installed, scoped project setup should skip global
+skill installation and only install project-local Operator Kit files:
 
 ```bash
 bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-missing --skip-skills

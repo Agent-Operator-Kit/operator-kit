@@ -7,7 +7,7 @@ Usage: bash scripts/operator-upgrade.sh [options]
 
 Refreshes Agent Operator Kit everywhere on this machine:
   1. resolve the latest kit source
-  2. refresh bundled Codex Desktop skills
+  2. refresh bundled global host skills
   3. discover installed Operator Kit projects
   4. update each installed project
   5. run project checks
@@ -20,9 +20,10 @@ Options:
                             Defaults to ~/Projects.
   --target <repo>           Update one project repo. Repeatable. Skips scanning.
   --codex-home <path>       Codex home directory. Defaults to $CODEX_HOME or ~/.codex.
+  --cursor-home <path>      Cursor home directory. Defaults to $CURSOR_HOME or ~/.cursor.
   --dry-run                 Show what would change without writing files.
   --no-fetch                Do not pull or clone updates.
-  --skip-skills             Do not refresh global Codex Desktop skills.
+  --skip-skills             Do not refresh global host skills.
   --skip-projects           Do not update project repos.
   --skip-checks             Do not run project validation checks.
   -h, --help                Show this help.
@@ -47,6 +48,7 @@ SOURCE="${OPERATOR_KIT_SOURCE:-}"
 CHANNEL="${OPERATOR_KIT_CHANNEL:-stable}"
 SOURCE_REF=""
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
+CURSOR_HOME_DIR="${CURSOR_HOME:-$HOME/.cursor}"
 DRY_RUN=0
 NO_FETCH=0
 SKIP_SKILLS=0
@@ -83,6 +85,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --codex-home)
       CODEX_HOME_DIR="${2:-}"
+      shift 2
+      ;;
+    --cursor-home)
+      CURSOR_HOME_DIR="${2:-}"
       shift 2
       ;;
     --dry-run)
@@ -253,6 +259,7 @@ printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
 printf 'Default kit version: 4\n'
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
+printf 'Cursor home: %s\n' "$CURSOR_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
 fi
@@ -264,8 +271,21 @@ if [ "$SKIP_SKILLS" -eq 0 ]; then
     skill_args+=(--dry-run)
   fi
   bash "$SOURCE_PATH/scripts/codex-skills-install.sh" "${skill_args[@]}"
+
+  print_section "Cursor Skills"
+  cursor_skill_args=(--source "$SOURCE_PATH" --cursor-home "$CURSOR_HOME_DIR" --no-fetch)
+  if [ "$DRY_RUN" -eq 1 ]; then
+    cursor_skill_args+=(--dry-run)
+  fi
+  if [ -f "$SOURCE_PATH/scripts/cursor-skills-install.sh" ]; then
+    bash "$SOURCE_PATH/scripts/cursor-skills-install.sh" "${cursor_skill_args[@]}"
+  else
+    printf 'Skipped; scripts/cursor-skills-install.sh is unavailable in this source channel.\n'
+  fi
 else
   print_section "Codex Desktop Skills"
+  printf 'Skipped.\n'
+  print_section "Cursor Skills"
   printf 'Skipped.\n'
 fi
 
@@ -273,7 +293,7 @@ if [ "$SKIP_PROJECTS" -eq 1 ]; then
   print_section "Project Updates"
   printf 'Skipped.\n'
   print_section "Done"
-  printf 'Restart or reopen Codex Desktop so refreshed skills appear in the skill list.\n'
+  printf 'Restart or reopen Codex Desktop and reload Cursor so refreshed skills appear in host skill lists.\n'
   exit 0
 fi
 
@@ -285,7 +305,7 @@ print_section "Project Updates"
 if [ ! -s "$TARGET_LIST" ]; then
   printf 'No installed Operator Kit projects found.\n'
   print_section "Done"
-  printf 'Restart or reopen Codex Desktop so refreshed skills appear in the skill list.\n'
+  printf 'Restart or reopen Codex Desktop and reload Cursor so refreshed skills appear in host skill lists.\n'
   exit 0
 fi
 
@@ -319,7 +339,7 @@ printf 'Projects processed: %s\n' "$updated"
 printf 'Projects failed: %s\n' "$failed"
 
 print_section "Done"
-printf 'Restart or reopen Codex Desktop so refreshed skills appear in the skill list.\n'
+printf 'Restart or reopen Codex Desktop and reload Cursor so refreshed skills appear in host skill lists.\n'
 
 if [ "$failed" -gt 0 ]; then
   exit 1

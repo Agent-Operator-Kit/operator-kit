@@ -327,7 +327,7 @@ If no local source exists, use the latest GitHub source as the fallback:
 bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-upgrade.sh)
 ```
 
-The upgrade command refreshes bundled Codex Desktop skills, discovers installed Operator Kit projects under `~/Projects` by default, refreshes each project's evergreen scripts/templates, and runs project checks. It preserves project-specific config, docs, handoffs, task packets, working files, memory, captures, and source code.
+The upgrade command refreshes bundled global host skills, discovers installed Operator Kit projects under `~/Projects` by default, refreshes each project's evergreen scripts/templates, and runs project checks. It preserves project-specific config, docs, handoffs, task packets, working files, memory, captures, and source code.
 
 ## Status And Summaries
 

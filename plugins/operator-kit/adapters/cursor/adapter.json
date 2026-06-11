@@ -26,12 +26,17 @@
     "environmentExample": "project-templates/.cursor/environment.json.example",
     "setupPrompts": "prompts/"
   },
+  "explicitGlobalSetup": [
+    "bash scripts/cursor-skills-install.sh",
+    "bash scripts/operator-sync.sh --channel latest --skip-project"
+  ],
   "explicitProjectSetup": [
     "bash scripts/operator-sync.sh --target /path/to/project --bootstrap-if-missing --bootstrap-profile cursor --skip-skills",
     "bash scripts/operator-sync.sh --target /path/to/project"
   ],
   "limitations": [
     "Cursor package metadata does not imply a Cursor runtime plugin API.",
+    "Global Cursor install only writes personal skills under ~/.cursor/skills; rules and Operator state remain project-scoped.",
     "Cursor Cloud Agents are remote branch workers and cannot assume local tmux, simulators, OPERATOR_DIR, or local operator memory.",
     "Project-local state remains explicit and inspectable in the target project."
   ]

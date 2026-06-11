@@ -260,7 +260,7 @@ source "$TARGET_REPO/operator.config.env"
 remove_obsolete_project_assets
 
 mkdir -p "$TARGET_REPO/scripts"
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   if [ ! -f "$SOURCE_PATH/scripts/$script" ]; then
     record unchanged "scripts/$script unavailable in selected channel"
     continue

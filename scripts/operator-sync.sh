@@ -7,7 +7,7 @@ Usage: bash scripts/operator-sync.sh [options]
 
 Single-command sync for Agent Operator Kit:
   1. resolve the latest kit source
-  2. install or refresh bundled Codex Desktop skills
+  2. install or refresh bundled global host skills
   3. detect the current Operator Kit project
   4. update the project from the kit source
   5. run status checks
@@ -18,9 +18,10 @@ Options:
                             Valid channels: stable, v2.1, v3, latest.
   --target <repo>           Project repo to update. Defaults to auto-detect.
   --codex-home <path>       Codex home directory. Defaults to $CODEX_HOME or ~/.codex.
+  --cursor-home <path>      Cursor home directory. Defaults to $CURSOR_HOME or ~/.cursor.
   --dry-run                 Show what would change without writing files.
   --no-fetch                Do not pull or clone updates.
-  --skip-skills             Do not refresh global Codex Desktop skills.
+  --skip-skills             Do not refresh global host skills.
   --skip-project            Do not update a project repo.
   --skip-checks             Do not run project validation checks.
   --bootstrap-if-missing    Bootstrap target repo if operator.config.env is missing.
@@ -52,6 +53,7 @@ CHANNEL="${OPERATOR_KIT_CHANNEL:-stable}"
 SOURCE_REF=""
 TARGET_REPO=""
 CODEX_HOME_DIR="${CODEX_HOME:-$HOME/.codex}"
+CURSOR_HOME_DIR="${CURSOR_HOME:-$HOME/.cursor}"
 DRY_RUN=0
 NO_FETCH=0
 SKIP_SKILLS=0
@@ -98,6 +100,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --codex-home)
       CODEX_HOME_DIR="${2:-}"
+      shift 2
+      ;;
+    --cursor-home)
+      CURSOR_HOME_DIR="${2:-}"
       shift 2
       ;;
     --dry-run)
@@ -467,6 +473,7 @@ printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
 printf 'Default kit version: 4\n'
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
+printf 'Cursor home: %s\n' "$CURSOR_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
 fi
@@ -478,8 +485,21 @@ if [ "$SKIP_SKILLS" -eq 0 ]; then
     skill_args+=(--dry-run)
   fi
   bash "$SOURCE_PATH/scripts/codex-skills-install.sh" "${skill_args[@]}"
+
+  print_section "Cursor Skills"
+  cursor_skill_args=(--source "$SOURCE_PATH" --cursor-home "$CURSOR_HOME_DIR" --no-fetch)
+  if [ "$DRY_RUN" -eq 1 ]; then
+    cursor_skill_args+=(--dry-run)
+  fi
+  if [ -f "$SOURCE_PATH/scripts/cursor-skills-install.sh" ]; then
+    bash "$SOURCE_PATH/scripts/cursor-skills-install.sh" "${cursor_skill_args[@]}"
+  else
+    printf 'Skipped; scripts/cursor-skills-install.sh is unavailable in this source channel.\n'
+  fi
 else
   print_section "Codex Desktop Skills"
+  printf 'Skipped.\n'
+  print_section "Cursor Skills"
   printf 'Skipped.\n'
 fi
 
@@ -493,7 +513,7 @@ TARGET_DETECTED="$(detect_target_repo "$PWD" || true)"
 if [ -z "$TARGET_DETECTED" ]; then
   print_section "Project Update"
   printf 'No git project detected from: %s\n' "$PWD"
-  printf 'Codex skills were refreshed. Re-run with --target /path/to/project to update a project repo.\n'
+  printf 'Global host skills were refreshed. Re-run with --target /path/to/project to update a project repo.\n'
   exit 0
 fi
 
@@ -541,4 +561,4 @@ else
 fi
 
 print_section "Done"
-printf 'Restart or reopen Codex Desktop so refreshed skills appear in the skill list.\n'
+printf 'Restart or reopen Codex Desktop and reload Cursor so refreshed skills appear in host skill lists.\n'
