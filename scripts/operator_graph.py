@@ -141,12 +141,15 @@ MAX_EVENT_BYTES = 8 * 1024 * 1024
 MAX_PROOF_AUTH_CHALLENGE_BYTES = MAX_BINDING_BYTES
 MAX_PROOF_EVENT_CHALLENGE_BYTES = MAX_EVENT_BYTES + MAX_BINDING_BYTES
 MAX_PROOF_RESPONSE_BYTES = 4 * 1024
+PROOF_EVENT_EOF_TIMEOUT_SECONDS = 1.0
 MAX_FORWARD_CLOCK_SKEW_SECONDS = 5.0
 OWNERLESS_LOCK_GRACE_SECONDS = 2.0
 MAX_NODES = 10000
 MAX_EDGES = 50000
 MAX_METADATA_BYTES = 64 * 1024
 MAX_JSON_DEPTH = 32
+MAX_CANONICAL_ENVELOPE_DEPTH = 8
+MAX_CANONICAL_DEPTH = MAX_JSON_DEPTH + MAX_CANONICAL_ENVELOPE_DEPTH
 MAX_JSON_ITEMS = 200000
 ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@/+\-]*$")
 BINDING_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]*$")
@@ -247,6 +250,16 @@ def reject_constant(value: str) -> None:
     raise ValueError(f"non-finite JSON number: {value}")
 
 
+def reject_float_number(value: str) -> None:
+    raise ValueError(f"floating-point JSON number is not canonical: {value}")
+
+
+def parse_canonical_integer(value: str) -> int:
+    if value == "-0":
+        raise ValueError("negative zero is not a canonical JSON integer")
+    return int(value)
+
+
 def reject_duplicate_object_pairs(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
     value: Dict[str, Any] = {}
     for key, item in pairs:
@@ -259,10 +272,13 @@ def reject_duplicate_object_pairs(pairs: Sequence[Tuple[str, Any]]) -> Dict[str,
 def parse_json_bytes(data: bytes, path: Path, error_code: str) -> Dict[str, Any]:
     try:
         text = data.decode("utf-8")
-        value = json.loads(text, parse_constant=reject_constant, object_pairs_hook=reject_duplicate_object_pairs)
+        value = json.loads(text, parse_constant=reject_constant, parse_float=reject_float_number,
+                           parse_int=parse_canonical_integer,
+                           object_pairs_hook=reject_duplicate_object_pairs)
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise GraphError(error_code, f"Invalid JSON: {path}", str(exc)) from exc
     fail(isinstance(value, dict), error_code, f"Expected a JSON object: {path}")
+    validate_json_value(value, f"JSON file {path}", code=error_code)
     return value
 
 
@@ -298,7 +314,7 @@ def format_time(value: dt.datetime) -> str:
 
 
 def canonical_bytes(value: Any) -> bytes:
-    validate_json_value(value, "canonical JSON value")
+    validate_json_value(value, "canonical JSON value", maximum_depth=MAX_CANONICAL_DEPTH)
     try:
         text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     except (TypeError, ValueError, UnicodeEncodeError, RecursionError) as exc:
@@ -807,8 +823,10 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
         fail(raw_line.endswith(b"\n") and len(raw_line) <= MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Invalid journal record boundary", {"line": line_number})
         try:
             event = json.loads(raw_line.decode("utf-8"), parse_constant=reject_constant,
+                               parse_float=reject_float_number, parse_int=parse_canonical_integer,
                                object_pairs_hook=reject_duplicate_object_pairs)
-            validate_json_value(event, f"journal event {line_number}", code="CORRUPT_JOURNAL")
+            validate_json_value(event, f"journal event {line_number}",
+                                maximum_depth=MAX_CANONICAL_DEPTH, code="CORRUPT_JOURNAL")
             validate_event(event, line_number, seen_requests, seen_event_ids)
         except GraphError:
             raise
@@ -1708,7 +1726,9 @@ class ProofChannel:
                 response.extend(chunk)
                 fail(len(response) <= MAX_PROOF_RESPONSE_BYTES, "AUTHORITY_DENIED", "Caller proof response is too large")
             value = json.loads(bytes(response).decode("utf-8"), parse_constant=reject_constant,
+                               parse_float=reject_float_number, parse_int=parse_canonical_integer,
                                object_pairs_hook=reject_duplicate_object_pairs)
+            validate_json_value(value, "caller proof broker response", code="AUTHORITY_DENIED")
         except GraphError:
             raise
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
@@ -1720,6 +1740,13 @@ class ProofChannel:
         signature = value.get("signature")
         verify_rsa_signature(payload, signature, proof_key["publicKey"]["n"], proof_key["publicKey"]["e"],
                              "AUTHORITY_DENIED", "Caller proof")
+        if phase == "event":
+            self.socket.settimeout(PROOF_EVENT_EOF_TIMEOUT_SECONDS)
+            try:
+                extra = self.socket.recv(1)
+            except socket.timeout as exc:
+                raise GraphError("AUTHORITY_DENIED", "Caller proof broker did not close its event response stream") from exc
+            fail(extra == b"", "AUTHORITY_DENIED", "Caller proof broker sent bytes after its event response")
         self.next_phase = "event" if phase == "authorize" else "complete"
         return signature
 

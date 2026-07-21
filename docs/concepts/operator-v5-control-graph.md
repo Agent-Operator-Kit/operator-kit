@@ -160,6 +160,23 @@ same bytes without relying on Python behavior:
    UTF-8 and append exactly one byte `0A` (LF). That LF is part of the hashed or
    signed bytes.
 
+Strict raw JSON parsing precedes structure validation, hashing, signing, and
+persistence at every file or wire ingress. It rejects every float token,
+including integral-looking decimal (`1.0`) and exponent (`1e0`) forms, as well
+as negative zero (`-0`), before conversion can erase its lexical form. Ordinary
+JSON Schema cannot enforce this distinction: standard `type: integer` is
+semantic and some validators accept mathematically integral `1.0` or exponent
+values. The committed schemas therefore validate structure and semantic value
+classes, while their `$comment` requires this additional Operator Canonical
+JSON v1 lexical layer. Schema validation alone is insufficient.
+
+The public application-value depth limit is 32, counting the application root
+as depth 1. Canonicalization remains bounded but reserves 8 additional levels
+for runtime-owned event, event-proof, and proof-challenge envelopes, for a hard
+canonical depth limit of 40. This allowance does not permit application inputs
+deeper than 32; it ensures a definition valid exactly at depth 32 remains valid
+when signed and committed inside the prescribed envelopes.
+
 The integer-only rule is a hardening change: any earlier graph metadata or
 history containing a finite float is no longer valid V1 state and requires a
 stopped-writer, reviewed offline migration before this runtime can consume it.
@@ -237,7 +254,11 @@ exact retry, already-initialized result, CAS conflict, failed precondition, or
 other post-authorization exit. This authorize-only EOF is a valid aborted or
 no-append termination, and all session state is discarded. EOF before a
 requested response, or EOF with a partial JSON record, is failure. After a
-valid `event` response the only valid next input is EOF.
+valid `event` response the broker must close its socket write side. The runtime
+requires clean EOF within one second before accepting the event proof; any
+same-read or delayed bytes, partial record, or writer left open fails
+`AUTHORITY_DENIED` before journal append. The graph side then closes the whole
+session.
 
 The runtime sends `operator.proof-challenge/v1` records containing one of two
 canonical payloads:
@@ -402,7 +423,9 @@ reconciliation, expiry, fences, and immutable history. Corruption is
 
 The runtime bounds IDs/scopes, JSON depth/items, node/edge counts, 64 KiB
 metadata, 4 MiB graphs, 8 MiB event records, and a 256 MiB journal. Cycle and
-JSON validation are iterative where recursion risk matters.
+JSON validation are iterative where recursion risk matters. Application values
+are limited to depth 32; only the fixed runtime-owned canonical envelopes may
+use the separate 8-level allowance described above.
 
 ## CLI
 

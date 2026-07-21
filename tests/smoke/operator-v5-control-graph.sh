@@ -21,7 +21,7 @@ done
 PROOF_RUNNER="$TMP_ROOT/proof-runner.py"
 cat > "$PROOF_RUNNER" <<'PY'
 #!/usr/bin/env python3
-import base64, copy, hashlib, json, os, socket, subprocess, sys, threading
+import base64, copy, hashlib, json, os, socket, subprocess, sys, threading, time
 
 key_path = sys.argv[1]
 command = sys.argv[2:]
@@ -65,6 +65,28 @@ def operator_canonical_json_v1(value):
     return (json.dumps(value, sort_keys=True, separators=(",", ":"),
                        ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
 
+def reject_float_number(value):
+    raise ValueError(f"non-canonical floating-point number: {value}")
+
+def parse_canonical_integer(value):
+    if value == "-0":
+        raise ValueError("non-canonical negative zero")
+    return int(value)
+
+def reject_duplicate_pairs(pairs):
+    value = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate key: {key}")
+        value[key] = item
+    return value
+
+def strict_loads(raw):
+    return json.loads(raw, parse_float=reject_float_number,
+                      parse_int=parse_canonical_integer,
+                      parse_constant=reject_float_number,
+                      object_pairs_hook=reject_duplicate_pairs)
+
 assert operator_canonical_json_v1(CANONICAL_VECTOR).hex() == CANONICAL_VECTOR_HEX
 assert hashlib.sha256(operator_canonical_json_v1(CANONICAL_VECTOR)).hexdigest() == (
     "ae2327526275dee3f5a3920e7b56fba6249a19e46af484b3965327d412dfa12e"
@@ -88,7 +110,8 @@ def broker():
                     )
                     return
                 assert expected_phase != "complete", "record received after event response"
-                challenge = json.loads(line)
+                challenge = strict_loads(line)
+                assert line == operator_canonical_json_v1(challenge)
                 assert set(challenge) == {"schemaVersion", "operation", "phase", "proofKeyId", "payload"}
                 assert challenge["schemaVersion"] == "operator.proof-challenge/v1"
                 assert challenge["operation"] == "sign"
@@ -139,7 +162,24 @@ def broker():
                     response["extra"] = True
                 elif mode == "key-change" and phase == "event":
                     response["proofKeyId"] = challenge["proofKeyId"] + "-changed"
-                stream.write(operator_canonical_json_v1(response))
+                encoded_response = operator_canonical_json_v1(response)
+                if mode == "numeric-decimal":
+                    encoded_response = encoded_response[:-2] + b',"numeric":1.0}\n'
+                elif mode == "numeric-exponent":
+                    encoded_response = encoded_response[:-2] + b',"numeric":1e0}\n'
+                if phase == "event" and mode == "event-extra-same":
+                    stream.write(encoded_response + encoded_response)
+                elif phase == "event" and mode == "event-extra-delayed":
+                    stream.write(encoded_response)
+                    time.sleep(0.05)
+                    stream.write(encoded_response)
+                else:
+                    stream.write(encoded_response)
+                if phase == "event":
+                    if mode == "event-open-writer":
+                        time.sleep(2.0)
+                        return
+                    parent.shutdown(socket.SHUT_WR)
                 expected_phase = "event" if phase == "authorize" else "complete"
     except BaseException as error:
         broker_errors.append(f"{type(error).__name__}: {error}")
@@ -302,6 +342,28 @@ copy_state() {
   cp "$source/graph/projection.json" "$target/graph/projection.json"
   cp "$source/graph/events.jsonl" "$target/graph/events.jsonl"
   cp "$source/authority/control-graph-public-key.json" "$target/authority/control-graph-public-key.json"
+}
+
+rewrite_numeric_token() {
+  local path="$1"
+  local field="$2"
+  local spelling="$3"
+  python3 - "$path" "$field" "$spelling" <<'PY'
+import sys
+path, field, spelling = sys.argv[1:]
+with open(path, encoding="utf-8") as handle:
+    text = handle.read()
+prefix = f'"{field}":'
+start = text.find(prefix)
+assert start >= 0, (path, field)
+value_start = start + len(prefix)
+value_end = value_start
+while value_end < len(text) and text[value_end] in "-0123456789":
+    value_end += 1
+assert value_end > value_start, (path, field, text[value_start:value_start + 20])
+with open(path, "w", encoding="utf-8") as handle:
+    handle.write(text[:value_start] + spelling + text[value_end:])
+PY
 }
 
 write_bindings() {
@@ -560,6 +622,19 @@ printf '{"schemaVersion":"operator.control-graph/v1","graphId":"float","nodes":[
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/float.json"
 printf '{"schemaVersion":"operator.control-graph/v1","graphId":"duplicate","nodes":[],"nodes":[],"edges":[]}\n' > "$TMP_ROOT/duplicate-key.json"
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/duplicate-key.json"
+for case in decimal exponent negative-zero; do
+  case "$case" in
+    decimal) spelling=1.0 ;;
+    exponent) spelling=1e0 ;;
+    negative-zero) spelling=-0 ;;
+  esac
+  printf '{"schemaVersion":"operator.control-graph/v1","graphId":"adversarial-smoke","nodes":[{"id":"n","kind":"task","metadata":{"value":%s}}],"edges":[]}\n' \
+    "$spelling" > "$TMP_ROOT/raw-number-$case.json"
+  expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" init \
+    --definition "$TMP_ROOT/raw-number-$case.json" --request-id "raw-number-$case" --actor-binding operator
+done
+[ ! -e "$INVALID_DIR/graph/events.jsonl" ] || [ ! -s "$INVALID_DIR/graph/events.jsonl" ] || \
+  fail "non-canonical definition number reached append"
 python3 - "$DEFINITION" "$TMP_ROOT/control.json" "$TMP_ROOT/long.json" <<'PY'
 import json, sys
 value = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -587,6 +662,49 @@ with open(sys.argv[3], "w", encoding="utf-8") as handle:
 PY
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/deep.json"
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/oversized.json"
+
+# Application values may use the full public depth 32. Internal event/proof/
+# challenge envelopes receive a separate bounded allowance, so the accepted
+# boundary still completes both proof phases and commits. One deeper fails.
+DEPTH_BOUNDARY_DEFINITION="$TMP_ROOT/depth-boundary.json"
+DEPTH_OVER_DEFINITION="$TMP_ROOT/depth-over.json"
+python3 - "$DEPTH_BOUNDARY_DEFINITION" "$DEPTH_OVER_DEFINITION" <<'PY'
+import json, sys
+
+def definition(extra_levels):
+    metadata = {}
+    cursor = metadata
+    for _ in range(extra_levels):
+        cursor["x"] = {}
+        cursor = cursor["x"]
+    return {
+        "schemaVersion": "operator.control-graph/v1",
+        "graphId": "adversarial-smoke",
+        "nodes": [{"id": "depth-node", "kind": "task", "metadata": metadata}],
+        "edges": [],
+    }
+
+# definition=1, nodes=2, node=3, metadata=4; 28 child objects reach depth 32.
+for path, levels in zip(sys.argv[1:], (28, 29)):
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(definition(levels), handle, sort_keys=True, separators=(",", ":"))
+        handle.write("\n")
+PY
+DEPTH_DIR="$TMP_ROOT/depth-boundary-operator"
+write_bindings "$DEPTH_DIR"
+DEPTH_OBSERVATION="$TMP_ROOT/depth-boundary-proof.json"
+env OPERATOR_DIR="$DEPTH_DIR" OPERATOR_GRAPH_SMOKE_OBSERVE="$DEPTH_OBSERVATION" \
+  bash "$GRAPH_SCRIPT" init --definition "$DEPTH_BOUNDARY_DEFINITION" \
+  --request-id depth-boundary --actor-binding operator > /dev/null
+expect_proof_observation "$DEPTH_OBSERVATION" eof-after-event authorize,event
+[ "$(wc -l < "$DEPTH_DIR/graph/events.jsonl" | tr -d ' ')" = 1 ] || fail "maximum-depth graph did not commit once"
+env OPERATOR_DIR="$DEPTH_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
+DEPTH_OVER_DIR="$TMP_ROOT/depth-over-operator"
+write_bindings "$DEPTH_OVER_DIR"
+expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$DEPTH_OVER_DIR" bash "$GRAPH_SCRIPT" init \
+  --definition "$DEPTH_OVER_DEFINITION" --request-id depth-over --actor-binding operator
+[ ! -e "$DEPTH_OVER_DIR/graph/events.jsonl" ] || [ ! -s "$DEPTH_OVER_DIR/graph/events.jsonl" ] || \
+  fail "over-depth graph reached append"
 
 # Event-phase broker records support the full event bound rather than the
 # 64-KiB binding limit. A real schema-valid init above 64 KiB succeeds.
@@ -628,6 +746,8 @@ class FakeSocket:
         self.sent = b""
     def sendall(self, value):
         self.sent += value
+    def settimeout(self, value):
+        pass
     def recv(self, size):
         value, self.response = self.response[:size], self.response[size:]
         return value
@@ -691,17 +811,67 @@ expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOK
   fail "failed event proof appended a journal record"
 
 # Challenge and response versions/shapes are distinct; one socket is strictly
-# authorize-then-event with one fixed host-selected proof key.
-for mode in response-as-challenge wrong-version phase-reorder extra-field; do
+# authorize-then-optional-event with one fixed host-selected proof key. Raw
+# response numbers also pass the canonical lexical layer before shape checks.
+for mode in response-as-challenge wrong-version phase-reorder extra-field numeric-decimal numeric-exponent; do
   expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_RESPONSE_MODE="$mode" \
     bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" --request-id "wire-$mode" --actor-binding operator
 done
-for mode in phase-reuse key-change; do
+for mode in phase-reuse key-change event-extra-same event-extra-delayed event-open-writer; do
   expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_RESPONSE_MODE="$mode" \
     bash "$GRAPH_SCRIPT" transition feature active --request-id "wire-$mode" --actor-binding operator
 done
 [ "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" = "$EVENT_COUNT_BEFORE_FAILED_PROOF" ] || \
   fail "invalid proof wire session appended a journal record"
+
+# JSON Schema cannot distinguish a semantic integer from raw 1.0/1e0 text.
+# Every file/wire ingress applies the strict Operator Canonical JSON lexical
+# parser first. Binding, authority, materialization, and journal failures never
+# append; wire response decimal/exponent cases are covered above.
+for number_case in decimal exponent; do
+  if [ "$number_case" = decimal ]; then number_spelling=1.0; else number_spelling=1e0; fi
+
+  target="$TMP_ROOT/raw-binding-$number_case"
+  write_bindings "$target"
+  copy_state "$MAIN_DIR" "$target"
+  rewrite_numeric_token "$target/graph/bindings/operator.json" generation "$number_spelling"
+  before_count="$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')"
+  expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" init \
+    --definition "$DEFINITION" --request-id "raw-binding-$number_case" --actor-binding operator
+  [ "$before_count" = "$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')" ] || fail "raw binding number appended"
+
+  target="$TMP_ROOT/raw-authority-$number_case"
+  write_bindings "$target"
+  copy_state "$MAIN_DIR" "$target"
+  rewrite_numeric_token "$target/authority/control-graph-public-key.json" e "$number_spelling"
+  before_count="$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')"
+  expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" status
+  [ "$before_count" = "$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')" ] || fail "raw authority number appended"
+
+  target="$TMP_ROOT/raw-definition-state-$number_case"
+  write_bindings "$target"
+  copy_state "$MAIN_DIR" "$target"
+  rewrite_numeric_token "$target/graph/definition.json" definitionRevision "$number_spelling"
+  before_count="$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')"
+  expect_error 15 INVALID_STATE env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" status
+  [ "$before_count" = "$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')" ] || fail "raw definition state number appended"
+
+  target="$TMP_ROOT/raw-projection-$number_case"
+  write_bindings "$target"
+  copy_state "$MAIN_DIR" "$target"
+  rewrite_numeric_token "$target/graph/projection.json" revision "$number_spelling"
+  before_count="$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')"
+  expect_error 15 INVALID_STATE env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" status
+  [ "$before_count" = "$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')" ] || fail "raw projection number appended"
+
+  target="$TMP_ROOT/raw-journal-$number_case"
+  write_bindings "$target"
+  copy_state "$MAIN_DIR" "$target"
+  rewrite_numeric_token "$target/graph/events.jsonl" sequence "$number_spelling"
+  before_count="$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')"
+  expect_error 13 CORRUPT_JOURNAL env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" replay check
+  [ "$before_count" = "$(wc -l < "$target/graph/events.jsonl" | tr -d ' ')" ] || fail "raw journal number appended"
+done
 
 # Signed capability documents fail closed when unsigned, altered, expired, or scoped elsewhere.
 for authority_case in unsigned altered expired wrong-project wrong-graph wrong-host wrong-key; do
@@ -1483,7 +1653,11 @@ env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" replay repair \
   --request-id repair-main --actor-binding operator > /dev/null
 env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
 
-# Runtime materializations and authorization snapshots conform to committed schema field/capability contracts.
+# Runtime materializations and authorization snapshots conform to committed
+# schema contracts. This focused helper intentionally supplements ordinary JSON
+# Schema integer semantics with the stricter canonical-domain rule that a
+# Python float never satisfies "integer"; raw lexical tests above remain the
+# authority for rejecting 1.0 and exponent spellings before schema validation.
 python3 - "$KIT_ROOT/schemas/operator-v5" "$MAIN_DIR/graph" "$TMP_ROOT/snapshot.json" <<'PY'
 import copy, datetime as dt, json, re, sys
 from pathlib import Path
@@ -1646,6 +1820,9 @@ next(iter(bad["bindingGenerations"].values()))["bindingHash"] = "not-a-hash"
 negative_snapshots.append(bad)
 bad = copy.deepcopy(snapshot)
 bad["nodes"][0]["metadata"]["nestedFloat"] = {"value": 1.5}
+negative_snapshots.append(bad)
+bad = copy.deepcopy(snapshot)
+bad["edges"][0]["metadata"]["nestedFloat"] = {"value": 1.5}
 negative_snapshots.append(bad)
 for bad in negative_snapshots:
     assert not matches(bad, snapshot_schema, snapshot_schema, "control-snapshot.schema.json", "$")

@@ -17,7 +17,9 @@ newline-delimited one-shot `authorize` and optional subsequent `event`, at most
 one request and response per phase, one mutation per connection, with one fixed
 proof key. Authorize-only EOF is valid when a retry or post-authorization check
 produces no append; EOF before a requested response or mid-record, a reordered
-or duplicate phase, or any record after event is invalid.
+or duplicate phase, or any record after event is invalid. After the event
+response the broker must close its write side; the graph requires clean EOF
+within one second before append and rejects delayed bytes or an open writer.
 Private proof keys never belong in this directory, the repository, environment,
 or graph process. Unix mode alone does not confer authority. There are no
 production actor/time/proof/fault injection shortcuts.
@@ -33,6 +35,13 @@ signs the canonical payload only, not its challenge envelope. Authorization is
 permission to attempt; event proof approves a candidate but is not a commit
 acknowledgement. The successful graph result plus replay/snapshot is commit
 evidence.
+
+Raw files and wire records must pass the strict canonical lexical parser before
+JSON Schema: decimal/exponent spellings such as `1.0`/`1e0` and `-0` are
+rejected even though ordinary JSON Schema `integer` is semantic and may accept
+integral-valued decimals. Application values have depth limit 32; runtime-owned
+event/proof/challenge envelopes alone receive 8 bounded extra levels (hard
+canonical depth 40), so a depth-32 graph remains signable and committable.
 
 Use `bash scripts/operator-graph.sh`; never edit graph state or create the lock
 directly. Schedulers and runners consume the versioned `status`/`snapshot`
