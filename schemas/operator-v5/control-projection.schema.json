@@ -4,7 +4,7 @@
   "title": "Operator V5 Control Projection",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations"],
+  "required": ["schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations", "authorityKeyId", "authorityHash"],
   "properties": {
     "schemaVersion": {"const": "operator.control-projection/v1"},
     "graphId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
@@ -12,6 +12,8 @@
     "definitionRevision": {"type": "integer", "minimum": 1},
     "definitionHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "updatedAt": {"type": "string", "format": "date-time"},
+    "authorityKeyId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "authorityHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "nodeStates": {
       "type": "object",
       "maxProperties": 10000,

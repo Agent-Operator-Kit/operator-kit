@@ -5,9 +5,89 @@ unset OPERATOR_CONFIG OPERATOR_DIR PROJECT_NAME PROJECT_ROOT CODE_DIR
 unset TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES OPERATOR_KIT_VERSION
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-GRAPH_SCRIPT="$KIT_ROOT/scripts/operator-graph.sh"
+REAL_GRAPH_SCRIPT="$KIT_ROOT/scripts/operator-graph.sh"
 TMP_ROOT="$(mktemp -d /tmp/aok-v5-control-graph.XXXXXX)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
+
+# Non-installed test broker: proof private keys are generated ephemerally outside
+# OPERATOR_DIR and are held by this broker, never by the graph runtime.
+PROOF_KEY_DIR="$TMP_ROOT/proof-keys"
+mkdir -p "$PROOF_KEY_DIR"
+for binding in operator system human lane-a lane-a-test lane-a-recovery lane-b host fake-human human-overpowered subagent long-scope; do
+  openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:1024 \
+    -out "$PROOF_KEY_DIR/$binding.pem" >/dev/null 2>&1
+done
+
+PROOF_RUNNER="$TMP_ROOT/proof-runner.py"
+cat > "$PROOF_RUNNER" <<'PY'
+#!/usr/bin/env python3
+import base64, copy, json, os, socket, subprocess, sys, threading
+
+key_path = sys.argv[1]
+command = sys.argv[2:]
+parent, child = socket.socketpair()
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+
+def broker():
+    with parent:
+        stream = parent.makefile("rwb", buffering=0)
+        while True:
+            line = stream.readline()
+            if not line:
+                return
+            challenge = json.loads(line)
+            phase = challenge["phase"]
+            payload = challenge["payload"]
+            signed_value = copy.deepcopy(payload)
+            alteration = os.environ.get("OPERATOR_GRAPH_SMOKE_ALTER_AUTH")
+            if phase == "authorize" and alteration == "request":
+                signed_value["requestId"] = "altered-by-test-broker"
+            elif phase == "authorize" and alteration == "intent":
+                signed_value["intent"] = {"altered": True}
+            elif phase == "authorize" and alteration == "cas":
+                signed_value["expectedRevision"] = 999999
+            elif phase == "authorize" and alteration == "generation":
+                signed_value["bindingGeneration"] += 1
+            if phase == "event" and "OPERATOR_GRAPH_SMOKE_ALTER_EVENT" in os.environ:
+                signed_value["tampered"] = True
+            signing_payload = canonical(signed_value)
+            signed = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key_path],
+                                    input=signing_payload, stdout=subprocess.PIPE, check=True).stdout
+            if phase == "authorize" and alteration == "proof":
+                signed = bytes([signed[0] ^ 1]) + signed[1:]
+            response = {
+                "schemaVersion": "operator.proof-response/v1", "phase": phase,
+                "proofKeyId": challenge["proofKeyId"],
+                "signature": base64.urlsafe_b64encode(signed).decode().rstrip("="),
+            }
+            stream.write(canonical(response))
+
+thread = threading.Thread(target=broker, daemon=True)
+thread.start()
+completed = subprocess.run(command + ["--proof-fd", str(child.fileno())], pass_fds=(child.fileno(),))
+child.close()
+thread.join(timeout=2)
+raise SystemExit(completed.returncode)
+PY
+chmod +x "$PROOF_RUNNER"
+
+GRAPH_SCRIPT="$TMP_ROOT/operator-graph-proof.sh"
+cat > "$GRAPH_SCRIPT" <<EOF
+#!/usr/bin/env bash
+set -euo pipefail
+binding=""
+previous=""
+for argument in "\$@"; do
+  if [ "\$previous" = "--actor-binding" ]; then binding="\$argument"; break; fi
+  previous="\$argument"
+done
+if [ -z "\$binding" ]; then exec bash "$REAL_GRAPH_SCRIPT" "\$@"; fi
+proof_binding="\${OPERATOR_GRAPH_SMOKE_PROOF_AS:-\$binding}"
+exec python3 "$PROOF_RUNNER" "$PROOF_KEY_DIR/\$proof_binding.pem" bash "$REAL_GRAPH_SCRIPT" "\$@"
+EOF
+chmod +x "$GRAPH_SCRIPT"
 
 fail() {
   printf 'operator v5 control graph smoke failed: %s\n' "$1" >&2
@@ -54,11 +134,12 @@ copy_state() {
 write_bindings() {
   local operator_dir="$1"
   mkdir -p "$operator_dir/graph/bindings"
-  python3 - "$operator_dir" <<'PY'
-import base64, datetime as dt, hashlib, json, os, socket, sys
+  python3 - "$operator_dir" "$PROOF_KEY_DIR" <<'PY'
+import base64, datetime as dt, hashlib, json, os, socket, subprocess, sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
+proof_key_dir = Path(sys.argv[2])
 n = int("db69e0f76bb58ac09964d8a1e12d4a57a25e7165cb7cf59a95a4863fa8a297df2e10b3de56bcdaae20df6461c017b53a0b95025d93ce2915fc18b887c73628f1b6fe3106de12d788f498f3daf5d8087fe48080f501df5c36b5e7e409f5f95ce13019807cb7bb2f7b422a5284949a4c284c797a6479a97638031dcf39398c8067", 16)
 d = int("7c670dbc7aff558a59ee89bd4ed4c4ffe6f9b145cc182f90d423925269a4b6833db50ea6937b4469d20d96f6ad5943d1835b9b19bf81f65d96afd580767cc8bd26da0611cca73282da9402d58be9c1b737e2ec88e49b57132e978e5b34ac5d93b5acbde645ef01be52613c115a18cae32180c452f46c9fa35f490e5904795641", 16)
 width = (n.bit_length() + 7) // 8
@@ -102,6 +183,11 @@ bindings = {
     "subagent": ({"type": "subagent", "id": "child"}, ["graph-init", "graph-replace", "transition"], []),
 }
 for binding_id, (subject, capabilities, scopes) in bindings.items():
+    modulus_output = subprocess.check_output(
+        ["openssl", "rsa", "-in", str(proof_key_dir / f"{binding_id}.pem"), "-noout", "-modulus"],
+        text=True, stderr=subprocess.DEVNULL,
+    ).strip()
+    proof_modulus = modulus_output.split("=", 1)[1].lower()
     payload = {
         "schemaVersion": "operator.actor-binding/v1",
         "bindingId": binding_id,
@@ -113,6 +199,8 @@ for binding_id, (subject, capabilities, scopes) in bindings.items():
         "subject": subject,
         "capabilities": sorted(capabilities),
         "leaseScopes": scopes,
+        "proofKey": {"keyId": f"proof-{binding_id}-1", "algorithm": "RS256",
+                     "publicKey": {"n": proof_modulus, "e": 65537}},
     }
     payload["signature"] = {"keyId": "smoke-root-1", "algorithm": "RS256", "value": sign(payload)}
     path = root / "graph" / "bindings" / f"{binding_id}.json"
@@ -137,7 +225,7 @@ if project_id != "-": value["projectId"] = project_id
 if graph_id != "-": value["graphId"] = graph_id
 if expires_at != "-": value["expiresAt"] = expires_at
 value["subject"]["id"] += f"-g{generation}"
-payload = {key: value[key] for key in ("schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes")}
+payload = {key: value[key] for key in ("schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes", "proofKey")}
 canonical = (json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
 width = (n.bit_length() + 7) // 8
 digest = bytes.fromhex("3031300d060960864801650304020105000420") + hashlib.sha256(canonical).digest()
@@ -171,6 +259,9 @@ cat > "$DEFINITION" <<'JSON'
     {"id": "side-effect", "kind": "task", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
     {"id": "cancel-task", "kind": "task", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
     {"id": "complete-task", "kind": "task", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
+    {"id": "resolve-dependency", "kind": "task", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
+    {"id": "resolve-validation", "kind": "integration", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
+    {"id": "resolve-gated", "kind": "integration", "metadata": {"execution": {"idempotent": false, "reclaimable": false}}},
     {"id": "safe-task", "kind": "task", "metadata": {"execution": {"idempotent": true, "reclaimable": true}}}
   ],
   "edges": [
@@ -188,6 +279,9 @@ cat > "$DEFINITION" <<'JSON'
     {"kind": "contains", "from": "feature", "to": "side-effect"},
     {"kind": "contains", "from": "feature", "to": "cancel-task"},
     {"kind": "contains", "from": "feature", "to": "complete-task"},
+    {"kind": "contains", "from": "feature", "to": "resolve-dependency"},
+    {"kind": "contains", "from": "feature", "to": "resolve-validation"},
+    {"kind": "contains", "from": "feature", "to": "resolve-gated"},
     {"kind": "contains", "from": "feature", "to": "safe-task"},
     {"kind": "assigned-to", "from": "dependency", "to": "lane-a"},
     {"kind": "assigned-to", "from": "main", "to": "lane-a"},
@@ -198,13 +292,22 @@ cat > "$DEFINITION" <<'JSON'
     {"kind": "assigned-to", "from": "side-effect", "to": "lane-a"},
     {"kind": "assigned-to", "from": "cancel-task", "to": "lane-a"},
     {"kind": "assigned-to", "from": "complete-task", "to": "lane-a"},
+    {"kind": "assigned-to", "from": "resolve-dependency", "to": "lane-a"},
+    {"kind": "assigned-to", "from": "resolve-validation", "to": "lane-a"},
+    {"kind": "assigned-to", "from": "resolve-gated", "to": "lane-a"},
     {"kind": "assigned-to", "from": "safe-task", "to": "lane-a"},
     {"kind": "depends-on", "from": "main", "to": "dependency"},
     {"kind": "validated-by", "from": "main", "to": "validation"},
+    {"kind": "depends-on", "from": "resolve-dependency", "to": "dependency"},
+    {"kind": "validated-by", "from": "resolve-validation", "to": "validation"},
+    {"kind": "gated-by", "from": "resolve-validation", "to": "gate"},
+    {"kind": "gated-by", "from": "resolve-gated", "to": "gate"},
     {"kind": "gated-by", "from": "main", "to": "gate"},
     {"kind": "gated-by", "from": "integration", "to": "gate-reject"},
     {"kind": "integrates-into", "from": "integration", "to": "feature"},
-    {"kind": "integrates-into", "from": "integration-no-gate", "to": "feature"}
+    {"kind": "integrates-into", "from": "integration-no-gate", "to": "feature"},
+    {"kind": "integrates-into", "from": "resolve-validation", "to": "feature"},
+    {"kind": "integrates-into", "from": "resolve-gated", "to": "feature"}
   ]
 }
 JSON
@@ -283,6 +386,26 @@ ROADMAP_BEFORE="$(shasum -a 256 "$MAIN_DIR/roadmap/sentinel.txt")"
 
 env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" \
   --request-id init-main --actor-binding operator > "$TMP_ROOT/init.json"
+
+# A readable signed binding is not a credential: every mutation requires proof
+# from the bound private key, and every canonical request/event field is covered.
+expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" bash "$REAL_GRAPH_SCRIPT" init \
+  --definition "$DEFINITION" --request-id readable-binding-only --actor-binding operator
+expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" bash "$REAL_GRAPH_SCRIPT" gate decide gate approved \
+  --request-id readable-human-binding-only --actor-binding human
+expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_PROOF_AS=lane-a \
+  bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" --request-id lane-proof-for-operator --actor-binding operator
+expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_PROOF_AS=lane-a \
+  bash "$GRAPH_SCRIPT" gate decide gate approved --request-id lane-proof-for-human --actor-binding human
+for altered in request intent cas generation proof; do
+  expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_ALTER_AUTH="$altered" \
+    bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" --request-id "altered-$altered" --actor-binding operator
+done
+EVENT_COUNT_BEFORE_FAILED_PROOF="$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')"
+expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_ALTER_EVENT=1 \
+  bash "$GRAPH_SCRIPT" transition feature active --request-id altered-event-proof --actor-binding operator
+[ "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" = "$EVENT_COUNT_BEFORE_FAILED_PROOF" ] || \
+  fail "failed event proof appended a journal record"
 
 # Signed capability documents fail closed when unsigned, altered, expired, or scoped elsewhere.
 for authority_case in unsigned altered expired wrong-project wrong-graph wrong-host wrong-key; do
@@ -440,6 +563,7 @@ status = json.load(open(sys.argv[1], encoding="utf-8"))
 snapshot = json.load(open(sys.argv[2], encoding="utf-8"))
 assert status["data"] == snapshot["data"]
 data = status["data"]
+assert data["schemaVersion"] == "operator.control-snapshot/v1"
 assert data["revision"] == data["eventCount"]
 assert data["definitionRevision"] == 1
 assert data["definitionHash"].startswith("sha256:")
@@ -528,19 +652,30 @@ BOUNDARY_DIR="$TMP_ROOT/boundary-operator"
 write_bindings "$BOUNDARY_DIR"
 env OPERATOR_DIR="$BOUNDARY_DIR" bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" \
   --request-id boundary-init --actor-binding operator > /dev/null
-PYTHONPATH="$KIT_ROOT/scripts" python3 - "$BOUNDARY_DIR" "$TMP_ROOT" <<'PY'
-import contextlib, datetime as dt, io, os, shutil, sys, uuid
+PYTHONPATH="$KIT_ROOT/scripts" python3 - "$BOUNDARY_DIR" "$TMP_ROOT" "$PROOF_KEY_DIR/operator.pem" <<'PY'
+import base64, contextlib, datetime as dt, io, os, shutil, subprocess, sys, uuid
 from pathlib import Path
 import operator_graph as graph
 
-source, root = map(Path, sys.argv[1:])
+source, root, proof_key = map(Path, sys.argv[1:])
 events = graph.read_events(source / "graph" / "events.jsonl")
 fixed_now = graph.parse_time(events[-1]["occurredAt"]) + dt.timedelta(milliseconds=100)
 fixed_mono = events[-1]["clock"]["monotonicNs"] + 100_000_000
 graph.utc_now = lambda: fixed_now
-graph.host_monotonic_ns = lambda: fixed_mono
+graph.host_monotonic_sample = lambda: (events[-1]["clock"]["monotonicSource"], fixed_mono)
 graph.uuid.uuid4 = lambda: uuid.UUID("11111111-1111-4111-8111-111111111111")
 graph.print_json = lambda value, stream=None: None
+
+class TestProofChannel:
+    def __init__(self, descriptor):
+        pass
+    def sign(self, phase, payload, proof_key_value):
+        signed = subprocess.run(["openssl", "dgst", "-sha256", "-sign", str(proof_key)],
+                                input=graph.canonical_bytes(payload), stdout=subprocess.PIPE, check=True).stdout
+        return base64.urlsafe_b64encode(signed).decode().rstrip("=")
+    def close(self):
+        pass
+graph.ProofChannel = TestProofChannel
 
 def clone(name):
     target = root / name
@@ -583,9 +718,58 @@ TIME_DIR="$TMP_ROOT/time-operator"
 write_bindings "$TIME_DIR"
 env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" \
   --request-id time-init --actor-binding operator > /dev/null
+env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease acquire host-task \
+  --lease-id wall-jump-lease --holder-scope lane:a --ttl-seconds 60 --request-id wall-jump-lease --actor-binding lane-a-test > /dev/null
+PYTHONPATH="$KIT_ROOT/scripts" python3 - "$TIME_DIR" <<'PY'
+import datetime as dt, json, subprocess, sys
+from pathlib import Path
+import operator_graph as graph
+
+root = Path(sys.argv[1])
+events = graph.read_events(root / "graph" / "events.jsonl")
+lease = json.load(open(root / "graph" / "projection.json", encoding="utf-8"))["leases"]["host-task"]
+previous = events[-1]
+original_sample = graph.host_monotonic_sample
+graph.utc_now = lambda: graph.parse_time(previous["occurredAt"]) + dt.timedelta(seconds=3600)
+graph.host_monotonic_sample = lambda: (
+    previous["clock"]["monotonicSource"], previous["clock"]["monotonicNs"] + 1_000_000_000,
+)
+try:
+    graph.transaction_time(events)
+    raise AssertionError("one-hour wall-clock jump was accepted")
+except graph.GraphError as error:
+    assert error.code == "CLOCK_SKEW", error.code
+clock = {"hostId": graph.HOST_ID, "bootId": graph.BOOT_ID,
+         "monotonicSource": previous["clock"]["monotonicSource"],
+         "monotonicNs": previous["clock"]["monotonicNs"] + 1_000_000_000}
+assert graph.lease_clock_expired(lease, clock) is False
+
+if sys.platform == "darwin":
+    code = "import operator_graph as g; print(g.host_monotonic_sample()[0], g.host_monotonic_sample()[1])"
+    first = subprocess.check_output([sys.executable, "-c", code], text=True).split()
+    second = subprocess.check_output([sys.executable, "-c", code], text=True).split()
+    assert first[0] == second[0] == "macos-mach-continuous"
+    assert int(second[1]) >= int(first[1]) > 1_000_000_000
+original_platform = sys.platform
+try:
+    sys.platform = "unsupported-test-platform"
+    try:
+        original_sample()
+        raise AssertionError("unsupported persisted clock fell back")
+    except graph.GraphError as error:
+        assert error.code == "CLOCK_UNAVAILABLE", error.code
+finally:
+    sys.platform = original_platform
+PY
+expect_error 22 RECONCILIATION_REQUIRED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve host-task retry \
+  --lease-id wall-jump-lease --fence 1 --reason binding-rotated --request-id false-binding-rotation --actor-binding operator
+expect_error 22 RECONCILIATION_REQUIRED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve host-task retry \
+  --lease-id wall-jump-lease --fence 1 --reason clock-recovery --request-id false-clock-recovery --actor-binding operator
 expect_error 2 USAGE env OPERATOR_DIR="$TIME_DIR" OPERATOR_GRAPH_TESTING=1 bash "$GRAPH_SCRIPT" lease acquire safe-task \
   --lease-id future-theft --holder-scope lane:a --request-id future-theft --actor-binding lane-a --test-only-now 2099-01-01T00:00:00Z
-for pair in 'side-effect side-1' 'cancel-task cancel-1' 'complete-task complete-1' 'safe-task safe-1'; do
+for pair in 'cancel-task cancel-1' 'complete-task complete-1' 'safe-task safe-1' \
+            'resolve-dependency resolve-dependency-1' 'resolve-validation resolve-validation-1' 'resolve-gated resolve-gated-1' \
+            'side-effect side-1'; do
   set -- $pair
   env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease acquire "$1" \
     --lease-id "$2" --holder-scope lane:a --ttl-seconds 1 --request-id "$2" --actor-binding lane-a-test > /dev/null
@@ -605,6 +789,12 @@ value = json.load(open(sys.argv[1], encoding="utf-8"))
 item = next(item for item in value["data"]["expired"] if item["nodeId"] == "side-effect")
 assert item["fromState"] == "active" and item["toState"] == "blocked" and item["reconciliation"] is True
 PY
+expect_error 20 PRECONDITION_FAILED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve resolve-dependency complete \
+  --lease-id resolve-dependency-1 --fence 1 --reason expired-unsafe --request-id resolve-dependency-bypass --actor-binding operator
+expect_error 20 PRECONDITION_FAILED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve resolve-validation complete \
+  --lease-id resolve-validation-1 --fence 1 --reason expired-unsafe --request-id resolve-validation-bypass --actor-binding operator
+expect_error 20 PRECONDITION_FAILED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve resolve-gated complete \
+  --lease-id resolve-gated-1 --fence 1 --reason expired-unsafe --request-id resolve-gate-bypass --actor-binding operator
 expect_error 22 RECONCILIATION_REQUIRED env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease acquire side-effect \
   --lease-id side-2 --holder-scope lane:a --request-id side-2-still-blocked --actor-binding lane-a-recovery
 env OPERATOR_DIR="$TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve side-effect retry \
@@ -639,7 +829,7 @@ assert states["cancel-task"] == "cancelled"
 assert states["complete-task"] == "completed"
 assert value["leaseFences"]["side-effect"] == 2
 assert value["leaseFences"]["safe-task"] == 2
-assert not value["reconciliations"]
+assert set(value["reconciliations"]) == {"resolve-dependency", "resolve-validation", "resolve-gated"}
 PY
 
 # Same-ID capability rotation cannot inherit a lease and old generations cannot replay after the rotation is observed.
@@ -801,11 +991,11 @@ with graph.DirectoryLock(fenced, timeout=0.2, lease_seconds=1) as held:
         assert error.code == "LOCK_TIMEOUT", error.code
     assert not target.exists()
 
-foreign_lease = {"clock": {"hostId": "foreign-host", "bootId": "foreign-boot",
+foreign_lease = {"clock": {"hostId": "foreign-host", "bootId": "foreign-boot", "monotonicSource": "macos-mach-continuous",
                            "acquiredMonotonicNs": 1, "expiresMonotonicNs": 2}}
 try:
     graph.lease_clock_expired(foreign_lease, {"hostId": graph.HOST_ID, "bootId": graph.BOOT_ID,
-                                             "monotonicNs": 10**30}, "RECONCILIATION_REQUIRED")
+                                             "monotonicSource": "macos-mach-continuous", "monotonicNs": 10**30}, "RECONCILIATION_REQUIRED")
     raise AssertionError("foreign lease expired from a skewed local clock")
 except graph.GraphError as error:
     assert error.code == "RECONCILIATION_REQUIRED", error.code
@@ -837,8 +1027,23 @@ PY
   expect_error 4 UNKNOWN_VERSION env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" replay check
 done
 
+# Initialized history pins the authority identity/hash; swapping the readable
+# anchor without rewriting authenticated history fails closed.
+ANCHOR_SWAP_DIR="$TMP_ROOT/anchor-swap"
+copy_state "$MAIN_DIR" "$ANCHOR_SWAP_DIR"
+python3 - "$ANCHOR_SWAP_DIR/authority/control-graph-public-key.json" <<'PY'
+import json, sys
+path = sys.argv[1]
+value = json.load(open(path, encoding="utf-8"))
+value["keyId"] = "substituted-anchor"
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(value, handle, sort_keys=True, separators=(",", ":"))
+    handle.write("\n")
+PY
+expect_error 13 CORRUPT_JOURNAL env OPERATOR_DIR="$ANCHOR_SWAP_DIR" bash "$GRAPH_SCRIPT" replay check
+
 # Sequence, identity, authorization hashes, canonical intent/CAS, and middle records are replay-verified.
-for mutation in bad-sequence duplicate-event-id middle invalid-time invalid-result invalid-lease nan-event bad-binding-hash bad-capability-hash bad-signature bad-fingerprint bad-intent bad-cas; do
+for mutation in bad-sequence duplicate-event-id middle invalid-time invalid-result invalid-lease nan-event bad-binding-hash bad-capability-hash bad-signature bad-fingerprint bad-intent bad-cas coherent-rewrite; do
   target="$TMP_ROOT/corrupt-$mutation"
   copy_state "$MAIN_DIR" "$target"
   python3 - "$target/graph/events.jsonl" "$mutation" <<'PY'
@@ -848,7 +1053,10 @@ lines = open(path, "r", encoding="utf-8").readlines()
 if mutation == "middle":
     lines[1] = "{broken-json}\n"
 else:
-    event = json.loads(lines[1])
+    index = 1
+    if mutation == "coherent-rewrite":
+        index = next(i for i, raw in enumerate(lines) if json.loads(raw)["type"] == "node.transitioned")
+    event = json.loads(lines[index])
     if mutation == "bad-sequence":
         event["sequence"] = 99
     elif mutation == "duplicate-event-id":
@@ -876,15 +1084,27 @@ else:
         event["intent"]["nodeId"] = "forged-intent"
     elif mutation == "bad-cas":
         event["expectedRevision"] = 999
-        payload = {"command": event["result"]["command"], "bindingId": event["actor"]["bindingId"],
-                   "bindingHash": event["actor"]["bindingHash"], "subject": event["actor"]["subject"],
+        payload = {"schemaVersion": "operator.mutation-proof-request/v1", "command": event["result"]["command"],
+                   "requestId": event["requestId"], "bindingId": event["actor"]["bindingId"],
+                   "bindingGeneration": event["actor"]["bindingGeneration"], "bindingHash": event["actor"]["bindingHash"],
+                   "intent": event["intent"], "expectedRevision": event["expectedRevision"]}
+        import hashlib
+        raw = (json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+        event["requestFingerprint"] = "sha256:" + hashlib.sha256(raw).hexdigest()
+    elif mutation == "coherent-rewrite":
+        event["intent"]["targetState"] = "blocked"
+        event["data"]["to"] = "blocked"
+        event["result"]["data"] = dict(event["data"])
+        payload = {"schemaVersion": "operator.mutation-proof-request/v1", "command": event["result"]["command"],
+                   "requestId": event["requestId"], "bindingId": event["actor"]["bindingId"],
+                   "bindingGeneration": event["actor"]["bindingGeneration"], "bindingHash": event["actor"]["bindingHash"],
                    "intent": event["intent"], "expectedRevision": event["expectedRevision"]}
         import hashlib
         raw = (json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
         event["requestFingerprint"] = "sha256:" + hashlib.sha256(raw).hexdigest()
     else:
         event["result"]["data"]["poison"] = float("nan")
-    lines[1] = json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
+    lines[index] = json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n"
 open(path, "w", encoding="utf-8").writelines(lines)
 PY
   expect_error 13 CORRUPT_JOURNAL env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" replay check
@@ -908,10 +1128,10 @@ env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" replay repair \
 env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
 
 # Runtime materializations and authorization snapshots conform to committed schema field/capability contracts.
-python3 - "$KIT_ROOT/schemas/operator-v5" "$MAIN_DIR/graph" <<'PY'
+python3 - "$KIT_ROOT/schemas/operator-v5" "$MAIN_DIR/graph" "$TMP_ROOT/snapshot.json" <<'PY'
 import json, sys
 from pathlib import Path
-schemas, graph_dir = map(Path, sys.argv[1:])
+schemas, graph_dir, snapshot_path = map(Path, sys.argv[1:])
 binding_schema = json.load(open(schemas / "actor-binding.schema.json", encoding="utf-8"))
 binding = json.load(open(graph_dir / "bindings" / "operator.json", encoding="utf-8"))
 assert set(binding_schema["required"]) == set(binding)
@@ -927,6 +1147,12 @@ assert set(projection_schema["required"]) == set(projection)
 lease_schema = json.load(open(schemas / "ownership-lease.schema.json", encoding="utf-8"))
 for lease in projection["leases"].values():
     assert set(lease_schema["required"]) == set(lease)
+snapshot_schema = json.load(open(schemas / "control-snapshot.schema.json", encoding="utf-8"))
+snapshot = json.load(open(snapshot_path, encoding="utf-8"))["data"]
+assert snapshot["schemaVersion"] == snapshot_schema["properties"]["schemaVersion"]["const"]
+assert set(snapshot_schema["required"]) == set(snapshot)
+assert all(set(snapshot_schema["properties"]["nodes"]["items"]["required"]) == set(node) for node in snapshot["nodes"])
+assert all(set(snapshot_schema["properties"]["edges"]["items"]["required"]) == set(edge) for edge in snapshot["edges"])
 PY
 
 ROADMAP_AFTER="$(shasum -a 256 "$MAIN_DIR/roadmap/sentinel.txt")"

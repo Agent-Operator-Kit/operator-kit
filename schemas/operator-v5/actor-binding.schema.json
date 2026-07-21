@@ -4,7 +4,7 @@
   "title": "Operator V5 Signed Actor Binding",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes", "signature"],
+  "required": ["schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes", "proofKey", "signature"],
   "properties": {
     "schemaVersion": {"const": "operator.actor-binding/v1"},
     "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
@@ -45,6 +45,24 @@
         "properties": {
           "scope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
           "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+        }
+      }
+    },
+    "proofKey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "publicKey"],
+      "properties": {
+        "keyId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "algorithm": {"const": "RS256"},
+        "publicKey": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["n", "e"],
+          "properties": {
+            "n": {"type": "string", "minLength": 256, "maxLength": 2048, "pattern": "^[0-9a-f]+$"},
+            "e": {"enum": [3, 65537]}
+          }
         }
       }
     },

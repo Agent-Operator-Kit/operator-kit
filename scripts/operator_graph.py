@@ -10,6 +10,8 @@ from __future__ import annotations
 import argparse
 import base64
 import contextlib
+import ctypes
+import ctypes.util
 import datetime as dt
 import hashlib
 import heapq
@@ -36,6 +38,10 @@ LEASE_VERSION = "operator.ownership-lease/v1"
 BINDING_VERSION = "operator.actor-binding/v1"
 AUTHORITY_VERSION = "operator.authority-key/v1"
 LOCK_VERSION = "operator.graph-lock/v1"
+SNAPSHOT_VERSION = "operator.control-snapshot/v1"
+PROOF_REQUEST_VERSION = "operator.mutation-proof-request/v1"
+PROOF_EVENT_VERSION = "operator.mutation-event-proof/v1"
+PROOF_RESPONSE_VERSION = "operator.proof-response/v1"
 
 ACTOR_TYPES = {"operator", "lane", "host", "human", "subagent", "system"}
 CAPABILITIES = {
@@ -166,6 +172,7 @@ EXIT_CODES = {
     "CLOCK_ROLLBACK": 23,
     "JOURNAL_FULL": 24,
     "CLOCK_SKEW": 25,
+    "CLOCK_UNAVAILABLE": 26,
 }
 
 
@@ -442,7 +449,8 @@ def definition_hash(definition: Mapping[str, Any]) -> str:
     return sha256_value(definition)
 
 
-def blank_projection(definition: Mapping[str, Any], occurred_at: str, sequence: int) -> Dict[str, Any]:
+def blank_projection(definition: Mapping[str, Any], occurred_at: str, sequence: int,
+                     actor: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "schemaVersion": PROJECTION_VERSION,
         "graphId": definition["graphId"],
@@ -456,6 +464,8 @@ def blank_projection(definition: Mapping[str, Any], occurred_at: str, sequence: 
         "executionStarted": {},
         "reconciliations": {},
         "bindingGenerations": {},
+        "authorityKeyId": actor["keyId"],
+        "authorityHash": actor["authorityHash"],
     }
 
 
@@ -484,16 +494,18 @@ def validate_lease(value: Mapping[str, Any], code: str = "INVALID_STATE") -> Non
     fail(isinstance(value.get("fence"), int) and not isinstance(value["fence"], bool) and value["fence"] >= 1,
          code, "Lease fence is invalid")
     clock = value.get("clock")
-    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "acquiredMonotonicNs", "expiresMonotonicNs"},
+    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "monotonicSource", "acquiredMonotonicNs", "expiresMonotonicNs"},
          code, "Lease clock is invalid")
-    fail(valid_string(clock.get("hostId"), 256) and valid_string(clock.get("bootId"), 256), code, "Lease clock identity is invalid")
+    fail(valid_string(clock.get("hostId"), 256) and valid_string(clock.get("bootId"), 256)
+         and clock.get("monotonicSource") in {"linux-proc-uptime", "macos-mach-continuous"},
+         code, "Lease clock identity is invalid")
     fail(all(isinstance(clock.get(key), int) and not isinstance(clock[key], bool) and clock[key] >= 0
              for key in ("acquiredMonotonicNs", "expiresMonotonicNs")), code, "Lease monotonic clock is invalid")
     fail(clock["expiresMonotonicNs"] > clock["acquiredMonotonicNs"], code, "Lease monotonic expiry is not ordered")
 
 
 def validate_projection(value: Mapping[str, Any], definition: Mapping[str, Any]) -> None:
-    required = {"schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations"}
+    required = {"schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations", "authorityKeyId", "authorityHash"}
     fail(isinstance(value, dict) and set(value) == required, "INVALID_STATE", "Projection fields are invalid")
     validate_version(value.get("schemaVersion"), PROJECTION_VERSION, "projection")
     fail(value.get("graphId") == definition["graphId"], "INVALID_STATE", "Projection graphId does not match definition")
@@ -502,6 +514,9 @@ def validate_projection(value: Mapping[str, Any], definition: Mapping[str, Any])
     fail(isinstance(value.get("revision"), int) and not isinstance(value["revision"], bool) and value["revision"] >= 1,
          "INVALID_STATE", "Projection revision is invalid")
     parse_time(value.get("updatedAt"), "INVALID_STATE")
+    fail(valid_string(value.get("authorityKeyId"), 128, pattern=True), "INVALID_STATE", "Projection authorityKeyId is invalid")
+    fail(isinstance(value.get("authorityHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value["authorityHash"]),
+         "INVALID_STATE", "Projection authorityHash is invalid")
     node_states = value.get("nodeStates")
     fail(isinstance(node_states, dict), "INVALID_STATE", "Projection nodeStates must be an object")
     node_map = {node["id"]: node for node in definition["nodes"]}
@@ -562,7 +577,7 @@ def transition_preconditions(definition: Mapping[str, Any], projection: Mapping[
                              target_state: str) -> None:
     node = find_node(definition, node_id)
     edges = definition["edges"]
-    if target_state in {"ready", "active"}:
+    if target_state in {"ready", "active", "completed"}:
         blockers = [
             edge["to"] for edge in edges
             if edge["kind"] == "depends-on" and edge["from"] == node_id
@@ -589,7 +604,8 @@ def transition_preconditions(definition: Mapping[str, Any], projection: Mapping[
 
 def validate_actor_record(actor: Any, code: str) -> None:
     required = {"type", "id", "bindingId", "bindingGeneration", "bindingHash", "capabilityHash",
-                "projectId", "graphId", "issuedAt", "expiresAt", "keyId", "signature", "capabilities", "subject", "leaseScopes"}
+                "projectId", "graphId", "issuedAt", "expiresAt", "keyId", "signature", "capabilities", "subject",
+                "leaseScopes", "proofKey", "authorityHash"}
     fail(isinstance(actor, dict) and set(actor) == required, code, "Event actor is invalid")
     fail(actor.get("type") in ACTOR_TYPES, code, "Event actor type is invalid")
     fail(valid_string(actor.get("id"), 256, pattern=True), code, "Event actor id is invalid")
@@ -598,6 +614,8 @@ def validate_actor_record(actor: Any, code: str) -> None:
          and actor["bindingGeneration"] >= 1, code, "Event actor bindingGeneration is invalid")
     fail(isinstance(actor.get("bindingHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", actor["bindingHash"]), code, "Event actor bindingHash is invalid")
     fail(isinstance(actor.get("capabilityHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", actor["capabilityHash"]), code, "Event actor capabilityHash is invalid")
+    fail(isinstance(actor.get("authorityHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", actor["authorityHash"]),
+         code, "Event actor authorityHash is invalid")
     for key in ("projectId", "graphId", "keyId"):
         fail(valid_string(actor.get(key), 128, pattern=True), code, f"Event actor {key} is invalid")
     fail(isinstance(actor.get("signature"), str) and 1 <= len(actor["signature"]) <= 2048
@@ -634,11 +652,12 @@ def validate_actor_record(actor: Any, code: str) -> None:
             fail(scope["laneNodeId"] == subject["laneNodeId"], code, "Event lane actor scope crosses lane nodes")
     if actor["type"] not in {"lane", "host"}:
         fail(not scopes, code, "Event non-owner actor contains lease scopes")
+    validate_proof_key(actor.get("proofKey"), code)
     recorded_binding = {
         "schemaVersion": BINDING_VERSION, "bindingId": actor["bindingId"],
         "generation": actor["bindingGeneration"], "projectId": actor["projectId"], "graphId": actor["graphId"],
         "issuedAt": actor["issuedAt"], "expiresAt": actor["expiresAt"], "subject": actor["subject"],
-        "capabilities": actor["capabilities"], "leaseScopes": actor["leaseScopes"],
+        "capabilities": actor["capabilities"], "leaseScopes": actor["leaseScopes"], "proofKey": actor["proofKey"],
     }
     fail(actor["bindingHash"] == sha256_value(recorded_binding), code, "Event actor bindingHash does not match authorization snapshot")
     fail(actor["capabilityHash"] == sha256_value(capability_payload(recorded_binding)), code,
@@ -673,7 +692,7 @@ def expected_result_data(event_type: str, data: Mapping[str, Any], prior_definit
 
 def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_event_ids: Set[str]) -> None:
     required = {"schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "clock",
-                "actor", "type", "intent", "expectedRevision", "data", "result"}
+                "actor", "type", "intent", "expectedRevision", "data", "result", "proof"}
     fail(isinstance(event, dict) and set(event) == required, "CORRUPT_JOURNAL", "Event fields are invalid", {"line": sequence})
     validate_version(event.get("schemaVersion"), EVENT_VERSION, "event")
     fail(event.get("sequence") == sequence, "CORRUPT_JOURNAL", "Event sequence is not strict", {"expected": sequence, "actual": event.get("sequence")})
@@ -688,8 +707,9 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_even
          "CORRUPT_JOURNAL", "Event requestFingerprint is invalid")
     parse_time(event.get("occurredAt"), "CORRUPT_JOURNAL")
     clock = event.get("clock")
-    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "monotonicNs"}
+    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "monotonicSource", "monotonicNs"}
          and valid_string(clock.get("hostId"), 256) and valid_string(clock.get("bootId"), 256)
+         and clock.get("monotonicSource") in {"linux-proc-uptime", "macos-mach-continuous"}
          and isinstance(clock.get("monotonicNs"), int) and not isinstance(clock["monotonicNs"], bool)
          and clock["monotonicNs"] >= 0, "CORRUPT_JOURNAL", "Event clock is invalid")
     validate_actor_record(event.get("actor"), "CORRUPT_JOURNAL")
@@ -700,11 +720,7 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_even
     fail(event.get("expectedRevision") is None or (isinstance(event["expectedRevision"], int)
          and not isinstance(event["expectedRevision"], bool) and event["expectedRevision"] >= 1),
          "CORRUPT_JOURNAL", "Event expectedRevision is invalid")
-    expected_fingerprint = sha256_value({
-        "command": EVENT_COMMANDS[event_type], "bindingId": event["actor"]["bindingId"],
-        "bindingHash": event["actor"]["bindingHash"], "subject": event["actor"]["subject"],
-        "intent": event["intent"], "expectedRevision": event["expectedRevision"],
-    })
+    expected_fingerprint = sha256_value(recorded_authorization_payload(event))
     fail(event["requestFingerprint"] == expected_fingerprint, "CORRUPT_JOURNAL", "Event request fingerprint does not match canonical intent")
     fail(isinstance(event.get("data"), dict), "CORRUPT_JOURNAL", "Event data must be an object")
     result = event.get("result")
@@ -713,6 +729,7 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_even
     fail(result.get("ok") is True and result.get("command") == EVENT_COMMANDS[event_type]
          and result.get("requestId") == request_id and result.get("revision") == sequence
          and isinstance(result.get("data"), dict), "CORRUPT_JOURNAL", "Event result is invalid")
+    validate_event_proof(event)
 
 
 def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
@@ -756,7 +773,9 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
             raise GraphError("CORRUPT_JOURNAL", "Journal contains invalid JSON", {"line": line_number, "error": str(exc)}) from exc
         occurred = parse_time(event["occurredAt"], "CORRUPT_JOURNAL")
         fail(previous_time is None or occurred >= previous_time, "CORRUPT_JOURNAL", "Event time moved backwards", {"line": line_number})
-        if events and event["clock"]["hostId"] == events[-1]["clock"]["hostId"] and event["clock"]["bootId"] == events[-1]["clock"]["bootId"]:
+        if (events and event["clock"]["hostId"] == events[-1]["clock"]["hostId"]
+                and event["clock"]["bootId"] == events[-1]["clock"]["bootId"]
+                and event["clock"]["monotonicSource"] == events[-1]["clock"]["monotonicSource"]):
             monotonic_delta = (event["clock"]["monotonicNs"] - events[-1]["clock"]["monotonicNs"]) / 1_000_000_000
             fail(monotonic_delta >= 0, "CORRUPT_JOURNAL", "Event monotonic clock moved backwards", {"line": line_number})
             wall_delta = (occurred - previous_time).total_seconds() if previous_time is not None else 0
@@ -781,7 +800,8 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
         if authority is not None:
             fail(event["actor"]["projectId"] == authority["projectId"]
                  and event["actor"]["graphId"] == authority["graphId"]
-                 and event["actor"]["keyId"] == authority["keyId"],
+                 and event["actor"]["keyId"] == authority["keyId"]
+                 and event["actor"]["authorityHash"] == sha256_value(authority),
                  "CORRUPT_JOURNAL", "Event authorization does not match the trust anchor")
             recorded_payload = {
                 "schemaVersion": BINDING_VERSION, "bindingId": event["actor"]["bindingId"],
@@ -789,6 +809,7 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 "graphId": event["actor"]["graphId"], "issuedAt": event["actor"]["issuedAt"],
                 "expiresAt": event["actor"]["expiresAt"], "subject": event["actor"]["subject"],
                 "capabilities": event["actor"]["capabilities"], "leaseScopes": event["actor"]["leaseScopes"],
+                "proofKey": event["actor"]["proofKey"],
             }
             try:
                 verify_rsa_signature(recorded_payload, event["actor"]["signature"],
@@ -807,11 +828,13 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
             fail(event["actor"]["type"] in {"operator", "system"}, "CORRUPT_JOURNAL", "Unauthorized graph initialization actor")
             definition = validate_definition(data["definition"], materialized=True)
             fail(event["actor"]["graphId"] == definition["graphId"], "CORRUPT_JOURNAL", "Initialization authority graph mismatch")
-            projection = blank_projection(definition, occurred_at, sequence)
+            projection = blank_projection(definition, occurred_at, sequence, event["actor"])
         else:
             fail(definition is not None and projection is not None, "CORRUPT_JOURNAL", "Event appears before initialization")
             fail(event["actor"]["graphId"] == definition["graphId"]
-                 and event["actor"]["projectId"] == events[0]["actor"]["projectId"],
+                 and event["actor"]["projectId"] == events[0]["actor"]["projectId"]
+                 and event["actor"]["authorityHash"] == projection["authorityHash"]
+                 and event["actor"]["keyId"] == projection["authorityKeyId"],
                  "CORRUPT_JOURNAL", "Event authority project or graph mismatch")
             if event_type == "definition.replaced":
                 fail(set(data) == {"definition"} and event["actor"]["type"] in {"operator", "system"},
@@ -888,6 +911,7 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 fail(lease["fence"] == projection["leaseFences"].get(node["id"], 0) + 1, "CORRUPT_JOURNAL", "Lease fence is not monotonic")
                 fail(lease["acquiredAt"] == occurred_at and lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Lease acquisition time mismatch")
                 fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
+                     and lease["clock"]["monotonicSource"] == event["clock"]["monotonicSource"]
                      and lease["clock"]["acquiredMonotonicNs"] == event["clock"]["monotonicNs"],
                      "CORRUPT_JOURNAL", "Lease acquisition clock mismatch")
                 fail(node["id"] not in projection["reconciliations"], "CORRUPT_JOURNAL", "Lease acquired while reconciliation was required")
@@ -908,6 +932,7 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                      "CORRUPT_JOURNAL", "Unauthorized or expired renewal")
                 fail(lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Renewal time mismatch")
                 fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
+                     and lease["clock"]["monotonicSource"] == event["clock"]["monotonicSource"]
                      and lease["clock"]["acquiredMonotonicNs"] == current["clock"]["acquiredMonotonicNs"],
                      "CORRUPT_JOURNAL", "Renewal clock mismatch")
                 projection["leases"][lease["nodeId"]] = lease
@@ -946,7 +971,7 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                             "requiredAt": occurred_at, "priorState": item["fromState"],
                         }
             elif event_type == "lease.resolved":
-                fail(set(data) == {"nodeId", "leaseId", "fence", "action", "fromState", "toState", "reason"}
+                fail(set(data) == {"nodeId", "leaseId", "fence", "action", "fromState", "toState", "reason", "evidence"}
                      and event["actor"]["type"] in {"operator", "system", "human"},
                      "CORRUPT_JOURNAL", "lease.resolved data or actor is invalid")
                 fail(data["action"] in {"retry", "cancel", "complete"}, "CORRUPT_JOURNAL", "Unknown reconciliation action")
@@ -960,9 +985,35 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 fail(record is not None and record["leaseId"] == data["leaseId"] and record["fence"] == data["fence"],
                      "CORRUPT_JOURNAL", "Resolution does not match reconciliation")
                 fail(record["reason"] == data["reason"], "CORRUPT_JOURNAL", "Resolution reason does not match reconciliation")
+                evidence = data["evidence"]
+                fail(isinstance(evidence, dict), "CORRUPT_JOURNAL", "Resolution evidence is invalid")
                 fail(data["fromState"] == projection["nodeStates"][data["nodeId"]], "CORRUPT_JOURNAL", "Resolution source state mismatch")
                 expected_to = ("blocked" if data["fromState"] == "active" else data["fromState"]) if data["action"] == "retry" else ("cancelled" if data["action"] == "cancel" else "completed")
                 fail(data["toState"] == expected_to, "CORRUPT_JOURNAL", "Resolution target state mismatch")
+                if data["reason"] == "expired-unsafe":
+                    fail(data["nodeId"] in projection["reconciliations"], "CORRUPT_JOURNAL",
+                         "Expired-unsafe resolution lacked persisted reconciliation")
+                    fail(evidence == {"kind": "persisted-reconciliation", "requiredAt": record["requiredAt"]},
+                         "CORRUPT_JOURNAL", "Expired-unsafe resolution evidence is invalid")
+                if data["reason"] == "binding-rotated":
+                    fail(current_lease is not None and set(evidence) == {"kind", "currentBinding"}
+                         and evidence.get("kind") == "binding-rotation" and authority is not None,
+                         "CORRUPT_JOURNAL", "Binding-rotation resolution evidence is invalid")
+                    replacement = validate_binding(evidence["currentBinding"], current_lease["holder"]["bindingId"], authority)
+                    fail(replacement["generation"] > current_lease["holder"]["bindingGeneration"]
+                         and replacement["bindingHash"] != current_lease["holder"]["bindingHash"],
+                         "CORRUPT_JOURNAL", "Binding-rotation resolution lacked a real rotation")
+                if data["reason"] == "clock-recovery":
+                    fail(current_lease is not None and (
+                        current_lease["clock"]["hostId"] != event["clock"]["hostId"]
+                        or current_lease["clock"]["bootId"] != event["clock"]["bootId"]
+                        or current_lease["clock"]["monotonicSource"] != event["clock"]["monotonicSource"]),
+                        "CORRUPT_JOURNAL", "Clock-recovery resolution lacked a clock discontinuity")
+                    fail(evidence == {"kind": "clock-discontinuity", "leaseClock": current_lease["clock"],
+                                      "eventClock": event["clock"]},
+                         "CORRUPT_JOURNAL", "Clock-recovery resolution evidence is invalid")
+                if data["action"] == "complete":
+                    transition_preconditions(definition, projection, data["nodeId"], "completed")
                 projection["leases"].pop(data["nodeId"], None)
                 projection["reconciliations"].pop(data["nodeId"], None)
                 projection["nodeStates"][data["nodeId"]] = data["toState"]
@@ -1000,7 +1051,8 @@ def replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str,
 
 def lease_clock_expired(lease: Mapping[str, Any], clock: Mapping[str, Any], code: str = "INVALID_STATE") -> bool:
     lease_clock = lease["clock"]
-    fail(clock["hostId"] == lease_clock["hostId"] and clock["bootId"] == lease_clock["bootId"],
+    fail(clock["hostId"] == lease_clock["hostId"] and clock["bootId"] == lease_clock["bootId"]
+         and clock["monotonicSource"] == lease_clock["monotonicSource"],
          code, "Lease expiry requires explicit recovery after host or boot change")
     return clock["monotonicNs"] >= lease_clock["expiresMonotonicNs"]
 
@@ -1101,16 +1153,48 @@ HOST_ID = host_id()
 BOOT_ID = boot_id()
 
 
-def host_monotonic_ns() -> int:
-    linux_uptime = Path("/proc/uptime")
+class MachTimebaseInfo(ctypes.Structure):
+    _fields_ = [("numer", ctypes.c_uint32), ("denom", ctypes.c_uint32)]
+
+
+def macos_continuous_time_ns() -> int:
     try:
-        return int(float(linux_uptime.read_text(encoding="utf-8").split()[0]) * 1_000_000_000)
-    except (OSError, ValueError, IndexError):
-        pass
-    if BOOT_ID.startswith("boot-epoch:"):
-        with contextlib.suppress(ValueError):
-            return max(0, int((time.time() - int(BOOT_ID.split(":", 1)[1])) * 1_000_000_000))
-    return time.monotonic_ns()
+        library_name = ctypes.util.find_library("System") or "/usr/lib/libSystem.B.dylib"
+        library = ctypes.CDLL(library_name, use_errno=True)
+        continuous = library.mach_continuous_time
+        continuous.argtypes = []
+        continuous.restype = ctypes.c_uint64
+        timebase = library.mach_timebase_info
+        timebase.argtypes = [ctypes.POINTER(MachTimebaseInfo)]
+        timebase.restype = ctypes.c_int
+        info = MachTimebaseInfo()
+        fail(timebase(ctypes.byref(info)) == 0 and info.numer > 0 and info.denom > 0,
+             "CLOCK_UNAVAILABLE", "macOS continuous clock timebase is unavailable")
+        return int(continuous()) * int(info.numer) // int(info.denom)
+    except GraphError:
+        raise
+    except (AttributeError, OSError, TypeError, ValueError) as exc:
+        raise GraphError("CLOCK_UNAVAILABLE", "macOS mach_continuous_time is unavailable", str(exc)) from exc
+
+
+def host_monotonic_sample() -> Tuple[str, int]:
+    if sys.platform.startswith("linux"):
+        linux_uptime = Path("/proc/uptime")
+        try:
+            value = int(float(linux_uptime.read_text(encoding="utf-8").split()[0]) * 1_000_000_000)
+            fail(value >= 0, "CLOCK_UNAVAILABLE", "Linux boot-relative uptime is invalid")
+            return "linux-proc-uptime", value
+        except GraphError:
+            raise
+        except (OSError, ValueError, IndexError) as exc:
+            raise GraphError("CLOCK_UNAVAILABLE", "Linux /proc/uptime is unavailable", str(exc)) from exc
+    if sys.platform == "darwin":
+        return "macos-mach-continuous", macos_continuous_time_ns()
+    raise GraphError("CLOCK_UNAVAILABLE", "No persisted cross-process monotonic clock is available on this platform")
+
+
+def host_monotonic_ns() -> int:
+    return host_monotonic_sample()[1]
 
 
 class DirectoryLock:
@@ -1119,7 +1203,7 @@ class DirectoryLock:
         self.timeout = timeout
         self.lease_seconds = lease_seconds
         self.token = str(uuid.uuid4())
-        self.epoch = host_monotonic_ns()
+        self.epoch = time.monotonic_ns()
         self.pid = os.getpid()
         self.start = process_start(self.pid)
         self.stop_event = threading.Event()
@@ -1324,37 +1408,56 @@ class StoreLock:
 def binding_payload(binding: Mapping[str, Any]) -> Dict[str, Any]:
     return {key: binding[key] for key in (
         "schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt",
-        "subject", "capabilities", "leaseScopes",
+        "subject", "capabilities", "leaseScopes", "proofKey",
     )}
 
 
 def capability_payload(binding: Mapping[str, Any]) -> Dict[str, Any]:
-    return {key: binding[key] for key in ("subject", "capabilities", "leaseScopes")}
+    return {key: binding[key] for key in ("subject", "capabilities", "leaseScopes", "proofKey")}
 
 
-def decode_base64url(value: Any) -> bytes:
+def decode_base64url(value: Any, code: str = "AUTHORITY_DENIED", label: str = "Capability") -> bytes:
     fail(isinstance(value, str) and 1 <= len(value) <= 2048 and not has_control(value),
-         "AUTHORITY_DENIED", "Capability signature is invalid")
+         code, f"{label} signature is invalid")
     try:
         return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
     except (ValueError, TypeError) as exc:
-        raise GraphError("AUTHORITY_DENIED", "Capability signature is invalid") from exc
+        raise GraphError(code, f"{label} signature is invalid") from exc
 
 
-def verify_rsa_signature(payload: Mapping[str, Any], signature: str, modulus_hex: str, exponent: int) -> None:
+def verify_rsa_signature(payload: Mapping[str, Any], signature: str, modulus_hex: str, exponent: int,
+                         code: str = "AUTHORITY_DENIED", label: str = "Capability") -> None:
     try:
         modulus = int(modulus_hex, 16)
     except (TypeError, ValueError) as exc:
-        raise GraphError("AUTHORITY_DENIED", "Authority public key is invalid") from exc
+        raise GraphError(code, f"{label} public key is invalid") from exc
     fail(modulus.bit_length() >= 1024 and modulus.bit_length() <= 8192 and exponent in {3, 65537},
-         "AUTHORITY_DENIED", "Authority public key is invalid")
-    encoded_signature = decode_base64url(signature)
+         code, f"{label} public key is invalid")
+    encoded_signature = decode_base64url(signature, code, label)
     width = (modulus.bit_length() + 7) // 8
-    fail(len(encoded_signature) == width, "AUTHORITY_DENIED", "Capability signature has the wrong size")
+    fail(len(encoded_signature) == width, code, f"{label} signature has the wrong size")
     decoded = pow(int.from_bytes(encoded_signature, "big"), exponent, modulus).to_bytes(width, "big")
     digest_info = bytes.fromhex("3031300d060960864801650304020105000420") + hashlib.sha256(canonical_bytes(payload)).digest()
     expected = b"\x00\x01" + b"\xff" * (width - len(digest_info) - 3) + b"\x00" + digest_info
-    fail(decoded == expected, "AUTHORITY_DENIED", "Capability signature verification failed")
+    fail(decoded == expected, code, f"{label} signature verification failed")
+
+
+def validate_proof_key(value: Any, code: str = "AUTHORITY_DENIED") -> Dict[str, Any]:
+    fail(isinstance(value, dict) and set(value) == {"keyId", "algorithm", "publicKey"},
+         code, "Actor proof key fields are invalid")
+    fail(valid_string(value.get("keyId"), 128, pattern=True) and value.get("algorithm") == "RS256",
+         code, "Actor proof key metadata is invalid")
+    public_key = value.get("publicKey")
+    fail(isinstance(public_key, dict) and set(public_key) == {"n", "e"}
+         and isinstance(public_key.get("n"), str) and re.fullmatch(r"[0-9a-f]+", public_key["n"])
+         and isinstance(public_key.get("e"), int), code, "Actor proof public key is invalid")
+    try:
+        modulus = int(public_key["n"], 16)
+    except ValueError as exc:
+        raise GraphError(code, "Actor proof public key is invalid") from exc
+    fail(1024 <= modulus.bit_length() <= 8192 and public_key["e"] in {3, 65537},
+         code, "Actor proof public key is invalid")
+    return dict(value)
 
 
 def validate_authority(value: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1374,7 +1477,7 @@ def validate_authority(value: Mapping[str, Any]) -> Dict[str, Any]:
 
 def validate_binding(binding: Mapping[str, Any], expected_id: str, authority: Mapping[str, Any]) -> Dict[str, Any]:
     required = {"schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt",
-                "subject", "capabilities", "leaseScopes", "signature"}
+                "subject", "capabilities", "leaseScopes", "proofKey", "signature"}
     require_keys(binding, required, set(), "actor binding", "AUTHORITY_DENIED")
     fail(binding.get("schemaVersion") == BINDING_VERSION, "AUTHORITY_DENIED", "Unsupported actor binding version")
     fail(binding.get("bindingId") == expected_id and valid_binding_id(expected_id), "AUTHORITY_DENIED", "Actor binding ID is invalid")
@@ -1415,6 +1518,7 @@ def validate_binding(binding: Mapping[str, Any], expected_id: str, authority: Ma
             fail(scope["laneNodeId"] == subject["laneNodeId"], "AUTHORITY_DENIED", "Lane binding scope crosses lane nodes")
     if actor_type not in {"lane", "host"}:
         fail(not scopes, "AUTHORITY_DENIED", "Only lane or host bindings may have lease scopes")
+    validate_proof_key(binding.get("proofKey"))
     signature = binding.get("signature")
     fail(isinstance(signature, dict) and set(signature) == {"keyId", "algorithm", "value"}
          and signature.get("keyId") == authority["keyId"] and signature.get("algorithm") == authority["algorithm"],
@@ -1423,6 +1527,7 @@ def validate_binding(binding: Mapping[str, Any], expected_id: str, authority: Ma
     result = dict(binding)
     result["bindingHash"] = sha256_value(binding_payload(binding))
     result["capabilityHash"] = sha256_value(capability_payload(binding))
+    result["authorityHash"] = sha256_value(authority)
     return result
 
 
@@ -1444,6 +1549,16 @@ def load_binding(store: Store, args: argparse.Namespace, capability: str) -> Dic
     return binding
 
 
+def load_binding_by_id(store: Store, binding_id: str) -> Dict[str, Any]:
+    fail(valid_binding_id(binding_id), "AUTHORITY_DENIED", "Actor binding ID is invalid")
+    authority = store.load_authority()
+    path = store.binding_dir / f"{binding_id}.json"
+    fail(path.parent.resolve() == store.binding_dir.resolve() and path.exists() and not path.is_symlink()
+         and stat.S_ISREG(path.stat().st_mode), "AUTHORITY_DENIED", "Actor binding document is missing or unsafe")
+    return validate_binding(read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES),
+                            binding_id, authority)
+
+
 def actor_record(binding: Mapping[str, Any]) -> Dict[str, Any]:
     return {
         "type": binding["subject"]["type"],
@@ -1461,7 +1576,105 @@ def actor_record(binding: Mapping[str, Any]) -> Dict[str, Any]:
         "capabilities": binding["capabilities"],
         "subject": binding["subject"],
         "leaseScopes": binding["leaseScopes"],
+        "proofKey": binding["proofKey"],
+        "authorityHash": binding["authorityHash"],
     }
+
+
+class ProofChannel:
+    """Full-duplex inherited socket to a caller-owned signing broker."""
+
+    def __init__(self, descriptor: Any):
+        fail(isinstance(descriptor, int) and not isinstance(descriptor, bool) and 3 <= descriptor <= 1024,
+             "AUTHORITY_DENIED", "A caller proof broker socket is required via --proof-fd")
+        try:
+            self.socket = socket.socket(fileno=os.dup(descriptor))
+            fail(self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) == socket.SOCK_STREAM,
+                 "AUTHORITY_DENIED", "Caller proof descriptor must be a connected stream socket")
+            self.socket.settimeout(5.0)
+        except GraphError:
+            raise
+        except OSError as exc:
+            raise GraphError("AUTHORITY_DENIED", "Caller proof broker socket is unavailable", str(exc)) from exc
+
+    def sign(self, phase: str, payload: Mapping[str, Any], proof_key: Mapping[str, Any]) -> str:
+        challenge = {"schemaVersion": PROOF_RESPONSE_VERSION, "operation": "sign", "phase": phase,
+                     "proofKeyId": proof_key["keyId"], "payload": dict(payload)}
+        encoded = canonical_bytes(challenge)
+        fail(len(encoded) <= MAX_BINDING_BYTES, "AUTHORITY_DENIED", "Caller proof challenge is too large")
+        try:
+            self.socket.sendall(encoded)
+            response = bytearray()
+            while not response.endswith(b"\n"):
+                chunk = self.socket.recv(4096)
+                fail(bool(chunk), "AUTHORITY_DENIED", "Caller proof broker closed without a response")
+                response.extend(chunk)
+                fail(len(response) <= MAX_BINDING_BYTES, "AUTHORITY_DENIED", "Caller proof response is too large")
+            value = json.loads(bytes(response).decode("utf-8"), parse_constant=reject_constant)
+        except GraphError:
+            raise
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+            raise GraphError("AUTHORITY_DENIED", "Caller proof broker response is invalid", str(exc)) from exc
+        fail(isinstance(value, dict) and set(value) == {"schemaVersion", "phase", "proofKeyId", "signature"}
+             and value.get("schemaVersion") == PROOF_RESPONSE_VERSION and value.get("phase") == phase
+             and value.get("proofKeyId") == proof_key["keyId"],
+             "AUTHORITY_DENIED", "Caller proof broker response does not match the challenge")
+        signature = value.get("signature")
+        verify_rsa_signature(payload, signature, proof_key["publicKey"]["n"], proof_key["publicKey"]["e"],
+                             "AUTHORITY_DENIED", "Caller proof")
+        return signature
+
+    def close(self) -> None:
+        with contextlib.suppress(OSError):
+            self.socket.close()
+
+
+def authorization_payload(command: str, binding: Mapping[str, Any], request_id: str,
+                          intent: Mapping[str, Any], expected_revision: Optional[int]) -> Dict[str, Any]:
+    return {
+        "schemaVersion": PROOF_REQUEST_VERSION,
+        "command": command,
+        "requestId": request_id,
+        "bindingId": binding["bindingId"],
+        "bindingGeneration": binding["generation"],
+        "bindingHash": binding["bindingHash"],
+        "intent": dict(intent),
+        "expectedRevision": expected_revision,
+    }
+
+
+def recorded_authorization_payload(event: Mapping[str, Any]) -> Dict[str, Any]:
+    actor = event["actor"]
+    return {
+        "schemaVersion": PROOF_REQUEST_VERSION,
+        "command": EVENT_COMMANDS[event["type"]],
+        "requestId": event["requestId"],
+        "bindingId": actor["bindingId"],
+        "bindingGeneration": actor["bindingGeneration"],
+        "bindingHash": actor["bindingHash"],
+        "intent": event["intent"],
+        "expectedRevision": event["expectedRevision"],
+    }
+
+
+def event_proof_payload(event_without_proof: Mapping[str, Any]) -> Dict[str, Any]:
+    return {"schemaVersion": PROOF_EVENT_VERSION, "event": dict(event_without_proof)}
+
+
+def validate_event_proof(event: Mapping[str, Any]) -> None:
+    proof = event.get("proof")
+    fail(isinstance(proof, dict) and set(proof) == {"schemaVersion", "proofKeyId", "algorithm",
+         "authorizationSignature", "eventSignature"} and proof.get("schemaVersion") == PROOF_EVENT_VERSION
+         and proof.get("proofKeyId") == event["actor"]["proofKey"]["keyId"] and proof.get("algorithm") == "RS256",
+         "CORRUPT_JOURNAL", "Event caller proof fields are invalid")
+    proof_key = event["actor"]["proofKey"]
+    verify_rsa_signature(recorded_authorization_payload(event), proof.get("authorizationSignature"),
+                         proof_key["publicKey"]["n"], proof_key["publicKey"]["e"],
+                         "CORRUPT_JOURNAL", "Caller authorization proof")
+    unsigned = {key: value for key, value in event.items() if key != "proof"}
+    verify_rsa_signature(event_proof_payload(unsigned), proof.get("eventSignature"),
+                         proof_key["publicKey"]["n"], proof_key["publicKey"]["e"],
+                         "CORRUPT_JOURNAL", "Caller event proof")
 
 
 def require_request_id(args: argparse.Namespace) -> str:
@@ -1471,14 +1684,17 @@ def require_request_id(args: argparse.Namespace) -> str:
 
 
 def fingerprint(command: str, binding: Mapping[str, Any], args: argparse.Namespace, intent: Mapping[str, Any]) -> str:
-    payload = {
-        "command": command,
-        "bindingId": binding["bindingId"],
-        "bindingHash": binding["bindingHash"],
-        "subject": binding["subject"],
-        "intent": dict(intent),
-        "expectedRevision": getattr(args, "expected_revision", None),
-    }
+    payload = authorization_payload(command, binding, args.request_id, intent,
+                                    getattr(args, "expected_revision", None))
+    channel = ProofChannel(getattr(args, "proof_fd", None))
+    try:
+        signature = channel.sign("authorize", payload, binding["proofKey"])
+    except Exception:
+        channel.close()
+        raise
+    fail(isinstance(binding, dict), "AUTHORITY_DENIED", "Actor binding is not mutable authorization state")
+    binding["_proofChannel"] = channel
+    binding["_authorizationSignature"] = signature
     return sha256_value(payload)
 
 
@@ -1513,14 +1729,16 @@ def check_binding_generation(binding: Mapping[str, Any], projection: Mapping[str
 
 def transaction_time(events: Sequence[Mapping[str, Any]]) -> Tuple[dt.datetime, Dict[str, Any]]:
     now = utc_now()
-    clock = {"hostId": HOST_ID, "bootId": BOOT_ID, "monotonicNs": host_monotonic_ns()}
+    source, monotonic_ns = host_monotonic_sample()
+    clock = {"hostId": HOST_ID, "bootId": BOOT_ID, "monotonicSource": source, "monotonicNs": monotonic_ns}
     if events:
         previous = parse_time(events[-1]["occurredAt"], "CORRUPT_JOURNAL")
         fail(now >= previous, "CLOCK_ROLLBACK", "Trusted transaction time moved behind the journal", {
             "previousEventTime": events[-1]["occurredAt"], "transactionTime": format_time(now)
         })
         previous_clock = events[-1]["clock"]
-        if previous_clock["hostId"] == HOST_ID and previous_clock["bootId"] == BOOT_ID:
+        if (previous_clock["hostId"] == HOST_ID and previous_clock["bootId"] == BOOT_ID
+                and previous_clock["monotonicSource"] == source):
             monotonic_delta = (clock["monotonicNs"] - previous_clock["monotonicNs"]) / 1_000_000_000
             fail(monotonic_delta >= 0, "CLOCK_ROLLBACK", "Trusted monotonic clock moved backwards", {
                 "previousMonotonicNs": previous_clock["monotonicNs"], "transactionMonotonicNs": clock["monotonicNs"]})
@@ -1558,6 +1776,19 @@ def commit_event(store: Store, events: Sequence[Mapping[str, Any]], event_type: 
         "expectedRevision": expected_revision,
         "data": dict(data),
         "result": result,
+    }
+    channel = binding.get("_proofChannel")
+    fail(isinstance(channel, ProofChannel), "AUTHORITY_DENIED", "Caller proof channel is missing at commit")
+    try:
+        event_signature = channel.sign("event", event_proof_payload(event), binding["proofKey"])
+    finally:
+        channel.close()
+    event["proof"] = {
+        "schemaVersion": PROOF_EVENT_VERSION,
+        "proofKeyId": binding["proofKey"]["keyId"],
+        "algorithm": "RS256",
+        "authorizationSignature": binding["_authorizationSignature"],
+        "eventSignature": event_signature,
     }
     encoded = canonical_bytes(event)
     fail(len(encoded) <= MAX_EVENT_BYTES, "INVALID_STATE", "Event exceeds maximum journal record size")
@@ -1646,7 +1877,7 @@ def snapshot_data(definition: Mapping[str, Any], projection: Mapping[str, Any], 
         item["state"] = projection["nodeStates"][node["id"]]
         nodes.append(item)
     return {
-        "schemaVersion": PROJECTION_VERSION,
+        "schemaVersion": SNAPSHOT_VERSION,
         "graphId": definition["graphId"],
         "revision": projection["revision"],
         "definitionRevision": definition["definitionRevision"],
@@ -1660,6 +1891,8 @@ def snapshot_data(definition: Mapping[str, Any], projection: Mapping[str, Any], 
         "executionStarted": projection["executionStarted"],
         "reconciliations": projection["reconciliations"],
         "bindingGenerations": projection["bindingGenerations"],
+        "authorityKeyId": projection["authorityKeyId"],
+        "authorityHash": projection["authorityHash"],
     }
 
 
@@ -1819,6 +2052,7 @@ def command_lease_acquire(store: Store, args: argparse.Namespace) -> Dict[str, A
             "expiresAt": format_time(now + dt.timedelta(seconds=args.ttl_seconds)),
             "fence": fence,
             "clock": {"hostId": clock["hostId"], "bootId": clock["bootId"],
+                      "monotonicSource": clock["monotonicSource"],
                       "acquiredMonotonicNs": clock["monotonicNs"],
                       "expiresMonotonicNs": clock["monotonicNs"] + args.ttl_seconds * 1_000_000_000},
         }
@@ -1931,21 +2165,41 @@ def command_lease_resolve(store: Store, args: argparse.Namespace) -> Dict[str, A
         fail(node["kind"] in WORK_KINDS, "INVALID_GRAPH", "Only work nodes have lease reconciliation")
         current_lease = projection["leases"].get(args.node_id)
         record = projection["reconciliations"].get(args.node_id)
+        now, clock = transaction_time(events)
+        evidence: Dict[str, Any]
         if record is None:
             fail(current_lease is not None and args.reason in {"binding-rotated", "clock-recovery"},
                  "RECONCILIATION_REQUIRED", "Node has no reconciliation requiring resolution")
+            if args.reason == "binding-rotated":
+                holder = current_lease["holder"]
+                replacement_binding = load_binding_by_id(store, holder["bindingId"])
+                fail(replacement_binding["generation"] > holder["bindingGeneration"]
+                     and replacement_binding["bindingHash"] != holder["bindingHash"],
+                     "RECONCILIATION_REQUIRED", "Lease holder binding has not actually rotated")
+                evidence = {"kind": "binding-rotation", "currentBinding": {
+                    **binding_payload(replacement_binding), "signature": replacement_binding["signature"],
+                }}
+            else:
+                lease_clock = current_lease["clock"]
+                fail(lease_clock["hostId"] != clock["hostId"] or lease_clock["bootId"] != clock["bootId"]
+                     or lease_clock["monotonicSource"] != clock["monotonicSource"],
+                     "RECONCILIATION_REQUIRED", "Lease clock has no discontinuity requiring recovery")
+                evidence = {"kind": "clock-discontinuity", "leaseClock": dict(lease_clock), "eventClock": dict(clock)}
             record = {"leaseId": current_lease["leaseId"], "fence": current_lease["fence"]}
         else:
             fail(args.reason == record["reason"], "RECONCILIATION_REQUIRED", "Resolution reason does not match persisted reconciliation")
+            evidence = {"kind": "persisted-reconciliation", "requiredAt": record["requiredAt"]}
         fail(args.lease_id == record["leaseId"] and args.fence == record["fence"], "FENCE_STALE",
              "Resolution lease credentials are stale")
         current = projection["nodeStates"][args.node_id]
         fail(current not in TERMINAL_STATES["work"], "INVALID_STATE", "Terminal work does not require lease resolution")
         target = ("blocked" if current == "active" else current) if args.action == "retry" else (
             "cancelled" if args.action == "cancel" else "completed")
-        now, clock = transaction_time(events)
+        if args.action == "complete":
+            transition_preconditions(definition, projection, args.node_id, "completed")
         data = {"nodeId": args.node_id, "leaseId": args.lease_id, "fence": args.fence,
-                "action": args.action, "fromState": current, "toState": target, "reason": args.reason}
+                "action": args.action, "fromState": current, "toState": target, "reason": args.reason,
+                "evidence": evidence}
         return commit_event(store, events, "lease.resolved", data, binding, request_id, request_fingerprint,
                             data, format_time(now), clock, intent, args.expected_revision)
 
@@ -1984,6 +2238,7 @@ def add_mutation_options(parser: argparse.ArgumentParser, cas: bool = True) -> N
     if cas:
         parser.add_argument("--expected-revision", type=int)
     parser.add_argument("--actor-binding")
+    parser.add_argument("--proof-fd", type=int, help="inherited full-duplex caller proof broker socket")
 
 
 class JSONArgumentParser(argparse.ArgumentParser):

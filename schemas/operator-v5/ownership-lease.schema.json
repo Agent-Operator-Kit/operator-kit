@@ -30,10 +30,11 @@
     "clock": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hostId", "bootId", "acquiredMonotonicNs", "expiresMonotonicNs"],
+      "required": ["hostId", "bootId", "monotonicSource", "acquiredMonotonicNs", "expiresMonotonicNs"],
       "properties": {
         "hostId": {"type": "string", "minLength": 1, "maxLength": 256},
         "bootId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "monotonicSource": {"enum": ["linux-proc-uptime", "macos-mach-continuous"]},
         "acquiredMonotonicNs": {"type": "integer", "minimum": 0},
         "expiresMonotonicNs": {"type": "integer", "minimum": 1}
       }

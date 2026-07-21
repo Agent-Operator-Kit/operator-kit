@@ -26,19 +26,25 @@ OPERATOR_DIR/
 `projection.json` are deterministic materializations. Graph commands never
 write roadmap files.
 
-Bindings are signed capability documents, not trusted filesystem labels. The
+Bindings are signed capability documents with caller proof keys, not trusted
+filesystem labels or bearer credentials. The
 control plane provisions `control-graph-public-key.json` with project ID,
 graph ID, key ID, canonical host ID, and an RSA public key. Its private key
 must never be present in a lane, worktree, `OPERATOR_DIR`, environment
 variable, or CLI argument. The trust anchor must be mounted or otherwise kept
 outside every bypass-permissions lane's write scope. A lane may rewrite a
 mode-0600 binding file but cannot create the required RS256 signature.
-Replacing the public-key anchor or runtime is control-plane compromise.
+Replacing the public-key anchor or runtime is control-plane compromise. The
+initialized journal pins the authority key ID and canonical anchor hash, so an
+anchor substitution without rewriting authenticated history fails closed. OS
+sandboxing remains the boundary against rewriting the anchor, runtime, and
+entire journal together.
 
 Versions are `operator.control-graph/v1`, `operator.control-event/v1`,
 `operator.control-projection/v1`, `operator.ownership-lease/v1`, and
-`operator.actor-binding/v1`. Unknown persisted state versions fail closed.
-Committed JSON Schemas cover all five records. Runtime validation additionally
+`operator.actor-binding/v1`, and `operator.control-snapshot/v1`. Unknown
+persisted state versions fail closed. Committed JSON Schemas cover all six
+records. Runtime validation additionally
 enforces cross-record references, endpoints, cycles, transitions, assignment,
 time, signatures, generations, and fences.
 
@@ -119,8 +125,9 @@ human gates (gate decide only)
 pending -> approved | rejected
 ```
 
-Before ready/active, all `depends-on` targets must be success-terminal. Before
-completed, all `validated-by` targets must be success-terminal. Gate checks
+Before ready, active, or completed, all `depends-on` targets must be
+success-terminal. Before completed, all `validated-by` targets must be
+success-terminal. Gate checks
 then apply. Transaction and replay enforce the same rules.
 
 An unleased generic transition is restricted to operator/system. If a lease
@@ -144,6 +151,8 @@ A binding includes:
   "subject":{"type":"lane","id":"worker","laneNodeId":"lane-control-graph"},
   "capabilities":["lease","transition"],
   "leaseScopes":[{"scope":"lane:control-graph","laneNodeId":"lane-control-graph"}],
+  "proofKey":{"keyId":"lane-control-graph-pop-4","algorithm":"RS256",
+              "publicKey":{"n":"...","e":65537}},
   "signature":{"keyId":"control-2026-07","algorithm":"RS256","value":"..."}
 }
 ```
@@ -163,15 +172,36 @@ Type rules still apply to an overpowered document:
 - operator/system/human: resolve reconciliation;
 - subagents: never lease, decide gates, change graph/priority, or integrate.
 
-There are no shipped actor, capability, scope, time, or fault-injection flags,
-hidden or otherwise. Environment variables cannot mint authority. Adversarial
-tests use a non-installed harness against isolated temporary state.
+Possession of this readable document is insufficient. Every mutation also
+requires `--proof-fd N`, an inherited, connected, full-duplex stream socket to
+a caller-owned proof broker. The runtime sends two canonical JSON challenges:
 
-Each event snapshots binding generation, project/graph/key IDs, validity
-window, subject, capabilities, scopes, and canonical binding/capability hashes.
-It also retains the binding signature. Replay verifies that signature against
-the external trust anchor and recomputes both hashes without consulting the
-current binding file.
+1. `authorize` covers command, request ID, binding ID/generation/hash, complete
+   intent, and CAS;
+2. `event` covers the complete materialized event, including event identity,
+   trusted clock, actor snapshot, intent, CAS, data, and exact result.
+
+The broker returns RS256 signatures made by the private key corresponding to
+the binding's `proofKey`. Both signatures are verified before append and
+persisted for replay. Changing a CLI label, copying an operator/human binding,
+using a lane key with an operator binding, or altering request/intent/CAS/event
+content fails `AUTHORITY_DENIED`.
+
+Private proof keys must never enter `OPERATOR_DIR`, a repository, a task
+packet, environment defaults, CLI arguments, or the graph process. RM-0003 and
+RM-0005 must use an OS-keychain or isolated broker: create a socket pair, keep
+the signing/keychain end in the trusted host service, and pass only the graph
+end as an inherited descriptor. There is deliberately no key-file option.
+There are no shipped actor, capability, scope, time, proof, or fault-injection
+shortcuts. Adversarial tests use a non-installed ephemeral broker against
+isolated temporary state.
+
+Each event snapshots binding generation, project/graph/key IDs, authority
+anchor hash, validity window, subject, capabilities, scopes, proof verifier,
+and canonical binding/capability hashes. It retains the authority signature
+and both caller proof signatures. Replay verifies all signatures against the
+pinned anchor and recorded proof key, then recomputes hashes without consulting
+the current binding file.
 
 ## Assignment, Leases, And Reconciliation
 
@@ -193,15 +223,23 @@ ID/fence:
 - `retry`: clear reconciliation; active becomes blocked; then a new lease may
   acquire the next fence;
 - `cancel`: clear reconciliation and mark cancelled;
-- `complete`: clear reconciliation and record explicit adjudicated completion.
+- `complete`: only after ordinary dependency, validation, and gate completion
+  preconditions pass, clear reconciliation and record adjudicated completion.
 
-`binding-rotated` and `clock-recovery` resolve a still-present lease. Terminal
-work cannot be leased.
+`binding-rotated` and `clock-recovery` resolve a still-present lease only when
+the holder document has actually advanced generation/content or the persisted
+host/boot/monotonic source has actually changed. False reason assertions fail
+`RECONCILIATION_REQUIRED`. Terminal work cannot be leased.
 
 ## Trusted Time
 
-Binding validity uses canonical-host wall time. Lease expiry uses the
-canonical host/boot monotonic sample. Foreign hosts, changed boots, and skewed
+Binding validity uses canonical-host wall time. Lease expiry uses a genuine
+cross-process boot-relative clock: Linux reads `/proc/uptime`; macOS calls
+`mach_continuous_time` and applies `mach_timebase_info` using Python's standard
+library `ctypes`. Unsupported platforms or unavailable sources return
+`CLOCK_UNAVAILABLE`; persisted expiry never falls back to `time.monotonic`, a
+process-relative epoch, or wall-derived boot time. Foreign hosts, changed
+boots/sources, and skewed
 wall clocks never expire a lease; they require explicit `clock-recovery`.
 Mutations on a host other than the trust anchor's `canonicalHostId` fail.
 
@@ -216,7 +254,9 @@ sequence is strict, gap-free, and equals projection revision. Event IDs and
 request IDs are globally unique in the journal.
 
 Events persist canonical `intent` and `expectedRevision`. Replay recomputes the
-request fingerprint over command, binding ID/hash/subject, intent, and CAS.
+request fingerprint over command, request ID, binding ID/generation/hash,
+intent, and CAS, then verifies the caller signatures over request and complete
+event.
 Exact retries return the original result without appending; changed intent
 returns `REQUEST_CONFLICT`. Optional `--expected-revision` applies to every
 mutation except init and returns `REVISION_CONFLICT` on mismatch.
@@ -252,7 +292,8 @@ place.
 
 ## Snapshot, Replay, And Bounds
 
-`status` and `snapshot` return the same locked deterministic object: normalized
+`status` and `snapshot` return the same locked deterministic
+`operator.control-snapshot/v1` object: normalized
 nodes/edges/metadata/states, leases, fence tombstones, execution-start markers,
 reconciliations, binding generations, hashes, revisions, time, and event count.
 
@@ -284,7 +325,7 @@ operator-graph lease resolve NODE retry|cancel|complete --lease-id ID --fence N
 operator-graph replay check
 operator-graph replay repair MUTATION
 
-MUTATION := --request-id ID --actor-binding ID [--expected-revision N]
+MUTATION := --request-id ID --actor-binding ID --proof-fd FD [--expected-revision N]
 ```
 
 Stable error codes include `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`,
@@ -292,19 +333,26 @@ Stable error codes include `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`,
 `LEASE_CONFLICT`, `FENCE_STALE`, `INVALID_TRANSITION`, `REPLAY_DRIFT`,
 `CORRUPT_JOURNAL`, `NOT_INITIALIZED`, `INVALID_STATE`, `LOCK_TIMEOUT`,
 `LEASE_REQUIRED`, `LEASE_EXPIRED`, `PRECONDITION_FAILED`, `GATE_REQUIRED`,
-`RECONCILIATION_REQUIRED`, `CLOCK_ROLLBACK`, `CLOCK_SKEW`, and `JOURNAL_FULL`.
+`RECONCILIATION_REQUIRED`, `CLOCK_ROLLBACK`, `CLOCK_SKEW`, `CLOCK_UNAVAILABLE`,
+and `JOURNAL_FULL`.
 
 ## Remaining Boundaries And Integration Follow-Ups
 
-- Trust-anchor/private-key provisioning, signed binding issuance/rotation, and
-  offline journal migration are control-plane/installer responsibilities.
+- Trust-anchor/private-key provisioning, signed binding issuance/rotation,
+  proof-broker/keychain operation, and offline journal migration are
+  control-plane/installer responsibilities.
 - RS256 documents provide local authorization, not remote identity federation
   or protection after trust-anchor/runtime compromise.
 - Host/boot/clock changes fail closed and require correction or explicit lease
   recovery; this API is not an independent time service.
-- Register the runtime, five schemas, template, and smoke in shared installer,
+- Register the runtime, six schemas, template, and smoke in shared installer,
   updater, and version surfaces on the integration branch.
 - RM-0004 consumes only snapshot/status and surfaces precondition, gate,
   reconciliation, clock, and journal-full failures.
-- RM-0003 selects signed lane/host bindings, persists lease ID/fence, and never
-  retries reconciled work until an explicit resolution is observed.
+- RM-0003/RM-0005 select signed bindings, connect the matching keychain-backed
+  proof broker over an inherited socket, persist lease ID/fence, and never
+  retry reconciled work until an explicit resolution is observed.
+- The downstream launcher integration must remove permission-bypass execution
+  and OS-sandbox each Codex/Claude lane so it can write only its worktree and
+  its own handoff directory; graph state, bindings, anchors, and runtime stay
+  outside that writable boundary.
