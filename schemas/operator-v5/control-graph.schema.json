@@ -37,6 +37,7 @@
         "priority": {"type": "integer", "minimum": 0, "maximum": 1000},
         "metadata": {
           "type": "object",
+          "additionalProperties": {"$ref": "#/$defs/canonicalValue"},
           "properties": {
             "execution": {
               "type": "object",
@@ -67,7 +68,7 @@
         },
         "from": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "to": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
-        "metadata": {"type": "object"}
+        "metadata": {"$ref": "#/$defs/canonicalObject"}
       },
       "allOf": [
         {
@@ -89,6 +90,20 @@
             }
           }
         }
+      ]
+    },
+    "canonicalObject": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/canonicalValue"}
+    },
+    "canonicalValue": {
+      "oneOf": [
+        {"$ref": "#/$defs/canonicalObject"},
+        {"type": "array", "items": {"$ref": "#/$defs/canonicalValue"}},
+        {"type": "string"},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "null"}
       ]
     }
   }

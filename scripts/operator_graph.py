@@ -16,7 +16,6 @@ import datetime as dt
 import hashlib
 import heapq
 import json
-import math
 import os
 import re
 import shutil
@@ -43,6 +42,7 @@ PROOF_REQUEST_VERSION = "operator.mutation-proof-request/v1"
 PROOF_EVENT_VERSION = "operator.mutation-event-proof/v1"
 PROOF_CHALLENGE_VERSION = "operator.proof-challenge/v1"
 PROOF_RESPONSE_VERSION = "operator.proof-response/v1"
+CANONICAL_JSON_VERSION = "Operator Canonical JSON v1"
 
 ACTOR_TYPES = {"operator", "lane", "host", "human", "subagent", "system"}
 CAPABILITIES = {
@@ -197,12 +197,17 @@ def has_control(value: str) -> bool:
     return any(ord(character) < 32 or 127 <= ord(character) <= 159 for character in value)
 
 
+def has_surrogate(value: str) -> bool:
+    return any(0xD800 <= ord(character) <= 0xDFFF for character in value)
+
+
 def valid_string(value: Any, maximum: int, pattern: bool = False) -> bool:
     return (
         isinstance(value, str)
         and bool(value.strip())
         and len(value) <= maximum
         and not has_control(value)
+        and not has_surrogate(value)
         and (not pattern or ID_PATTERN.fullmatch(value) is not None)
     )
 
@@ -211,37 +216,50 @@ def valid_binding_id(value: Any) -> bool:
     return isinstance(value, str) and len(value) <= 128 and BINDING_ID_PATTERN.fullmatch(value) is not None
 
 
-def validate_json_value(value: Any, label: str, maximum_depth: int = MAX_JSON_DEPTH) -> None:
+def validate_json_value(value: Any, label: str, maximum_depth: int = MAX_JSON_DEPTH,
+                        code: str = "INVALID_GRAPH") -> None:
     stack: List[Tuple[Any, int]] = [(value, 1)]
     count = 0
     while stack:
         current, depth = stack.pop()
         count += 1
-        fail(count <= MAX_JSON_ITEMS, "INVALID_GRAPH", f"{label} contains too many values")
-        fail(depth <= maximum_depth, "INVALID_GRAPH", f"{label} exceeds maximum depth {maximum_depth}")
+        fail(count <= MAX_JSON_ITEMS, code, f"{label} contains too many values")
+        fail(depth <= maximum_depth, code, f"{label} exceeds maximum depth {maximum_depth}")
         if isinstance(current, float):
-            fail(math.isfinite(current), "INVALID_GRAPH", f"{label} contains a non-finite number")
+            fail(False, code, f"{label} contains a floating-point number; {CANONICAL_JSON_VERSION} permits integers only")
         elif isinstance(current, str):
-            fail(not has_control(current), "INVALID_GRAPH", f"{label} contains control characters")
+            fail(not has_control(current) and not has_surrogate(current), code,
+                 f"{label} contains control characters or a Unicode surrogate")
         elif isinstance(current, dict):
             for key, item in current.items():
-                fail(isinstance(key, str) and not has_control(key), "INVALID_GRAPH", f"{label} contains an invalid object key")
+                fail(isinstance(key, str) and not has_control(key) and not has_surrogate(key), code,
+                     f"{label} contains an invalid object key")
                 stack.append((item, depth + 1))
         elif isinstance(current, list):
             for item in current:
                 stack.append((item, depth + 1))
         else:
-            fail(current is None or isinstance(current, (bool, int)), "INVALID_GRAPH", f"{label} contains an unsupported JSON value")
+            fail(current is None or isinstance(current, (bool, int)), code,
+                 f"{label} contains an unsupported JSON value")
 
 
 def reject_constant(value: str) -> None:
     raise ValueError(f"non-finite JSON number: {value}")
 
 
+def reject_duplicate_object_pairs(pairs: Sequence[Tuple[str, Any]]) -> Dict[str, Any]:
+    value: Dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError(f"duplicate JSON object key: {key}")
+        value[key] = item
+    return value
+
+
 def parse_json_bytes(data: bytes, path: Path, error_code: str) -> Dict[str, Any]:
     try:
         text = data.decode("utf-8")
-        value = json.loads(text, parse_constant=reject_constant)
+        value = json.loads(text, parse_constant=reject_constant, object_pairs_hook=reject_duplicate_object_pairs)
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
         raise GraphError(error_code, f"Invalid JSON: {path}", str(exc)) from exc
     fail(isinstance(value, dict), error_code, f"Expected a JSON object: {path}")
@@ -280,9 +298,10 @@ def format_time(value: dt.datetime) -> str:
 
 
 def canonical_bytes(value: Any) -> bytes:
+    validate_json_value(value, "canonical JSON value")
     try:
         text = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
-    except (TypeError, ValueError, RecursionError) as exc:
+    except (TypeError, ValueError, UnicodeEncodeError, RecursionError) as exc:
         raise GraphError("INVALID_GRAPH", "Value cannot be encoded as canonical JSON", str(exc)) from exc
     return (text + "\n").encode("utf-8")
 
@@ -787,7 +806,9 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
     for line_number, raw_line in enumerate(data.splitlines(keepends=True), 1):
         fail(raw_line.endswith(b"\n") and len(raw_line) <= MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Invalid journal record boundary", {"line": line_number})
         try:
-            event = json.loads(raw_line.decode("utf-8"), parse_constant=reject_constant)
+            event = json.loads(raw_line.decode("utf-8"), parse_constant=reject_constant,
+                               object_pairs_hook=reject_duplicate_object_pairs)
+            validate_json_value(event, f"journal event {line_number}", code="CORRUPT_JOURNAL")
             validate_event(event, line_number, seen_requests, seen_event_ids)
         except GraphError:
             raise
@@ -1524,6 +1545,7 @@ def validate_proof_key(value: Any, code: str = "AUTHORITY_DENIED") -> Dict[str, 
 
 
 def validate_authority(value: Mapping[str, Any]) -> Dict[str, Any]:
+    validate_json_value(value, "authority trust anchor", code="AUTHORITY_DENIED")
     required = {"schemaVersion", "projectId", "graphId", "keyId", "canonicalHostId", "algorithm", "publicKey"}
     fail(isinstance(value, dict) and set(value) == required, "AUTHORITY_DENIED", "Authority trust anchor fields are invalid")
     fail(value.get("schemaVersion") == AUTHORITY_VERSION, "AUTHORITY_DENIED", "Unsupported authority trust anchor version")
@@ -1539,6 +1561,7 @@ def validate_authority(value: Mapping[str, Any]) -> Dict[str, Any]:
 
 
 def validate_binding(binding: Mapping[str, Any], expected_id: str, authority: Mapping[str, Any]) -> Dict[str, Any]:
+    validate_json_value(binding, "actor binding", code="AUTHORITY_DENIED")
     required = {"schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt",
                 "subject", "capabilities", "leaseScopes", "proofKey", "signature"}
     require_keys(binding, required, set(), "actor binding", "AUTHORITY_DENIED")
@@ -1684,7 +1707,8 @@ class ProofChannel:
                 fail(bool(chunk), "AUTHORITY_DENIED", "Caller proof broker closed without a response")
                 response.extend(chunk)
                 fail(len(response) <= MAX_PROOF_RESPONSE_BYTES, "AUTHORITY_DENIED", "Caller proof response is too large")
-            value = json.loads(bytes(response).decode("utf-8"), parse_constant=reject_constant)
+            value = json.loads(bytes(response).decode("utf-8"), parse_constant=reject_constant,
+                               object_pairs_hook=reject_duplicate_object_pairs)
         except GraphError:
             raise
         except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
@@ -1826,6 +1850,7 @@ def fingerprint(command: str, binding: Mapping[str, Any], args: argparse.Namespa
         channel.close()
         raise
     fail(isinstance(binding, dict), "AUTHORITY_DENIED", "Actor binding is not mutable authorization state")
+    setattr(args, "_proof_channel", channel)
     binding["_proofChannel"] = channel
     binding["_authorizationSignature"] = signature
     return sha256_value(payload)
@@ -2472,6 +2497,7 @@ def print_json(value: Any, stream: Any = sys.stdout) -> None:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
+    args: Optional[argparse.Namespace] = None
     try:
         args = parser.parse_args(argv)
         fail(args.operator_dir is not None and str(args.operator_dir).strip(), "USAGE", "--operator-dir or OPERATOR_DIR is required")
@@ -2491,6 +2517,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except KeyboardInterrupt:
         print_json({"ok": False, "error": {"code": "INTERRUPTED", "message": "Interrupted"}}, sys.stderr)
         return 130
+    finally:
+        channel = getattr(args, "_proof_channel", None) if args is not None else None
+        if isinstance(channel, ProofChannel):
+            channel.close()
 
 
 if __name__ == "__main__":

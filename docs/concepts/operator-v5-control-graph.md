@@ -135,6 +135,54 @@ An unleased generic transition is restricted to operator/system. If a lease
 exists, lease ID, fence, binding generation, and binding hash must match.
 Human gates use only `gate decide`. Subagents cannot integrate.
 
+## Operator Canonical JSON v1
+
+All hashed, signed, journaled, or materialized JSON uses the normative
+`Operator Canonical JSON v1` byte algorithm. Implementations must produce the
+same bytes without relying on Python behavior:
+
+1. The value domain is JSON objects with unique string keys, arrays, strings,
+   booleans, null, and mathematical integers. Floating-point values—including
+   integral-looking `1.0` or exponent forms parsed as floats—are invalid at any
+   depth. `NaN` and infinities are invalid. Strings and keys contain Unicode
+   scalar values but no surrogates, C0 controls (`U+0000..U+001F`), DEL, or C1
+   controls (`U+007F..U+009F`). Application depth, item, and byte bounds still
+   apply.
+2. Recursively sort every object by increasing Unicode code-point sequence of
+   its keys. Arrays preserve order. Unicode is not normalized.
+3. Encode strings as JSON strings: escape quotation mark and reverse solidus as
+   `\"` and `\\`; do not escape solidus; emit every other accepted Unicode
+   scalar directly rather than as a `\u` escape.
+4. Encode integers in minimal base-10 form: ASCII digits, a leading `-` only
+   for negative values, no leading zeroes, and zero as `0`. Encode booleans and
+   null as lowercase `true`, `false`, and `null`.
+5. Use `,` and `:` separators with no whitespace. Encode the resulting text as
+   UTF-8 and append exactly one byte `0A` (LF). That LF is part of the hashed or
+   signed bytes.
+
+The integer-only rule is a hardening change: any earlier graph metadata or
+history containing a finite float is no longer valid V1 state and requires a
+stopped-writer, reviewed offline migration before this runtime can consume it.
+
+Normative test vector semantic value:
+
+```json
+{"z":null,"a":{"β":"snowman ☃","a":[3,true,false,null],"escape":"quote\" backslash\\ solidus/"},"integer":-42,"unicode":"é"}
+```
+
+Exact canonical UTF-8 text (followed by one LF):
+
+```text
+{"a":{"a":[3,true,false,null],"escape":"quote\" backslash\\ solidus/","β":"snowman ☃"},"integer":-42,"unicode":"é","z":null}
+```
+
+Exact bytes and digest:
+
+```text
+hex = 7b2261223a7b2261223a5b332c747275652c66616c73652c6e756c6c5d2c22657363617065223a2271756f74655c22206261636b736c6173685c5c20736f6c696475732f222c22ceb2223a22736e6f776d616e20e29883227d2c22696e7465676572223a2d34322c22756e69636f6465223a22c3a9222c227a223a6e756c6c7d0a
+sha256 = ae2327526275dee3f5a3920e7b56fba6249a19e46af484b3965327d412dfa12e
+```
+
 ## Signed Actor Bindings
 
 Mutations require `--actor-binding ID`, resolved only below `graph/bindings`.
@@ -175,12 +223,21 @@ Type rules still apply to an overpowered document:
 
 Possession of this readable document is insufficient. Every mutation also
 requires `--proof-fd N`, an inherited, connected, full-duplex stream socket to
-a trusted host proof broker. The connection is a strict two-phase protocol:
-one newline-delimited JSON record in each direction per phase, `authorize`
-followed by `event`, then the connection is discarded. One connection serves
-exactly one mutation. The proof key ID is fixed by the first challenge for the
-whole connection. Duplicate, reordered, unknown, or extra records; phase,
-version, or key confusion; and a key change between phases fail closed.
+a trusted host proof broker. One connection serves exactly one mutation and is
+a one-shot state machine: at most one `authorize` challenge and, only after its
+valid response, at most one `event` challenge. Every challenge and response is
+one newline-delimited JSON record. The proof key ID is fixed by the first
+challenge for the whole connection. Duplicate, reordered, unknown, or extra
+records; phase, version, or key confusion; a key change between phases; and any
+record after `event` fail closed.
+
+After a valid `authorize` response, either side may observe EOF without an
+`event` phase when the command produces no candidate append—for example an
+exact retry, already-initialized result, CAS conflict, failed precondition, or
+other post-authorization exit. This authorize-only EOF is a valid aborted or
+no-append termination, and all session state is discarded. EOF before a
+requested response, or EOF with a partial JSON record, is failure. After a
+valid `event` response the only valid next input is EOF.
 
 The runtime sends `operator.proof-challenge/v1` records containing one of two
 canonical payloads:
@@ -199,6 +256,16 @@ larger than 64 KiB. Both signatures are verified before append and persisted
 for replay. Changing a CLI label, copying an operator/human binding, using a
 lane key with an operator binding, or altering request/intent/CAS/event content
 fails `AUTHORITY_DENIED`.
+
+RS256 signs the `Operator Canonical JSON v1` bytes of the phase payload record
+only—`operator.mutation-proof-request/v1` for `authorize` or
+`operator.mutation-event-proof/v1` for `event`—not the enclosing
+`operator.proof-challenge/v1` record. Authorization proves permission to
+attempt that exact canonical mutation. Event proof approves the fully
+materialized candidate event. Neither broker response is a durable-append
+acknowledgement: failure can still occur after event signing and before append.
+Only the successful graph command result, corroborated by replay/status/
+snapshot, is commit evidence.
 
 The host broker selects the signing key from trusted launcher/session policy
 and independently checks that the challenge key is the authorized key for that

@@ -104,9 +104,9 @@
     "type": {
       "enum": ["graph.initialized", "definition.replaced", "node.transitioned", "gate.decided", "lease.acquired", "lease.renewed", "lease.released", "lease.swept", "lease.resolved", "replay.repaired"]
     },
-    "intent": {"type": "object"},
+    "intent": {"$ref": "#/$defs/canonicalObject"},
     "expectedRevision": {"type": ["integer", "null"], "minimum": 1},
-    "data": {"type": "object"},
+    "data": {"$ref": "#/$defs/canonicalObject"},
     "result": {
       "type": "object",
       "additionalProperties": false,
@@ -116,7 +116,7 @@
         "command": {"enum": ["init", "replace-definition", "transition", "gate decide", "lease acquire", "lease renew", "lease release", "lease sweep", "lease resolve", "replay repair"]},
         "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "revision": {"type": "integer", "minimum": 1},
-        "data": {"type": "object"}
+        "data": {"$ref": "#/$defs/canonicalObject"}
       }
     },
     "proof": {
@@ -130,6 +130,22 @@
         "authorizationSignature": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[A-Za-z0-9_-]+$"},
         "eventSignature": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[A-Za-z0-9_-]+$"}
       }
+    }
+  },
+  "$defs": {
+    "canonicalObject": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/$defs/canonicalValue"}
+    },
+    "canonicalValue": {
+      "oneOf": [
+        {"$ref": "#/$defs/canonicalObject"},
+        {"type": "array", "items": {"$ref": "#/$defs/canonicalValue"}},
+        {"type": "string"},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "null"}
+      ]
     }
   },
   "allOf": [

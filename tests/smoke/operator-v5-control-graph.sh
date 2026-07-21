@@ -21,85 +21,147 @@ done
 PROOF_RUNNER="$TMP_ROOT/proof-runner.py"
 cat > "$PROOF_RUNNER" <<'PY'
 #!/usr/bin/env python3
-import base64, copy, json, os, socket, subprocess, sys, threading
+import base64, copy, hashlib, json, os, socket, subprocess, sys, threading
 
 key_path = sys.argv[1]
 command = sys.argv[2:]
 parent, child = socket.socketpair()
 
-def canonical(value):
-    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+CANONICAL_VECTOR = {
+    "z": None,
+    "a": {"β": "snowman ☃", "a": [3, True, False, None],
+          "escape": "quote\" backslash\\ solidus/"},
+    "integer": -42,
+    "unicode": "é",
+}
+CANONICAL_VECTOR_HEX = (
+    "7b2261223a7b2261223a5b332c747275652c66616c73652c6e756c6c5d2c"
+    "22657363617065223a2271756f74655c22206261636b736c6173685c5c2073"
+    "6f6c696475732f222c22ceb2223a22736e6f776d616e20e29883227d2c2269"
+    "6e7465676572223a2d34322c22756e69636f6465223a22c3a9222c227a223a"
+    "6e756c6c7d0a"
+)
+
+def operator_canonical_json_v1(value):
+    """Public Operator Canonical JSON v1: sorted compact UTF-8 plus one LF."""
+    stack = [value]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, float):
+            raise ValueError("Operator Canonical JSON v1 permits integers only")
+        if isinstance(current, str):
+            if any(ord(character) < 32 or 127 <= ord(character) <= 159
+                   or 0xD800 <= ord(character) <= 0xDFFF for character in current):
+                raise ValueError("invalid canonical string")
+        elif isinstance(current, dict):
+            for key, item in current.items():
+                if not isinstance(key, str):
+                    raise ValueError("canonical object key is not a string")
+                stack.extend((key, item))
+        elif isinstance(current, list):
+            stack.extend(current)
+        elif current is not None and not isinstance(current, (bool, int)):
+            raise ValueError("unsupported canonical value")
+    return (json.dumps(value, sort_keys=True, separators=(",", ":"),
+                       ensure_ascii=False, allow_nan=False) + "\n").encode("utf-8")
+
+assert operator_canonical_json_v1(CANONICAL_VECTOR).hex() == CANONICAL_VECTOR_HEX
+assert hashlib.sha256(operator_canonical_json_v1(CANONICAL_VECTOR)).hexdigest() == (
+    "ae2327526275dee3f5a3920e7b56fba6249a19e46af484b3965327d412dfa12e"
+)
+
+observation = {"phases": [], "termination": None}
+broker_errors = []
 
 def broker():
-    with parent:
-        stream = parent.makefile("rwb", buffering=0)
-        expected_phase = "authorize"
-        session_key = None
-        while True:
-            line = stream.readline()
-            if not line:
-                return
-            challenge = json.loads(line)
-            assert set(challenge) == {"schemaVersion", "operation", "phase", "proofKeyId", "payload"}
-            assert challenge["schemaVersion"] == "operator.proof-challenge/v1"
-            assert challenge["operation"] == "sign"
-            phase = challenge["phase"]
-            assert phase == expected_phase
-            assert phase in {"authorize", "event"}
-            if session_key is None:
-                session_key = challenge["proofKeyId"]
-            assert challenge["proofKeyId"] == session_key
-            payload = challenge["payload"]
-            assert payload["schemaVersion"] == (
-                "operator.mutation-proof-request/v1" if phase == "authorize"
-                else "operator.mutation-event-proof/v1"
-            )
-            signed_value = copy.deepcopy(payload)
-            alteration = os.environ.get("OPERATOR_GRAPH_SMOKE_ALTER_AUTH")
-            if phase == "authorize" and alteration == "request":
-                signed_value["requestId"] = "altered-by-test-broker"
-            elif phase == "authorize" and alteration == "intent":
-                signed_value["intent"] = {"altered": True}
-            elif phase == "authorize" and alteration == "cas":
-                signed_value["expectedRevision"] = 999999
-            elif phase == "authorize" and alteration == "generation":
-                signed_value["bindingGeneration"] += 1
-            if phase == "event" and "OPERATOR_GRAPH_SMOKE_ALTER_EVENT" in os.environ:
-                signed_value["tampered"] = True
-            signing_payload = canonical(signed_value)
-            signed = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key_path],
-                                    input=signing_payload, stdout=subprocess.PIPE, check=True).stdout
-            if phase == "authorize" and alteration == "proof":
-                signed = bytes([signed[0] ^ 1]) + signed[1:]
-            response = {
-                "schemaVersion": "operator.proof-response/v1", "phase": phase,
-                "proofKeyId": challenge["proofKeyId"],
-                "signature": base64.urlsafe_b64encode(signed).decode().rstrip("="),
-            }
-            mode = os.environ.get("OPERATOR_GRAPH_SMOKE_RESPONSE_MODE")
-            if mode == "response-as-challenge":
-                response = challenge
-            elif mode == "wrong-version":
-                response["schemaVersion"] = "operator.proof-challenge/v1"
-            elif mode == "phase-reorder" and phase == "authorize":
-                response["phase"] = "event"
-            elif mode == "phase-reuse" and phase == "event":
-                response["phase"] = "authorize"
-            elif mode == "extra-field":
-                response["extra"] = True
-            elif mode == "key-change" and phase == "event":
-                response["proofKeyId"] = challenge["proofKeyId"] + "-changed"
-            stream.write(canonical(response))
-            expected_phase = "event" if phase == "authorize" else "complete"
-            if expected_phase == "complete":
-                return
+    try:
+        with parent:
+            stream = parent.makefile("rwb", buffering=0)
+            expected_phase = "authorize"
+            session_key = None
+            while True:
+                line = stream.readline()
+                if not line:
+                    observation["termination"] = "eof-after-" + (
+                        "none" if expected_phase == "authorize" else
+                        "authorize" if expected_phase == "event" else "event"
+                    )
+                    return
+                assert expected_phase != "complete", "record received after event response"
+                challenge = json.loads(line)
+                assert set(challenge) == {"schemaVersion", "operation", "phase", "proofKeyId", "payload"}
+                assert challenge["schemaVersion"] == "operator.proof-challenge/v1"
+                assert challenge["operation"] == "sign"
+                phase = challenge["phase"]
+                assert phase == expected_phase
+                assert phase in {"authorize", "event"}
+                observation["phases"].append(phase)
+                if session_key is None:
+                    session_key = challenge["proofKeyId"]
+                assert challenge["proofKeyId"] == session_key
+                payload = challenge["payload"]
+                assert payload["schemaVersion"] == (
+                    "operator.mutation-proof-request/v1" if phase == "authorize"
+                    else "operator.mutation-event-proof/v1"
+                )
+                signed_value = copy.deepcopy(payload)
+                alteration = os.environ.get("OPERATOR_GRAPH_SMOKE_ALTER_AUTH")
+                if phase == "authorize" and alteration == "request":
+                    signed_value["requestId"] = "altered-by-test-broker"
+                elif phase == "authorize" and alteration == "intent":
+                    signed_value["intent"] = {"altered": True}
+                elif phase == "authorize" and alteration == "cas":
+                    signed_value["expectedRevision"] = 999999
+                elif phase == "authorize" and alteration == "generation":
+                    signed_value["bindingGeneration"] += 1
+                if phase == "event" and "OPERATOR_GRAPH_SMOKE_ALTER_EVENT" in os.environ:
+                    signed_value["tampered"] = True
+                signed = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key_path],
+                                        input=operator_canonical_json_v1(signed_value),
+                                        stdout=subprocess.PIPE, check=True).stdout
+                if phase == "authorize" and alteration == "proof":
+                    signed = bytes([signed[0] ^ 1]) + signed[1:]
+                response = {
+                    "schemaVersion": "operator.proof-response/v1", "phase": phase,
+                    "proofKeyId": challenge["proofKeyId"],
+                    "signature": base64.urlsafe_b64encode(signed).decode().rstrip("="),
+                }
+                mode = os.environ.get("OPERATOR_GRAPH_SMOKE_RESPONSE_MODE")
+                if mode == "response-as-challenge":
+                    response = challenge
+                elif mode == "wrong-version":
+                    response["schemaVersion"] = "operator.proof-challenge/v1"
+                elif mode == "phase-reorder" and phase == "authorize":
+                    response["phase"] = "event"
+                elif mode == "phase-reuse" and phase == "event":
+                    response["phase"] = "authorize"
+                elif mode == "extra-field":
+                    response["extra"] = True
+                elif mode == "key-change" and phase == "event":
+                    response["proofKeyId"] = challenge["proofKeyId"] + "-changed"
+                stream.write(operator_canonical_json_v1(response))
+                expected_phase = "event" if phase == "authorize" else "complete"
+    except BaseException as error:
+        broker_errors.append(f"{type(error).__name__}: {error}")
 
 thread = threading.Thread(target=broker, daemon=True)
 thread.start()
-completed = subprocess.run(command + ["--proof-fd", str(child.fileno())], pass_fds=(child.fileno(),))
+process = subprocess.Popen(command + ["--proof-fd", str(child.fileno())], pass_fds=(child.fileno(),))
 child.close()
-thread.join(timeout=2)
-raise SystemExit(completed.returncode)
+returncode = process.wait()
+thread.join(timeout=5)
+if thread.is_alive():
+    broker_errors.append("broker did not observe session EOF")
+observation["returncode"] = returncode
+observation_path = os.environ.get("OPERATOR_GRAPH_SMOKE_OBSERVE")
+if observation_path:
+    with open(observation_path, "w", encoding="utf-8") as handle:
+        json.dump(observation, handle, sort_keys=True, separators=(",", ":"))
+        handle.write("\n")
+if broker_errors:
+    print("proof broker error: " + "; ".join(broker_errors), file=sys.stderr)
+    raise SystemExit(97)
+raise SystemExit(returncode)
 PY
 chmod +x "$PROOF_RUNNER"
 
@@ -215,6 +277,19 @@ with open(sys.argv[1], encoding="utf-8") as handle:
     value = json.load(handle)
 assert value["ok"] is False, value
 assert value["error"]["code"] == sys.argv[2], value
+PY
+}
+
+expect_proof_observation() {
+  local path="$1"
+  local termination="$2"
+  local phases="$3"
+  python3 - "$path" "$termination" "$phases" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as handle:
+    value = json.load(handle)
+assert value["termination"] == sys.argv[2], value
+assert value["phases"] == sys.argv[3].split(","), value
 PY
 }
 
@@ -412,6 +487,37 @@ cat > "$DEFINITION" <<'JSON'
 }
 JSON
 
+# Operator Canonical JSON v1 has a public byte/hash vector and an integer-only
+# recursive numeric domain. The runtime and independent test broker assert the
+# same published bytes.
+PYTHONPATH="$KIT_ROOT/scripts" python3 - <<'PY'
+import hashlib
+import operator_graph as graph
+
+value = {
+    "z": None,
+    "a": {"β": "snowman ☃", "a": [3, True, False, None],
+          "escape": "quote\" backslash\\ solidus/"},
+    "integer": -42,
+    "unicode": "é",
+}
+expected = bytes.fromhex(
+    "7b2261223a7b2261223a5b332c747275652c66616c73652c6e756c6c5d2c"
+    "22657363617065223a2271756f74655c22206261636b736c6173685c5c2073"
+    "6f6c696475732f222c22ceb2223a22736e6f776d616e20e29883227d2c2269"
+    "6e7465676572223a2d34322c22756e69636f6465223a22c3a9222c227a223a"
+    "6e756c6c7d0a"
+)
+actual = graph.canonical_bytes(value)
+assert actual == expected
+assert hashlib.sha256(actual).hexdigest() == "ae2327526275dee3f5a3920e7b56fba6249a19e46af484b3965327d412dfa12e"
+try:
+    graph.canonical_bytes({"nested": [1, {"float": 1.0}]})
+    raise AssertionError("nested float was canonicalized")
+except graph.GraphError as error:
+    assert error.code == "INVALID_GRAPH", error.code
+PY
+
 # Version, type, reference, endpoint, cycle, number, control, size, and depth hardening.
 INVALID_DIR="$TMP_ROOT/invalid-operator"
 write_bindings "$INVALID_DIR"
@@ -450,6 +556,10 @@ printf '{"schemaVersion":"operator.control-graph/v1","graphId":"nan","nodes":[],
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/nan.json"
 printf '{"schemaVersion":"operator.control-graph/v1","graphId":"infinity","nodes":[{"id":"n","kind":"task","metadata":{"value":Infinity}}],"edges":[]}\n' > "$TMP_ROOT/infinity.json"
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/infinity.json"
+printf '{"schemaVersion":"operator.control-graph/v1","graphId":"float","nodes":[{"id":"n","kind":"task","metadata":{"nested":[{"value":1.5}]}}],"edges":[]}\n' > "$TMP_ROOT/float.json"
+expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/float.json"
+printf '{"schemaVersion":"operator.control-graph/v1","graphId":"duplicate","nodes":[],"nodes":[],"edges":[]}\n' > "$TMP_ROOT/duplicate-key.json"
+expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/duplicate-key.json"
 python3 - "$DEFINITION" "$TMP_ROOT/control.json" "$TMP_ROOT/long.json" <<'PY'
 import json, sys
 value = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -684,13 +794,27 @@ expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT
 env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" lease acquire host-task \
   --lease-id host-lease --holder-scope host:a --request-id host-lease --actor-binding host > "$TMP_ROOT/host-lease.json"
 
-ACQUIRE_MAIN="$(env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" lease acquire main \
+SUCCESS_OBSERVATION="$TMP_ROOT/proof-success.json"
+ACQUIRE_MAIN="$(env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_OBSERVE="$SUCCESS_OBSERVATION" \
+  bash "$GRAPH_SCRIPT" lease acquire main \
   --lease-id main-lease --holder-scope lane:a --ttl-seconds 300 --request-id acquire-main --actor-binding lane-a)"
+expect_proof_observation "$SUCCESS_OBSERVATION" eof-after-event authorize,event
 EVENTS_BEFORE_RETRY="$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')"
-ACQUIRE_RETRY="$(env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" lease acquire main \
+RETRY_OBSERVATION="$TMP_ROOT/proof-retry.json"
+ACQUIRE_RETRY="$(env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_OBSERVE="$RETRY_OBSERVATION" \
+  bash "$GRAPH_SCRIPT" lease acquire main \
   --lease-id main-lease --holder-scope lane:a --ttl-seconds 300 --request-id acquire-main --actor-binding lane-a)"
 [ "$ACQUIRE_MAIN" = "$ACQUIRE_RETRY" ] || fail "exact retry did not return original result"
 [ "$EVENTS_BEFORE_RETRY" = "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" ] || fail "exact retry appended"
+expect_proof_observation "$RETRY_OBSERVATION" eof-after-authorize authorize
+
+POST_AUTH_OBSERVATION="$TMP_ROOT/proof-post-auth-failure.json"
+expect_error 6 REVISION_CONFLICT env OPERATOR_DIR="$MAIN_DIR" \
+  OPERATOR_GRAPH_SMOKE_OBSERVE="$POST_AUTH_OBSERVATION" bash "$GRAPH_SCRIPT" transition feature active \
+  --expected-revision 999999 --request-id post-auth-cas-failure --actor-binding operator
+[ "$EVENTS_BEFORE_RETRY" = "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" ] || \
+  fail "post-authorization failure appended"
+expect_proof_observation "$POST_AUTH_OBSERVATION" eof-after-authorize authorize
 expect_error 7 REQUEST_CONFLICT env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" lease acquire main \
   --lease-id main-lease --holder-scope lane:a --ttl-seconds 301 --request-id acquire-main --actor-binding lane-a
 expect_error 7 REQUEST_CONFLICT env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" lease acquire main \
@@ -853,9 +977,11 @@ graph.uuid.uuid4 = lambda: uuid.UUID("11111111-1111-4111-8111-111111111111")
 graph.print_json = lambda value, stream=None: None
 
 class TestProofChannel:
+    observed_phases = []
     def __init__(self, descriptor):
         pass
     def sign(self, phase, payload, proof_key_value):
+        self.observed_phases.append(phase)
         signed = subprocess.run(["openssl", "dgst", "-sha256", "-sign", str(proof_key)],
                                 input=graph.canonical_bytes(payload), stdout=subprocess.PIPE, check=True).stdout
         return base64.urlsafe_b64encode(signed).decode().rstrip("=")
@@ -871,31 +997,37 @@ def clone(name):
     return target
 
 def invoke(target):
+    TestProofChannel.observed_phases = []
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-        return graph.main(["--operator-dir", str(target), "transition", "feature", "active",
-                           "--request-id", "boundary-event", "--actor-binding", "operator"])
+        status = graph.main(["--operator-dir", str(target), "transition", "feature", "active",
+                             "--request-id", "boundary-event", "--actor-binding", "operator"])
+    return status, list(TestProofChannel.observed_phases)
 
 calibrate = clone("boundary-calibrate")
 base_size = (calibrate / "graph" / "events.jsonl").stat().st_size
-assert invoke(calibrate) == 0
+status, phases = invoke(calibrate)
+assert status == 0 and phases == ["authorize", "event"], (status, phases)
 event_size = (calibrate / "graph" / "events.jsonl").stat().st_size - base_size
 assert event_size > 0
 
 exact = clone("boundary-exact")
 graph.MAX_JOURNAL_BYTES = base_size + event_size
-assert invoke(exact) == 0
+status, phases = invoke(exact)
+assert status == 0 and phases == ["authorize", "event"], (status, phases)
 assert (exact / "graph" / "events.jsonl").stat().st_size == graph.MAX_JOURNAL_BYTES
 
 over = clone("boundary-over")
 graph.MAX_JOURNAL_BYTES = base_size + event_size - 1
-assert invoke(over) == graph.EXIT_CODES["JOURNAL_FULL"]
+status, phases = invoke(over)
+assert status == graph.EXIT_CODES["JOURNAL_FULL"] and phases == ["authorize", "event"], (status, phases)
 assert (over / "graph" / "events.jsonl").stat().st_size == base_size
 
 partial = clone("boundary-partial")
 with open(partial / "graph" / "events.jsonl", "ab") as handle:
     handle.write(b'{"partial-tail"')
 graph.MAX_JOURNAL_BYTES = base_size + event_size
-assert invoke(partial) == 0
+status, phases = invoke(partial)
+assert status == 0 and phases == ["authorize", "event"], (status, phases)
 assert (partial / "graph" / "events.jsonl").stat().st_size == graph.MAX_JOURNAL_BYTES
 PY
 
@@ -1512,8 +1644,15 @@ negative_snapshots.append(bad)
 bad = copy.deepcopy(snapshot)
 next(iter(bad["bindingGenerations"].values()))["bindingHash"] = "not-a-hash"
 negative_snapshots.append(bad)
+bad = copy.deepcopy(snapshot)
+bad["nodes"][0]["metadata"]["nestedFloat"] = {"value": 1.5}
+negative_snapshots.append(bad)
 for bad in negative_snapshots:
     assert not matches(bad, snapshot_schema, snapshot_schema, "control-snapshot.schema.json", "$")
+
+bad_event = copy.deepcopy(first)
+bad_event["data"]["definition"]["nodes"][0]["metadata"]["nestedFloat"] = 1.5
+assert not matches(bad_event, event_schema, event_schema, "control-event.schema.json", "$")
 PY
 
 ROADMAP_AFTER="$(shasum -a 256 "$MAIN_DIR/roadmap/sentinel.txt")"
