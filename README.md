@@ -48,6 +48,12 @@ and lets the operator spawn feature-specific lane instances from reusable role
 templates. Conflicts are checked by files, contracts, surfaces, branches,
 worktrees, and shared resources rather than by role name alone.
 
+The approved V5 implementation baseline is documented in
+[`docs/concepts/operator-v5.md`](docs/concepts/operator-v5.md). V5 adds a typed
+control graph, ownership leases, a deterministic runnable frontier, a bounded
+heartbeat loop, and host runners over graph scopes while keeping roadmap intent
+separate from runtime scheduling.
+
 V1 remains available at the `v1` git tag:
 
 ```bash
