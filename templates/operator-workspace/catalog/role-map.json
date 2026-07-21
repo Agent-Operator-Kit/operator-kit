@@ -1,0 +1,224 @@
+{
+  "durableLanes": [
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0007-control-graph",
+      "hostRunnerId": "codex-cli",
+      "id": "control-graph",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "api-contracts",
+        "data-storage",
+        "observability",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0007-control-graph"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "claude/v5-rm-0006-design-flow",
+      "hostRunnerId": "claude-code",
+      "id": "design-flow",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "design-system",
+        "evals-testing"
+      ],
+      "tool": "Claude Code",
+      "worktree": "operator-kit-v5-rm-0006-design-flow"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0005-host-adapters",
+      "hostRunnerId": "codex-cli",
+      "id": "host-adapters",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "llm-runtime",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0005-host-adapters"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0001-lanes",
+      "hostRunnerId": "codex-cli",
+      "id": "lanes",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "high-risk-operations",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0001-lanes"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0003-loop-runner",
+      "hostRunnerId": "codex-cli",
+      "id": "loop-runner",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "llm-runtime",
+        "observability",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0003-loop-runner"
+    },
+    {
+      "authority": {
+        "integrate": true,
+        "manageQueue": true
+      },
+      "branch": "codex/v5-integration",
+      "hostRunnerId": "codex-desktop",
+      "id": "operator",
+      "kind": "durable-lane",
+      "roleTemplateIds": [],
+      "tool": "Codex Desktop",
+      "worktree": "operator-kit-v5"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0002-role-map",
+      "hostRunnerId": "codex-cli",
+      "id": "role-map",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "api-contracts",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0002-role-map"
+    },
+    {
+      "authority": {
+        "integrate": false,
+        "manageQueue": false
+      },
+      "branch": "codex/v5-rm-0004-scheduler",
+      "hostRunnerId": "codex-cli",
+      "id": "scheduler",
+      "kind": "durable-lane",
+      "roleTemplateIds": [
+        "api-contracts",
+        "evals-testing"
+      ],
+      "tool": "Codex CLI",
+      "worktree": "operator-kit-v5-rm-0004-scheduler"
+    }
+  ],
+  "featureInstances": [],
+  "hostRunners": [
+    {
+      "id": "claude-code",
+      "kind": "host-runner",
+      "tool": "Claude Code"
+    },
+    {
+      "id": "codex-cli",
+      "kind": "host-runner",
+      "tool": "Codex CLI"
+    },
+    {
+      "id": "codex-desktop",
+      "kind": "host-runner",
+      "tool": "Codex Desktop"
+    }
+  ],
+  "kind": "operator-role-map",
+  "roleTemplates": [
+    {
+      "catalogRef": "roles/api-contracts.md",
+      "id": "api-contracts",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/auth-permissions.md",
+      "id": "auth-permissions",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/data-storage.md",
+      "id": "data-storage",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/deployment-recovery.md",
+      "id": "deployment-recovery",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/design-system.md",
+      "id": "design-system",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/evals-testing.md",
+      "id": "evals-testing",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/high-risk-operations.md",
+      "id": "high-risk-operations",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/knowledge-base.md",
+      "id": "knowledge-base",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/llm-runtime.md",
+      "id": "llm-runtime",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/mobile-app.md",
+      "id": "mobile-app",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/mobile-release.md",
+      "id": "mobile-release",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/observability.md",
+      "id": "observability",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/provider-integration.md",
+      "id": "provider-integration",
+      "kind": "role-template"
+    },
+    {
+      "catalogRef": "roles/web-ui.md",
+      "id": "web-ui",
+      "kind": "role-template"
+    }
+  ],
+  "schemaVersion": 1
+}
