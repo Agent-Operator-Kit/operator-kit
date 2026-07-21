@@ -11,16 +11,19 @@
 
 ## Graph Ownership
 
-- Node ID: <graph node ID>
-- Graph scope: <assigned node and bounded descendants, if any>
-- Lease ID: <lease ID>
+- Node ID: <single mutable graph node ID>
+- Graph scope: <description bounded to the node above>
+- Related or descendant nodes (read-only): <node IDs or none>
+- Lease ID: <lease ID for the node above>
 - Lease expiry: <timestamp>
-- Fence token: <monotonically increasing fence value>
+- Fence token: <monotonically increasing fence value for the node above>
 - Expected graph revision: <revision>
 
-The lane is accountable for this one graph scope, branch, worktree, validation
-result, and handoff. Stop and return control if the lease is missing or expired,
-the fence is stale, or ownership is ambiguous or conflicting.
+The node ID, lease, and fence authorize exactly one mutable graph node. They do
+not authorize related or descendant nodes. The lane is accountable for this one
+graph scope, branch, worktree, validation result, and handoff. Stop and return
+control if the lease is missing or expired, the fence is stale, or ownership is
+ambiguous or conflicting.
 
 ## Scope
 
@@ -70,13 +73,15 @@ records the output in its handoff.
 
 ## Gates
 
-- Required gates: <gate IDs and transition protected, or none>
-- Gate authority: <human or control authority>
+- Required human gates: <gate IDs and transition protected, or none>
+- Decision authority: <authorized human>
+- Decision recorder: <control/operator>
 - Recorded decision/evidence: <event reference or pending>
 
 Do not infer gate approval from silence, successful validation, host metadata,
 or filesystem/tool access. Stop before a gated transition unless the required
-decision is recorded.
+decision is recorded. Automated checks are validations or dependencies, not
+human gates.
 
 ## Acceptance Criteria
 
@@ -99,7 +104,8 @@ decision is recorded.
 
 Report:
 
-- node ID, lease ID and expiry, fence token, branch, and worktree
+- node ID, read-only related or descendant nodes, lease ID and expiry, fence
+  token, branch, and worktree
 - changed files
 - acceptance criteria met or missed
 - validation commands and exact results

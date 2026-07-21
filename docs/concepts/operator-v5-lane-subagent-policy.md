@@ -14,7 +14,7 @@ not gain authority merely because it can access a repository or tool.
 | --- | --- | --- | --- |
 | Human gate authority | The recorded decisions required by the graph, including subjective selection, stable-branch integration, push, publish, and release gates | Advice and evidence gathering, but not the decision itself | Treat silence, host metadata, or a successful validation as gate approval |
 | Control/operator task | Graph assignment and queue priority; cross-feature conflict resolution; integration order and branch integration; release coordination; recording gate decisions from the authorized human | Inspection, computation, testing, or explicitly scoped disjoint file edits inside the control task's own scope | Transfer control authority merely by starting a lane or sub-agent; bypass a required human gate |
-| Lane agent | One assigned graph scope, its valid lease and fence, one branch, one worktree, the scope's validation result, and its handoff | Inspection, computation, testing, or explicitly delegated disjoint files inside the assigned lane scope | Change queue priority; resolve cross-feature conflicts; integrate branches; widen its graph scope; use stale lease or fence authority |
+| Lane agent | One assigned graph scope containing exactly one mutable node, its valid node-specific lease and fence, one branch, one worktree, the scope's validation result, and its handoff | Inspection, computation, testing, or explicitly delegated disjoint files inside the assigned lane scope | Change queue priority; resolve cross-feature conflicts; integrate branches; widen its graph scope; mutate related or descendant nodes; use stale lease or fence authority |
 | Sub-agent | Only the bounded work explicitly delegated by its parent; its output is evidence returned to that parent | Nothing; sub-agents cannot create another authority layer | Acquire graph nodes or leases; own a branch or worktree; commit, mutate queue or integration state, decide gates, merge, push, publish, or release |
 
 One lane agent is accountable for one assigned graph scope, branch, worktree,
@@ -23,6 +23,12 @@ branch, worktree, owned files, read-only files, contracts, resources, gates, and
 acceptance criteria before it mutates the assigned scope. It MUST stop and
 return control when ownership is missing, expired, fenced out, ambiguous, or in
 conflict with another active scope.
+
+One node ID, lease, and fence authorize exactly one mutable graph node. They do
+not authorize related or descendant nodes. A lane MUST list any related or
+descendant nodes separately as read-only context. Mutating another node requires
+a separate assignment with its own lease and fence from the control/operator
+task.
 
 Only the control/operator task changes queue priority, resolves cross-feature
 conflicts, or integrates branches. A lane may report a conflict, propose an
@@ -98,7 +104,10 @@ sub-agent ran a command. Failed, skipped, unavailable, or out-of-scope checks
 MUST be reported without being converted into success.
 
 The handoff MUST include the assigned node ID, lease and fence observed, branch,
-worktree, changed files, validation commands and results, acceptance status,
-sub-agent contributions, blockers, integration follow-ups, and memory
-candidates. The handoff transfers evidence to the control task; it does not
-transfer integration authority or imply that a human gate has been satisfied.
+worktree, read-only related or descendant nodes, changed files, validation
+commands and results, acceptance status, sub-agent contributions, blockers,
+integration follow-ups, and memory candidates. The handoff transfers evidence
+to the control task; it does not transfer integration authority or imply that a
+human gate has been satisfied. A control/operator task records an authorized
+human's gate decision; it does not decide a human gate. Automated checks are
+validations or dependencies, not human gates.
