@@ -1,16 +1,21 @@
 # Operator V5 Control Graph
 
-This directory is the local durable V5 execution graph. The runtime owns:
+This directory is the local V5 execution authority:
 
-- `definition.json`: current typed graph definition;
-- `events.jsonl`: append-only transaction journal;
-- `projection.json`: deterministic current state and leases;
-- `.lock`: transient cross-process transaction lock.
+- `bindings/`: trusted actor/capability records provisioned by the control plane;
+- `definition.json`: current normalized typed graph;
+- `events.jsonl`: append-only committed transaction journal;
+- `projection.json`: deterministic current state, leases, and fence tombstones;
+- `.lock`: transient host-aware transaction lock.
 
-Use `bash scripts/operator-graph.sh`. Do not edit these files, create the lock,
-or copy roadmap files into this directory. Product intent and priority planning
-remain under the separate `roadmap/` directory.
+Keep `bindings/` and its files non-symlinked and non-group/world-writable. A
+process able to modify a binding has that binding's local authority. Bindings
+are filesystem capabilities, not remote authentication.
 
-Run `operator-graph validate` for full state validation, `operator-graph replay
-check` to detect drift, and an explicitly request-ID'd `operator-graph replay
-repair` to repair valid-journal drift.
+Use `bash scripts/operator-graph.sh`; never edit graph files or create the lock
+directly. Schedulers and runners consume `status` or `snapshot`, not files.
+Roadmap state remains separate under `roadmap/`.
+
+Run `validate` for state validation, `replay check` for deterministic drift
+detection, and an explicitly request-ID'd, operator/system-bound `replay repair`
+only when the journal is valid.

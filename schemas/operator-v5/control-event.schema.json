@@ -4,20 +4,67 @@
   "title": "Operator V5 Control Event",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "sequence", "eventId", "requestId", "occurredAt", "actor", "type", "data", "result"],
+  "required": ["schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "actor", "type", "data", "result"],
   "properties": {
     "schemaVersion": {"const": "operator.control-event/v1"},
     "sequence": {"type": "integer", "minimum": 1},
-    "eventId": {"type": "string", "minLength": 1},
-    "requestId": {"type": "string", "minLength": 1, "maxLength": 256},
+    "eventId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "requestFingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "occurredAt": {"type": "string", "format": "date-time"},
     "actor": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "id"],
+      "required": ["type", "id", "bindingId", "bindingHash", "capabilities", "subject", "leaseScopes"],
       "properties": {
         "type": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
-        "id": {"type": "string", "minLength": 1, "maxLength": 256}
+        "id": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+        "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "capabilities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"enum": ["graph-init", "graph-replace", "gate-decision", "lease", "transition", "sweep", "replay-repair", "test-injection"]}
+        },
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "id"],
+          "properties": {
+            "type": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
+            "id": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+            "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+            "hostRunnerId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+          },
+          "allOf": [
+            {
+              "if": {"properties": {"type": {"const": "lane"}}, "required": ["type"]},
+              "then": {"required": ["laneNodeId"], "not": {"required": ["hostRunnerId"]}}
+            },
+            {
+              "if": {"properties": {"type": {"const": "host"}}, "required": ["type"]},
+              "then": {"required": ["hostRunnerId"], "not": {"required": ["laneNodeId"]}}
+            },
+            {
+              "if": {"properties": {"type": {"enum": ["operator", "human", "subagent", "system"]}}, "required": ["type"]},
+              "then": {"not": {"anyOf": [{"required": ["laneNodeId"]}, {"required": ["hostRunnerId"]}]}}
+            }
+          ]
+        },
+        "leaseScopes": {
+          "type": "array",
+          "maxItems": 1000,
+          "uniqueItems": true,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["scope", "laneNodeId"],
+            "properties": {
+              "scope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+              "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+            }
+          }
+        }
       }
     },
     "type": {
@@ -30,11 +77,22 @@
       "required": ["ok", "command", "requestId", "revision", "data"],
       "properties": {
         "ok": {"const": true},
-        "command": {"type": "string", "minLength": 1},
-        "requestId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "command": {"enum": ["init", "replace-definition", "transition", "gate decide", "lease acquire", "lease renew", "lease release", "lease sweep", "replay repair"]},
+        "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "revision": {"type": "integer", "minimum": 1},
         "data": {"type": "object"}
       }
     }
-  }
+  },
+  "allOf": [
+    {"if": {"properties": {"type": {"const": "graph.initialized"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "init"}}}}}},
+    {"if": {"properties": {"type": {"const": "definition.replaced"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "replace-definition"}}}}}},
+    {"if": {"properties": {"type": {"const": "node.transitioned"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "transition"}}}}}},
+    {"if": {"properties": {"type": {"const": "gate.decided"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "gate decide"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.acquired"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease acquire"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.renewed"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease renew"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.released"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease release"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.swept"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease sweep"}}}}}},
+    {"if": {"properties": {"type": {"const": "replay.repaired"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "replay repair"}}}}}}
+  ]
 }

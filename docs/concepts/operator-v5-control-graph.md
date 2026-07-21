@@ -1,72 +1,84 @@
 # Operator V5 Control Graph
 
-Status: normative V5 graph, event, projection, and ownership-lease contract.
+Status: normative V5 graph, transaction, actor-binding, event, projection, and
+ownership-lease contract.
 
 This API is the sole owner of V5 node and edge shapes, graph-state
-transitions, graph revisions, request idempotency, event journaling, ownership
-leases, fencing, graph locking, and replay. The scheduler and heartbeat consume
-this contract; they do not write its files directly.
+preconditions and transitions, graph revisions, request idempotency, event
+journaling, actor capabilities, ownership leases, fencing, graph locking, and
+replay. Schedulers and runners consume the locked snapshot API and never parse
+or write graph files.
 
-## Durable State And Transaction Order
+## Durable State And Trust Boundary
 
-For the configured `OPERATOR_DIR`, graph state has exactly these durable files:
+For the configured `OPERATOR_DIR`, graph state is:
 
 ```text
 OPERATOR_DIR/graph/
+├── bindings/
+│   └── <binding-id>.json
 ├── definition.json
 ├── projection.json
 └── events.jsonl
 ```
 
 `events.jsonl` is the append-only transaction record. `definition.json` and
-`projection.json` are deterministic materializations. The writer uses the
-portable atomic directory lock `graph/.lock`, appends one canonical JSON event
-and calls `fsync`, then atomically replaces each changed materialization using
-a same-directory temporary file, `fsync`, and `replace`. The lock is transient
-and must never be treated as durable state.
+`projection.json` are deterministic materializations. `bindings/` is trusted
+local configuration provisioned by the control plane or authorized human; it
+is not event history.
 
-All graph writes go through `scripts/operator-graph.sh`. A process must never
-edit a graph file or hold `graph/.lock` itself. Graph commands never read or
-write `OPERATOR_DIR/roadmap`.
+The local filesystem is the security boundary. `bindings/` and each binding
+must be real, non-symlinked, non-group/world-writable paths. Any process that
+can replace a trusted binding or modify the runtime has equivalent local
+control-plane authority. Bindings are not remote authentication, signatures,
+or protection from a compromised local account. Deployments with mutually
+untrusted OS users must provision ownership/ACL isolation outside this API.
 
-The version identifiers are:
+Graph commands write no roadmap files. Product intent remains under
+`OPERATOR_DIR/roadmap`; it is not runtime authority.
+
+Version identifiers are:
 
 - `operator.control-graph/v1`
 - `operator.control-event/v1`
 - `operator.control-projection/v1`
 - `operator.ownership-lease/v1`
+- `operator.actor-binding/v1`
 
-An unknown identifier fails closed with `UNKNOWN_VERSION`. JSON Schemas live
-under `schemas/operator-v5/`; cross-record constraints such as references,
-endpoint kinds, cycles, replay ordering, and current fences are enforced by the
-runtime.
+Unknown versions fail closed with `UNKNOWN_VERSION`. Committed JSON Schemas
+cover graph, event, projection, and lease records. Runtime checks add
+cross-record constraints: references, endpoint kinds, cycles, transition
+preconditions, event semantics, timestamps, assignments, and fences.
 
-## Definition
+## Typed Definition
 
-A definition has `schemaVersion`, a stable `graphId`, `nodes`, `edges`, and a
-runtime-owned positive `definitionRevision`. Input definitions may omit
-`definitionRevision`; init sets it to 1 and each successful replacement
-increments it. Replacement cannot change `graphId`. Existing state is retained
-when a node keeps the same ID and kind. A new or kind-changed node starts at its
-declared initial state. Removing or changing the kind of a leased node is
-rejected.
+A definition has `schemaVersion`, stable `graphId`, normalized `nodes` and
+`edges`, and runtime-owned positive `definitionRevision`. Input definitions may
+omit `definitionRevision`; init sets it to 1 and every replacement increments
+it.
 
-Node kinds and families are:
+Node families are:
 
-| Family | Node kinds | Initial state |
-| --- | --- | --- |
-| container | `goal`, `feature`, `lane` | `planned` |
-| work | `task`, `validation`, `integration`, `feedback` | `pending` |
-| gate | `human-gate` | `pending` |
+| Family | Kinds | Default state | Success-terminal |
+| --- | --- | --- | --- |
+| container | `goal`, `feature`, `lane` | `planned` | `completed` |
+| work | `task`, `validation`, `integration`, `feedback` | `pending` | `completed` |
+| gate | `human-gate` | `pending` | `approved` |
 
-Node IDs are unique. A node also has a title, integer priority from 0 through
-1000, and JSON-object metadata. Missing titles default to the node ID, missing
-priorities to 0, missing metadata to `{}`, and missing initial states to the
-family default.
+Node IDs are unique. A node has a title, priority from 0 through 1000, and
+object metadata. Missing title, priority, metadata, and initial state normalize
+to the node ID, 0, `{}`, and the family default.
 
-Edge IDs and `(kind, from, to)` tuples are unique. Missing edge IDs are derived
-as `<kind>:<from>:<to>`. Both endpoints must exist and self-edges are invalid.
-Allowed endpoint combinations are:
+Work may opt into automatic expired-lease reclaim only with both flags:
+
+```json
+{"execution":{"idempotent":true,"reclaimable":true}}
+```
+
+Omission or either false value means reclaim requires explicit sweep and
+reconciliation.
+
+Allowed edge endpoints are:
 
 | Edge | From | To |
 | --- | --- | --- |
@@ -78,114 +90,248 @@ Allowed endpoint combinations are:
 | `integrates-into` | integration | feature |
 | `feedback-for` | feedback | every kind except feedback |
 
-The combined directed subgraph formed by `contains` and `depends-on` edges must
-be acyclic. Invalid references, kinds, combinations, duplicate records, and
-cycles fail with `INVALID_GRAPH`.
+Edge IDs and `(kind, from, to)` tuples are unique. Both endpoints must exist,
+self-edges are invalid, and the combined directed `contains`/`depends-on`
+subgraph must be acyclic.
 
-## Published State Transitions
+### Gate Metadata
 
-Transitions not listed here fail with `INVALID_TRANSITION`. Terminal states do
-not reopen; dissatisfaction produces a new feedback/improvement node.
+Every `gated-by` edge normalizes metadata to:
+
+```json
+{"protectedTransitions":["active","completed"]}
+```
+
+That safe default applies to non-integration sources. The integration default
+is `ready`, `active`, and `completed`, so integration cannot begin without an
+explicit approved gate. A nonempty, unique `protectedTransitions` array may
+narrow or expand protection to valid states of the source family.
+
+For every protected transition, every applicable gate must exist, be a
+`human-gate`, and be `approved`. Pending, rejected, cancelled, missing, or
+invalid gates fail closed. Integration transitions to ready, active, or
+completed additionally require at least one applicable `gated-by` edge;
+absence returns `GATE_REQUIRED`.
+
+### Append-Only Identity
+
+Definition replacement cannot change `graphId`, remove an existing node ID, or
+change an existing node's kind. Node IDs therefore cannot be reused and fence
+tombstones never reset.
+
+Once a node has moved from its original state, or is terminal, its kind, title,
+initial state, metadata, and outgoing dependency, validation, gate, assignment,
+and integration edges are immutable. This prevents definition replacement from
+deleting execution preconditions after work begins while still allowing new
+forward nodes to contain, depend on, or link feedback to completed history.
+Priority remains control-plane state and may change through an operator/system
+definition replacement.
+Completed history is never reopened or rewritten; new cancellation, feedback,
+or forward-improvement nodes carry later work.
+
+## Published Transitions And Preconditions
+
+Unlisted transitions return `INVALID_TRANSITION`:
 
 ```text
 containers
-planned   -> active | blocked | cancelled
-active    -> blocked | completed | cancelled
-blocked   -> active | cancelled
+planned -> active | blocked | cancelled
+active  -> blocked | completed | cancelled
+blocked -> active | cancelled
 
 work
-pending   -> ready | blocked | cancelled
-ready     -> active | blocked | cancelled
-active    -> blocked | completed | failed | cancelled
-blocked   -> ready | active | failed | cancelled
-failed    -> ready | cancelled
+pending -> ready | blocked | cancelled
+ready   -> active | blocked | cancelled
+active  -> blocked | completed | failed | cancelled
+blocked -> ready | active | failed | cancelled
+failed  -> ready | cancelled
 
-human gates (only through `gate decide`)
-pending   -> approved | rejected
+human gates (only `gate decide`)
+pending -> approved | rejected
 ```
 
-An unleased transition is a control-plane operation and is allowed only to an
-`operator`, `system`, or `human` actor. If a node has a lease, every transition
-must supply its current lease ID and fence, and the actor must match the lease
-holder. An expired lease cannot transition. Human gates cannot use the generic
-transition command.
+Before a node becomes `ready` or `active`, every `depends-on` target must be
+success-terminal for its family. Before a node becomes `completed`, every
+`validated-by` target must be success-terminal. Gate checks then apply to the
+target state. These checks run inside the transaction lock and again during
+replay, so a scheduler bug or forged journal cannot bypass them.
 
-## Actors And Authority
+An unleased generic transition is a control-plane operation available only to
+an operator or system binding with `transition`. If a current lease
+exists, the command must supply its lease ID and fence and use the same actor
+binding that owns the lease. An expired lease cannot transition. Human gates
+never use generic transition.
 
-Every event identifies an actor `type` and nonempty actor `id`. Actor types are
-`operator`, `lane`, `host`, `human`, `subagent`, and `system`.
+## Actor Binding And Capabilities
 
-Only `human` may decide a human gate. Subagents cannot acquire, renew, or
-release leases; replace definitions or change priority; decide gates; or
-transition integration nodes. They may act only inside authority retained by
-their parent and never become graph owners. Human gates are not leaseable.
+Mutations require `--actor-binding ID`. The runtime resolves only
+`OPERATOR_DIR/graph/bindings/ID.json`; callers cannot supply arbitrary paths.
+
+```json
+{
+  "schemaVersion": "operator.actor-binding/v1",
+  "bindingId": "lane-control-graph",
+  "subject": {
+    "type": "lane",
+    "id": "control-graph-worker",
+    "laneNodeId": "lane-control-graph"
+  },
+  "capabilities": ["lease", "transition"],
+  "leaseScopes": [
+    {"scope": "lane:control-graph", "laneNodeId": "lane-control-graph"}
+  ]
+}
+```
+
+Subject types are `operator`, `lane`, `host`, `human`, `subagent`, and
+`system`. Lane subjects require `laneNodeId`; host subjects require
+`hostRunnerId`. Only lane and host bindings may contain lease scopes. Each
+scope binds a structured scope string to exactly one lane node. A lane binding
+cannot name another lane's node; a host must list every allowed lane scope
+explicitly.
+
+Capabilities are `graph-init`, `graph-replace`, `gate-decision`, `lease`,
+`transition`, `sweep`, and `replay-repair`. `test-injection` is reserved for
+isolated runtime tests.
+
+Type restrictions remain even if an overpowered binding lists a capability:
+
+- only operator/system may initialize or replace a graph, including priority;
+- only human may decide a gate;
+- only lane/host may acquire or hold a lease;
+- only operator/system/host may sweep;
+- only operator/system may repair replay drift;
+- subagents cannot lease, decide gates, replace graph/priority, or integrate.
+
+Changing `--actor-type` or `--actor-id` labels does not change a binding's
+identity. Raw actor flags exist solely behind
+`--test-only-unsafe-actor-flags` plus `OPERATOR_GRAPH_TESTING=1`; they are
+hidden from normal help and require explicit test capabilities/scopes.
+
+Each event snapshots binding ID, canonical binding hash, the complete typed
+subject, capabilities, and lease scopes. Replay validates that the recorded
+capability, actor type, scope, and lane assignment could perform the event
+without consulting a mutable current binding.
+
+## Assignment And Ownership Leases
+
+Only work nodes can be leased. Acquire requires `--holder-scope`, and that
+scope must appear in the binding. The node must have `assigned-to` pointing to
+the scope's lane node. A lane cannot lease work assigned to another lane; host
+identity alone never authorizes a scope.
+
+A lease records node ID, lease ID, holder type/ID/binding/scope/lane node,
+acquire/renew/expiry timestamps, and positive fence. TTL is 1 through 86400
+seconds. Only one unexpired lease exists per node.
+
+Every acquisition increments the retained per-node fence. Release and sweep
+remove the active lease but retain the tombstone. Because definitions never
+remove IDs, a remove/re-add sequence cannot restart fencing.
+
+An expired lease is automatically reclaimable only when the node metadata is
+both idempotent and reclaimable and its state is pending, ready, or blocked.
+Active work is never automatically reclaimed. Other expired nonterminal work
+returns `RECONCILIATION_REQUIRED` until `lease sweep` removes the lease and
+moves the node to `blocked`, recording `reconciliation: true`. A later acquire
+then receives the next fence. Terminal work retains its terminal state when an
+expired lease is swept.
+
+## Trusted Time
+
+Authorization, expiration, reclaim, renewal, release, and transition use the
+runtime's UTC wall clock. Public callers cannot inject time. Test time requires
+all three: `OPERATOR_GRAPH_TESTING=1`, hidden `--test-only-now`, and a binding
+with `test-injection`.
+
+Event time is nondecreasing. A transaction whose trusted time precedes the
+last event returns `CLOCK_ROLLBACK`; replay classifies backward journal time as
+corruption. An ordinary actor therefore cannot claim that another lease has
+expired by supplying a future timestamp.
 
 ## Events, Revisions, CAS, And Idempotency
 
-Every successful mutation has a nonempty `requestId`. It appends exactly one
-event with a strict, gap-free sequence. The sequence is also the resulting
-projection `revision`. Events record schema version, sequence, event ID,
-request ID, RFC 3339 time, actor, event type, type-specific data, and the exact
-JSON result returned to the caller.
+Every mutation has a bounded `requestId` and appends exactly one committed
+event. Event sequence is strict, gap-free, and equal to projection revision.
+Definition revision is separate and changes only on replacement.
 
-Mutation commands accept `--expected-revision`. A mismatch returns
-`REVISION_CONFLICT` without appending. Request lookup occurs before the CAS
-check: retrying an already committed `requestId` returns the original result
-byte-for-byte in semantic JSON and appends nothing, even if the expected
-revision is now old. Request IDs are unique for the lifetime of a journal and
-must not be reused for unrelated intent.
+Events record a `requestFingerprint`: SHA-256 of canonical command intent,
+binding ID/hash/subject, node and target or definition hash, lease/fence,
+relevant command options, CAS revision, and test time when used. An exact retry
+returns the original journaled result without appending. Reusing a request ID
+with different command, binding, target, definition, lease/fence, TTL, scope,
+or CAS returns `REQUEST_CONFLICT` before other state checks.
 
-`init` is idempotent. With no graph state it writes event 1 and both
-materializations. With a complete, valid existing graph it returns
-`alreadyInitialized: true` and changes nothing. Partial, corrupt, unknown, or
-drifted state is never overwritten by init.
+`--expected-revision` provides CAS for every mutation except init. A mismatch
+returns `REVISION_CONFLICT` without an event.
 
-## Ownership Leases And Fencing
+## Journal Commit, Locking, And Recovery
 
-A lease contains its schema version, node ID, lease ID, holder
-`{actorType, actorId, scope}`, acquire/renew/expiry timestamps, and positive
-integer fence. TTL is 1 through 86400 seconds.
+The writer uses the atomic directory `graph/.lock`. Its owner record contains
+host, boot, PID, process-start identity, token, heartbeat, and short expiry.
+The owner refreshes its heartbeat during a transaction. Foreign-host PIDs are
+never interpreted as local. A foreign live lease fails closed; an expired lock
+may be recovered. On the same host/boot, a missing process or mismatched
+process-start token detects death/PID reuse.
 
-Only one unexpired lease can exist for a node. Acquire, renew, release, sweep,
-and transition run under the graph transaction lock. Every acquisition uses a
-fence greater than every prior lease fence for that node. An acquire after
-expiry is a reclaim and increments the fence. Release and sweep remove the
-active lease but retain the last fence. A stale lease ID or fence cannot renew,
-release, or transition after reclaim.
+The commit order is:
 
-`lease sweep` records one event containing all leases expired at the supplied
-transaction time. A sweep with no expired leases still records the request,
-making the operation retry-safe.
+1. append one canonical event ending in a newline commit marker;
+2. `fsync` the journal;
+3. replay the complete journal;
+4. atomically temp+`fsync`+replace definition;
+5. atomically temp+`fsync`+replace projection;
+6. `fsync` parent directories.
 
-## Replay
+An incomplete final record without the newline marker is uncommitted. Under
+the lock it is truncated to the last committed newline. Invalid JSON or
+semantics in any newline-committed record, including the middle, is
+`CORRUPT_JOURNAL` and is never skipped.
 
-Replay validates every journal line, requires a trailing newline, a strict
-sequence beginning with `graph.initialized`, unique request IDs, known event
-types and versions, valid event data, and internally consistent transitions.
-It then recreates the semantic definition and projection. `replay check`
-returns success only when both materializations match replay exactly and
-otherwise returns `REPLAY_DRIFT`.
+If a fully committed event is ahead of a missing or lower-revision
+materialization, the next locked command automatically rolls both
+materializations forward before request lookup. An exact retry therefore
+returns the committed original result after crashes following the event or
+between definition/projection replacement. Same-revision semantic drift is
+not silently repaired; `replay check` returns `REPLAY_DRIFT` and repair remains
+explicit.
 
-Repair is explicit. `replay repair` first reconstructs from the valid journal,
-optionally checks the journal revision with CAS, appends a `replay.repaired`
-event, and atomically replaces both materializations. It cannot repair a
-corrupt or unknown-version journal.
+## Snapshot And Replay APIs
+
+`status` and `snapshot` both acquire the graph lock and return the same
+deterministic data object. It contains projection schema version, graph ID,
+projection and definition revisions, definition hash, last event time, event
+count, normalized sorted nodes with metadata and current state, normalized
+sorted edges with metadata, active leases, and fence tombstones. RM-0004 and
+RM-0003 consume this API rather than files.
+
+Replay validates versions, sizes, JSON numbers, exact fields, strict sequence,
+unique request IDs, request fingerprint shape, nondecreasing time, actor and
+capability, event-specific data, exact command/result/data consistency,
+assignment, state preconditions, lease order, expiry, fences, and history
+immutability. `replay repair` appends an attributed repair event and atomically
+replaces both materializations. It cannot repair a corrupt journal.
+
+## Input Bounds
+
+The runtime rejects non-finite numbers, control characters, overlong IDs and
+scopes, unsafe binding paths, excessive node/edge counts, metadata over 64 KiB,
+JSON nesting over 32, graph files over 4 MiB, event records over 8 MiB, and
+journals over 256 MiB. Cycle validation is iterative, avoiding recursion
+failure on large graphs. Invalid journal timestamps and values are reported as
+`CORRUPT_JOURNAL`, never CLI usage errors or tracebacks.
 
 ## CLI
-
-The shell entry point resolves `OPERATOR_DIR` from the environment or the
-project's `operator.config.env`. The Python entry point also accepts the global
-`--operator-dir PATH` option. Public commands are:
 
 ```text
 operator-graph init [--definition FILE] [--graph-id ID] MUTATION
 operator-graph validate [DEFINITION]
 operator-graph status
+operator-graph snapshot
 operator-graph replace-definition DEFINITION MUTATION
 operator-graph transition NODE STATE [--lease-id ID --fence N] MUTATION
 operator-graph gate decide NODE approved|rejected MUTATION
-operator-graph lease acquire NODE [--lease-id ID] [--holder-scope SCOPE]
-    [--ttl-seconds N] MUTATION
+operator-graph lease acquire NODE --holder-scope SCOPE
+    [--lease-id ID] [--ttl-seconds N] MUTATION
 operator-graph lease renew NODE --lease-id ID --fence N
     [--ttl-seconds N] MUTATION
 operator-graph lease release NODE --lease-id ID --fence N MUTATION
@@ -193,32 +339,41 @@ operator-graph lease sweep MUTATION
 operator-graph replay check
 operator-graph replay repair MUTATION
 
-MUTATION := --request-id ID [--expected-revision N]
-            [--actor-type TYPE] [--actor-id ID] [--now RFC3339]
+MUTATION := --request-id ID --actor-binding ID [--expected-revision N]
 ```
 
-`init` has no expected revision because no projection exists. `--now` supports
-deterministic automation; ordinary callers omit it. Success is one compact JSON
-object on stdout with `ok: true`, `command`, and `data`; mutation results also
-contain `requestId` and `revision`. Failure is one compact JSON object on stderr
-with `ok: false` and `error: {code, message, details?}`.
+The shell entry point resolves `OPERATOR_DIR` from the environment or project
+config. Direct Python callers may put global `--operator-dir PATH` before the
+command.
 
-Stable error codes are `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`, `INVALID_GRAPH`,
-`REVISION_CONFLICT`, `REQUEST_CONFLICT`, `AUTHORITY_DENIED`, `LEASE_CONFLICT`,
-`FENCE_STALE`, `INVALID_TRANSITION`, `REPLAY_DRIFT`, `CORRUPT_JOURNAL`,
-`NOT_INITIALIZED`, `INVALID_STATE`, `LOCK_TIMEOUT`, `LEASE_REQUIRED`, and
-`LEASE_EXPIRED`. Their process exit codes are defined in
-`scripts/operator_graph.py`; callers should branch on the JSON code, not parse
-messages.
+Success is compact JSON on stdout. Failure is compact JSON on stderr with
+`ok:false` and `error:{code,message,details?}`. Callers branch on `error.code`,
+not messages. Stable codes include `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`,
+`INVALID_GRAPH`, `REVISION_CONFLICT`, `REQUEST_CONFLICT`, `AUTHORITY_DENIED`,
+`LEASE_CONFLICT`, `FENCE_STALE`, `INVALID_TRANSITION`, `REPLAY_DRIFT`,
+`CORRUPT_JOURNAL`, `NOT_INITIALIZED`, `INVALID_STATE`, `LOCK_TIMEOUT`,
+`LEASE_REQUIRED`, `LEASE_EXPIRED`, `PRECONDITION_FAILED`, `GATE_REQUIRED`,
+`RECONCILIATION_REQUIRED`, and `CLOCK_ROLLBACK`.
+
+## Remaining Boundaries
+
+- Binding provisioning/rotation is a control-plane and installer concern; this
+  API validates and consumes bindings but does not mint authority.
+- Local bindings are filesystem capabilities, not cryptographic remote tokens.
+- The graph is intentionally bounded for deterministic single-writer local
+  operation; larger distributed graphs require a different storage contract.
+- Wall-clock rollback fails closed and requires host clock correction; the API
+  does not operate an independent trusted-time service.
 
 ## Integration Follow-Ups
 
-- Register the script, schemas, template graph directory, and smoke test once
-  integration owns the shared installer/updater/version lists.
-- RM-0004 should consume `status` and the published edge/state vocabulary,
-  perform all writes with request IDs and CAS, and never edit the projection.
-- RM-0003 should pass host/lane lease ID and fence on owner transitions, use
-  `lease sweep` for recovery, and treat replay drift or unknown versions as a
-  closed control loop.
-- RM-0001 authority policy should retain this runtime's subagent denials as the
-  enforcement boundary even if adapters provide earlier advisory checks.
+- Register the runtime, four schemas, graph template, and smoke in shared
+  installer/updater/version surfaces, including creation of trusted
+  `graph/bindings` with restrictive permissions.
+- RM-0004 should consume only `snapshot`/`status`, surface
+  `PRECONDITION_FAILED` and `GATE_REQUIRED` reasons, and use request IDs/CAS.
+- RM-0003 should provision/select host or lane bindings, persist lease ID and
+  fence, sweep expired work for reconciliation, and fail its tick closed on
+  lock, clock, replay, or version errors.
+- RM-0001/RM-0002 adapters should map durable lanes, feature instances, and host
+  runners into binding subjects/scopes without granting host-derived authority.

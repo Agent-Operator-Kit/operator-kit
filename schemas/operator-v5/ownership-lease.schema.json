@@ -7,16 +7,18 @@
   "required": ["schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence"],
   "properties": {
     "schemaVersion": {"const": "operator.ownership-lease/v1"},
-    "nodeId": {"type": "string", "minLength": 1, "maxLength": 128},
-    "leaseId": {"type": "string", "minLength": 1, "maxLength": 256},
+    "nodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "leaseId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
     "holder": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["actorType", "actorId", "scope"],
+      "required": ["actorType", "actorId", "bindingId", "scope", "laneNodeId"],
       "properties": {
-        "actorType": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
-        "actorId": {"type": "string", "minLength": 1, "maxLength": 256},
-        "scope": {"type": "string", "minLength": 1, "maxLength": 512}
+        "actorType": {"enum": ["lane", "host"]},
+        "actorId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+        "scope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
       }
     },
     "acquiredAt": {"type": "string", "format": "date-time"},
