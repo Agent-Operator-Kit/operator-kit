@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/control-graph.schema.json",
+  "title": "Operator V5 Control Graph Definition",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "graphId", "nodes", "edges"],
+  "properties": {
+    "schemaVersion": {"const": "operator.control-graph/v1"},
+    "graphId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "definitionRevision": {"type": "integer", "minimum": 1},
+    "nodes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/edge"}
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 128},
+        "kind": {
+          "enum": ["goal", "feature", "lane", "task", "validation", "human-gate", "integration", "feedback"]
+        },
+        "title": {"type": "string", "minLength": 1, "maxLength": 512},
+        "initialState": {
+          "enum": ["planned", "pending", "ready", "active", "blocked", "completed", "failed", "cancelled", "approved", "rejected"]
+        },
+        "priority": {"type": "integer", "minimum": 0, "maximum": 1000},
+        "metadata": {"type": "object"}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "from", "to"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1, "maxLength": 384},
+        "kind": {
+          "enum": ["contains", "depends-on", "assigned-to", "validated-by", "gated-by", "integrates-into", "feedback-for"]
+        },
+        "from": {"type": "string", "minLength": 1, "maxLength": 128},
+        "to": {"type": "string", "minLength": 1, "maxLength": 128},
+        "metadata": {"type": "object"}
+      }
+    }
+  }
+}

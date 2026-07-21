@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/control-event.schema.json",
+  "title": "Operator V5 Control Event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sequence", "eventId", "requestId", "occurredAt", "actor", "type", "data", "result"],
+  "properties": {
+    "schemaVersion": {"const": "operator.control-event/v1"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "eventId": {"type": "string", "minLength": 1},
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 256},
+    "occurredAt": {"type": "string", "format": "date-time"},
+    "actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 256}
+      }
+    },
+    "type": {
+      "enum": ["graph.initialized", "definition.replaced", "node.transitioned", "gate.decided", "lease.acquired", "lease.renewed", "lease.released", "lease.swept", "replay.repaired"]
+    },
+    "data": {"type": "object"},
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ok", "command", "requestId", "revision", "data"],
+      "properties": {
+        "ok": {"const": true},
+        "command": {"type": "string", "minLength": 1},
+        "requestId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "revision": {"type": "integer", "minimum": 1},
+        "data": {"type": "object"}
+      }
+    }
+  }
+}

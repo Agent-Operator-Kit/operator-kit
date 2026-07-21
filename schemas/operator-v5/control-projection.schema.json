@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/control-projection.schema.json",
+  "title": "Operator V5 Control Projection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences"],
+  "properties": {
+    "schemaVersion": {"const": "operator.control-projection/v1"},
+    "graphId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "revision": {"type": "integer", "minimum": 1},
+    "definitionRevision": {"type": "integer", "minimum": 1},
+    "definitionHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "updatedAt": {"type": "string", "format": "date-time"},
+    "nodeStates": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["planned", "pending", "ready", "active", "blocked", "completed", "failed", "cancelled", "approved", "rejected"]
+      }
+    },
+    "leases": {
+      "type": "object",
+      "additionalProperties": {"$ref": "ownership-lease.schema.json"}
+    },
+    "leaseFences": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 1}
+    }
+  }
+}

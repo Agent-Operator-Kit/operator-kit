@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/ownership-lease.schema.json",
+  "title": "Operator V5 Ownership Lease",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence"],
+  "properties": {
+    "schemaVersion": {"const": "operator.ownership-lease/v1"},
+    "nodeId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "leaseId": {"type": "string", "minLength": 1, "maxLength": 256},
+    "holder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["actorType", "actorId", "scope"],
+      "properties": {
+        "actorType": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
+        "actorId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "scope": {"type": "string", "minLength": 1, "maxLength": 512}
+      }
+    },
+    "acquiredAt": {"type": "string", "format": "date-time"},
+    "renewedAt": {"type": "string", "format": "date-time"},
+    "expiresAt": {"type": "string", "format": "date-time"},
+    "fence": {"type": "integer", "minimum": 1}
+  }
+}
