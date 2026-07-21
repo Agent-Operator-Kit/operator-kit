@@ -23,7 +23,7 @@
         "integrate": false,
         "manageQueue": false
       },
-      "branch": "claude/v5-rm-0006-design-flow",
+      "branch": "codex/v5-rm-0006-design-flow",
       "hostRunnerId": "claude-code",
       "id": "design-flow",
       "kind": "durable-lane",
@@ -88,13 +88,13 @@
         "integrate": true,
         "manageQueue": true
       },
-      "branch": "codex/v5-integration",
+      "branch": "codex/operator-v5-integration",
       "hostRunnerId": "codex-desktop",
       "id": "operator",
       "kind": "durable-lane",
       "roleTemplateIds": [],
       "tool": "Codex Desktop",
-      "worktree": "operator-kit-v5"
+      "worktree": "operator-kit-v5-integration"
     },
     {
       "authority": {

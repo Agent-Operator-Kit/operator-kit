@@ -27,6 +27,12 @@ bash scripts/operator-role-map.sh validate [--json]
 values and refreshes role-template records from `$OPERATOR_DIR/catalog/roles`.
 It never rewrites `operator.config.env` or catalog role Markdown.
 
+The committed starter is the expected output of `init` for the canonical V5
+example, not an independent topology source. In that example, the operator
+uses branch `codex/operator-v5-integration` and worktree
+`operator-kit-v5-integration`; design flow uses branch
+`codex/v5-rm-0006-design-flow`.
+
 When a role map already exists, `init` preserves project-curated
 `roleTemplateIds`, authority records, extra metadata, and `featureInstances`.
 Derived configuration fields still win. Lanes removed from `OPERATOR_LANES`
@@ -58,9 +64,16 @@ A durable lane is long-lived project topology and unique ownership:
 }
 ```
 
-Lane IDs, branches, and worktrees must be unique. Branch and worktree ownership
-is also unique across temporary feature instances. The `operator` durable lane
-must be the sole lane with either queue-management or integration authority.
+Lane IDs, branches, and worktrees must be unique. Durable lane IDs are
+normalized lowercase kebab-case. Branches must pass Git's branch-ref validation
+and cannot be option-like, absolute-like, backslash-separated, padded, or
+control-character-bearing. Worktree values are normalized lowercase kebab-case
+names for direct relative children of `CODE_DIR`; absolute paths, traversal,
+slashes, backslashes, symlink escapes, and option-like names are rejected.
+
+Branch and worktree ownership is also unique across temporary feature
+instances. The `operator` durable lane must be the sole lane with either
+queue-management or integration authority.
 
 ### Role template
 
@@ -104,7 +117,13 @@ from one role template:
 Feature instances reference, but never replace, durable lanes, role templates,
 or host runners. An empty `featureInstances` array is valid. When instances are
 recorded, their IDs, branches, and worktrees must be unique and every reference
-must resolve.
+must resolve. Instance and feature IDs use normalized alphanumeric segments
+separated by single `.`, `-`, or `@` characters. Instance branches and
+worktrees follow the same safe branch/worktree rules as durable lanes.
+
+The selected role must also appear in the selected durable lane's
+`roleTemplateIds`. A catalog role cannot be attached to a feature instance
+through a lane that was not assigned that role.
 
 ### Host runner
 
@@ -144,14 +163,19 @@ resolves to the local catalog and the rest of the contract validates.
 
 ## Failure Rules
 
-Validation fails closed for malformed JSON or types, stale derived lane
-fields, duplicate IDs, duplicate branch/worktree ownership, missing or unknown
-catalog roles, broken references, non-boolean authority, a missing operator
-authority, or any second queue manager or integrator.
+Validation fails closed for malformed JSON or types, unsafe or non-normalized
+IDs and topology values, invalid Git refs, paths outside `CODE_DIR`, stale
+derived lane fields, duplicate IDs, duplicate branch/worktree ownership,
+missing, unknown, or lane-unassigned roles, broken references, non-boolean
+authority, a missing operator authority, or any second queue manager or
+integrator.
 
 `init` builds and validates the complete candidate in memory before atomically
 replacing `role-map.json`, so invalid configuration or preserved customization
-does not partially rewrite the prior map.
+does not partially rewrite the prior map. With `--json`, malformed preserved
+arrays, elements, and role values produce a structured
+`{"valid": false, "error": "..."}` result with a nonzero exit and no Python
+traceback; the existing file remains byte-for-byte unchanged.
 
 ## Integration Follow-Up
 
