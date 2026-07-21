@@ -47,8 +47,42 @@
     },
     "leases": {"type": "object", "maxProperties": 10000, "additionalProperties": {"$ref": "ownership-lease.schema.json"}},
     "leaseFences": {"type": "object", "maxProperties": 10000, "additionalProperties": {"type": "integer", "minimum": 1}},
-    "executionStarted": {"type": "object", "maxProperties": 10000},
-    "reconciliations": {"type": "object", "maxProperties": 10000},
-    "bindingGenerations": {"type": "object", "maxProperties": 10000}
+    "executionStarted": {
+      "type": "object",
+      "maxProperties": 10000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["revision", "occurredAt"],
+        "properties": {
+          "revision": {"type": "integer", "minimum": 1},
+          "occurredAt": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    "reconciliations": {
+      "type": "object",
+      "maxProperties": 10000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["leaseId", "fence", "reason", "requiredAt", "priorState"],
+        "properties": {
+          "leaseId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+          "fence": {"type": "integer", "minimum": 1},
+          "reason": {"enum": ["expired-unsafe", "binding-rotated", "clock-recovery"]},
+          "requiredAt": {"type": "string", "format": "date-time"},
+          "priorState": {"enum": ["pending", "ready", "active", "blocked", "completed", "failed", "cancelled"]}
+        }
+      }
+    },
+    "bindingGenerations": {
+      "type": "object",
+      "maxProperties": 10000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["generation", "bindingHash"],
+        "properties": {
+          "generation": {"type": "integer", "minimum": 1},
+          "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
+    }
   }
 }

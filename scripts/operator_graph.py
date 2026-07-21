@@ -41,6 +41,7 @@ LOCK_VERSION = "operator.graph-lock/v1"
 SNAPSHOT_VERSION = "operator.control-snapshot/v1"
 PROOF_REQUEST_VERSION = "operator.mutation-proof-request/v1"
 PROOF_EVENT_VERSION = "operator.mutation-event-proof/v1"
+PROOF_CHALLENGE_VERSION = "operator.proof-challenge/v1"
 PROOF_RESPONSE_VERSION = "operator.proof-response/v1"
 
 ACTOR_TYPES = {"operator", "lane", "host", "human", "subagent", "system"}
@@ -137,6 +138,9 @@ MAX_GRAPH_BYTES = 4 * 1024 * 1024
 MAX_BINDING_BYTES = 64 * 1024
 MAX_JOURNAL_BYTES = 256 * 1024 * 1024
 MAX_EVENT_BYTES = 8 * 1024 * 1024
+MAX_PROOF_AUTH_CHALLENGE_BYTES = MAX_BINDING_BYTES
+MAX_PROOF_EVENT_CHALLENGE_BYTES = MAX_EVENT_BYTES + MAX_BINDING_BYTES
+MAX_PROOF_RESPONSE_BYTES = 4 * 1024
 MAX_FORWARD_CLOCK_SKEW_SECONDS = 5.0
 OWNERLESS_LOCK_GRACE_SECONDS = 2.0
 MAX_NODES = 10000
@@ -573,6 +577,22 @@ def is_success_terminal(definition: Mapping[str, Any], projection: Mapping[str, 
     return projection["nodeStates"][node_id] in SUCCESS_TERMINAL[family_for(node["kind"])]
 
 
+def valid_generated_lease_id(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    try:
+        parsed = uuid.UUID(value)
+    except (ValueError, AttributeError):
+        return False
+    return parsed.version == 4 and str(parsed) == value
+
+
+def validate_replayed_ttl(value: Any) -> int:
+    fail(isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 86400,
+         "CORRUPT_JOURNAL", "Lease event ttlSeconds is outside 1..86400")
+    return value
+
+
 def transition_preconditions(definition: Mapping[str, Any], projection: Mapping[str, Any], node_id: str,
                              target_state: str) -> None:
     node = find_node(definition, node_id)
@@ -720,7 +740,9 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_even
     fail(event.get("expectedRevision") is None or (isinstance(event["expectedRevision"], int)
          and not isinstance(event["expectedRevision"], bool) and event["expectedRevision"] >= 1),
          "CORRUPT_JOURNAL", "Event expectedRevision is invalid")
-    expected_fingerprint = sha256_value(recorded_authorization_payload(event))
+    recorded_authorization = recorded_authorization_payload(event)
+    validate_authorization_payload(recorded_authorization, "CORRUPT_JOURNAL")
+    expected_fingerprint = sha256_value(recorded_authorization)
     fail(event["requestFingerprint"] == expected_fingerprint, "CORRUPT_JOURNAL", "Event request fingerprint does not match canonical intent")
     fail(isinstance(event.get("data"), dict), "CORRUPT_JOURNAL", "Event data must be an object")
     result = event.get("result")
@@ -892,13 +914,31 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 validate_lease(lease, "CORRUPT_JOURNAL")
                 node = find_node(definition, lease["nodeId"])
                 fail(node["kind"] in WORK_KINDS and event["actor"]["type"] in {"lane", "host"}, "CORRUPT_JOURNAL", "Invalid lease acquisition actor or node")
-                fail(lease["holder"]["bindingId"] == event["actor"]["bindingId"], "CORRUPT_JOURNAL", "Lease holder binding mismatch")
-                fail(lease["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
-                     and lease["holder"]["bindingHash"] == event["actor"]["bindingHash"],
-                     "CORRUPT_JOURNAL", "Lease holder binding generation mismatch")
-                recorded_scope = [scope for scope in event["actor"]["leaseScopes"] if scope["scope"] == lease["holder"]["scope"]]
+                fail(projection["nodeStates"][node["id"]] not in TERMINAL_STATES["work"],
+                     "CORRUPT_JOURNAL", "Lease was acquired on terminal work")
+                intent = event["intent"]
+                fail(set(intent) == {"nodeId", "leaseId", "holderScope", "ttlSeconds"}
+                     and intent["nodeId"] == node["id"] and intent["holderScope"] == lease["holder"]["scope"],
+                     "CORRUPT_JOURNAL", "Lease acquisition intent does not match the lease")
+                ttl_seconds = validate_replayed_ttl(intent["ttlSeconds"])
+                if intent["leaseId"] is None:
+                    fail(valid_generated_lease_id(lease["leaseId"]), "CORRUPT_JOURNAL",
+                         "Generated lease ID is not a canonical UUIDv4")
+                else:
+                    fail(intent["leaseId"] == lease["leaseId"], "CORRUPT_JOURNAL",
+                         "Requested lease ID does not match the lease")
+                recorded_scope = [scope for scope in event["actor"]["leaseScopes"] if scope["scope"] == intent["holderScope"]]
                 fail(len(recorded_scope) == 1 and recorded_scope[0]["laneNodeId"] == lease["holder"]["laneNodeId"],
                      "CORRUPT_JOURNAL", "Lease holder scope was not present in recorded actor binding")
+                expected_holder = {
+                    "actorType": event["actor"]["type"], "actorId": event["actor"]["id"],
+                    "bindingId": event["actor"]["bindingId"],
+                    "bindingGeneration": event["actor"]["bindingGeneration"],
+                    "bindingHash": event["actor"]["bindingHash"], "scope": intent["holderScope"],
+                    "laneNodeId": recorded_scope[0]["laneNodeId"],
+                }
+                fail(lease["holder"] == expected_holder, "CORRUPT_JOURNAL",
+                     "Lease holder identity diverges from the signed actor and intent")
                 assigned = any(edge["kind"] == "assigned-to" and edge["from"] == node["id"] and edge["to"] == lease["holder"]["laneNodeId"] for edge in definition["edges"])
                 fail(assigned, "CORRUPT_JOURNAL", "Lease acquisition violated assignment")
                 current = projection["leases"].get(node["id"])
@@ -912,8 +952,11 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 fail(lease["acquiredAt"] == occurred_at and lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Lease acquisition time mismatch")
                 fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
                      and lease["clock"]["monotonicSource"] == event["clock"]["monotonicSource"]
-                     and lease["clock"]["acquiredMonotonicNs"] == event["clock"]["monotonicNs"],
+                     and lease["clock"]["acquiredMonotonicNs"] == event["clock"]["monotonicNs"]
+                     and lease["clock"]["expiresMonotonicNs"] == event["clock"]["monotonicNs"] + ttl_seconds * 1_000_000_000,
                      "CORRUPT_JOURNAL", "Lease acquisition clock mismatch")
+                fail(lease["expiresAt"] == format_time(occurred + dt.timedelta(seconds=ttl_seconds)),
+                     "CORRUPT_JOURNAL", "Lease acquisition wall expiry does not match ttlSeconds")
                 fail(node["id"] not in projection["reconciliations"], "CORRUPT_JOURNAL", "Lease acquired while reconciliation was required")
                 projection["leases"][node["id"]] = lease
                 projection["leaseFences"][node["id"]] = lease["fence"]
@@ -924,17 +967,35 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                 validate_lease(lease, "CORRUPT_JOURNAL")
                 current = projection["leases"].get(lease["nodeId"])
                 fail(current is not None and current["leaseId"] == lease["leaseId"] and current["fence"] == lease["fence"], "CORRUPT_JOURNAL", "Renewal does not match current lease")
-                fail(current["holder"] == lease["holder"] and current["acquiredAt"] == lease["acquiredAt"], "CORRUPT_JOURNAL", "Renewal changed immutable fields")
+                intent = event["intent"]
+                fail(set(intent) == {"nodeId", "leaseId", "fence", "ttlSeconds"}
+                     and intent["nodeId"] == current["nodeId"] and intent["leaseId"] == current["leaseId"]
+                     and intent["fence"] == current["fence"],
+                     "CORRUPT_JOURNAL", "Lease renewal intent does not match the current lease")
+                ttl_seconds = validate_replayed_ttl(intent["ttlSeconds"])
+                fail(event["actor"]["type"] in {"lane", "host"}, "CORRUPT_JOURNAL", "Invalid lease renewal actor")
+                recorded_scope = [scope for scope in event["actor"]["leaseScopes"] if scope["scope"] == current["holder"]["scope"]]
+                expected_holder = {
+                    "actorType": event["actor"]["type"], "actorId": event["actor"]["id"],
+                    "bindingId": event["actor"]["bindingId"],
+                    "bindingGeneration": event["actor"]["bindingGeneration"],
+                    "bindingHash": event["actor"]["bindingHash"], "scope": current["holder"]["scope"],
+                    "laneNodeId": current["holder"]["laneNodeId"],
+                }
+                fail(len(recorded_scope) == 1 and recorded_scope[0]["laneNodeId"] == current["holder"]["laneNodeId"]
+                     and current["holder"] == expected_holder,
+                     "CORRUPT_JOURNAL", "Lease renewal actor does not match the holder")
                 fail(current["holder"]["bindingId"] == event["actor"]["bindingId"]
                      and current["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
                      and current["holder"]["bindingHash"] == event["actor"]["bindingHash"]
                      and not lease_clock_expired(current, event["clock"], "CORRUPT_JOURNAL"),
                      "CORRUPT_JOURNAL", "Unauthorized or expired renewal")
-                fail(lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Renewal time mismatch")
-                fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
-                     and lease["clock"]["monotonicSource"] == event["clock"]["monotonicSource"]
-                     and lease["clock"]["acquiredMonotonicNs"] == current["clock"]["acquiredMonotonicNs"],
-                     "CORRUPT_JOURNAL", "Renewal clock mismatch")
+                expected_lease = json.loads(json.dumps(current))
+                expected_lease["renewedAt"] = occurred_at
+                expected_lease["expiresAt"] = format_time(occurred + dt.timedelta(seconds=ttl_seconds))
+                expected_lease["clock"]["expiresMonotonicNs"] = event["clock"]["monotonicNs"] + ttl_seconds * 1_000_000_000
+                fail(lease == expected_lease, "CORRUPT_JOURNAL",
+                     "Renewal changed immutable fields or expiry outside live command semantics")
                 projection["leases"][lease["nodeId"]] = lease
             elif event_type == "lease.released":
                 fail(set(data) == {"nodeId", "leaseId", "fence"}, "CORRUPT_JOURNAL", "lease.released data is invalid")
@@ -1003,6 +1064,8 @@ def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str
                     fail(replacement["generation"] > current_lease["holder"]["bindingGeneration"]
                          and replacement["bindingHash"] != current_lease["holder"]["bindingHash"],
                          "CORRUPT_JOURNAL", "Binding-rotation resolution lacked a real rotation")
+                    fail(parse_time(replacement["issuedAt"], "CORRUPT_JOURNAL") <= occurred,
+                         "CORRUPT_JOURNAL", "Binding-rotation evidence was not issued at resolution time")
                 if data["reason"] == "clock-recovery":
                     fail(current_lease is not None and (
                         current_lease["clock"]["hostId"] != event["clock"]["hostId"]
@@ -1592,16 +1655,27 @@ class ProofChannel:
             fail(self.socket.getsockopt(socket.SOL_SOCKET, socket.SO_TYPE) == socket.SOCK_STREAM,
                  "AUTHORITY_DENIED", "Caller proof descriptor must be a connected stream socket")
             self.socket.settimeout(5.0)
+            self.next_phase = "authorize"
+            self.proof_key_id: Optional[str] = None
         except GraphError:
             raise
         except OSError as exc:
             raise GraphError("AUTHORITY_DENIED", "Caller proof broker socket is unavailable", str(exc)) from exc
 
     def sign(self, phase: str, payload: Mapping[str, Any], proof_key: Mapping[str, Any]) -> str:
-        challenge = {"schemaVersion": PROOF_RESPONSE_VERSION, "operation": "sign", "phase": phase,
+        fail(phase == self.next_phase, "AUTHORITY_DENIED", "Caller proof phase is duplicate or out of order")
+        if self.proof_key_id is None:
+            self.proof_key_id = proof_key["keyId"]
+        fail(proof_key["keyId"] == self.proof_key_id, "AUTHORITY_DENIED",
+             "Caller proof key changed within one mutation session")
+        challenge = {"schemaVersion": PROOF_CHALLENGE_VERSION, "operation": "sign", "phase": phase,
                      "proofKeyId": proof_key["keyId"], "payload": dict(payload)}
         encoded = canonical_bytes(challenge)
-        fail(len(encoded) <= MAX_BINDING_BYTES, "AUTHORITY_DENIED", "Caller proof challenge is too large")
+        challenge_limit = (MAX_PROOF_AUTH_CHALLENGE_BYTES if phase == "authorize"
+                           else MAX_PROOF_EVENT_CHALLENGE_BYTES)
+        fail(len(encoded) <= challenge_limit, "AUTHORITY_DENIED", "Caller proof challenge is too large", {
+            "phase": phase, "maximumBytes": challenge_limit, "actualBytes": len(encoded),
+        })
         try:
             self.socket.sendall(encoded)
             response = bytearray()
@@ -1609,7 +1683,7 @@ class ProofChannel:
                 chunk = self.socket.recv(4096)
                 fail(bool(chunk), "AUTHORITY_DENIED", "Caller proof broker closed without a response")
                 response.extend(chunk)
-                fail(len(response) <= MAX_BINDING_BYTES, "AUTHORITY_DENIED", "Caller proof response is too large")
+                fail(len(response) <= MAX_PROOF_RESPONSE_BYTES, "AUTHORITY_DENIED", "Caller proof response is too large")
             value = json.loads(bytes(response).decode("utf-8"), parse_constant=reject_constant)
         except GraphError:
             raise
@@ -1622,6 +1696,7 @@ class ProofChannel:
         signature = value.get("signature")
         verify_rsa_signature(payload, signature, proof_key["publicKey"]["n"], proof_key["publicKey"]["e"],
                              "AUTHORITY_DENIED", "Caller proof")
+        self.next_phase = "event" if phase == "authorize" else "complete"
         return signature
 
     def close(self) -> None:
@@ -1661,6 +1736,63 @@ def event_proof_payload(event_without_proof: Mapping[str, Any]) -> Dict[str, Any
     return {"schemaVersion": PROOF_EVENT_VERSION, "event": dict(event_without_proof)}
 
 
+def validate_authorization_payload(value: Any, code: str) -> None:
+    required = {"schemaVersion", "command", "requestId", "bindingId", "bindingGeneration",
+                "bindingHash", "intent", "expectedRevision"}
+    fail(isinstance(value, dict) and set(value) == required and value.get("schemaVersion") == PROOF_REQUEST_VERSION,
+         code, "Canonical mutation authorization fields are invalid")
+    command = value.get("command")
+    fail(command in set(EVENT_COMMANDS.values()), code, "Canonical mutation command is invalid")
+    fail(valid_string(value.get("requestId"), 256, pattern=True) and valid_binding_id(value.get("bindingId")),
+         code, "Canonical mutation request or binding ID is invalid")
+    fail(isinstance(value.get("bindingGeneration"), int) and not isinstance(value["bindingGeneration"], bool)
+         and value["bindingGeneration"] >= 1, code, "Canonical mutation binding generation is invalid")
+    fail(isinstance(value.get("bindingHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", value["bindingHash"]),
+         code, "Canonical mutation binding hash is invalid")
+    expected_revision = value.get("expectedRevision")
+    fail(expected_revision is None or (isinstance(expected_revision, int) and not isinstance(expected_revision, bool)
+         and expected_revision >= 1), code, "Canonical mutation CAS revision is invalid")
+    fail(command != "init" or expected_revision is None, code, "Initialization cannot carry a CAS revision")
+    intent = value.get("intent")
+    fail(isinstance(intent, dict), code, "Canonical mutation intent is invalid")
+    expected_fields = {
+        "init": {"definitionHash"}, "replace-definition": {"definitionHash"},
+        "transition": {"nodeId", "targetState", "leaseId", "fence"},
+        "gate decide": {"nodeId", "decision"},
+        "lease acquire": {"nodeId", "leaseId", "holderScope", "ttlSeconds"},
+        "lease renew": {"nodeId", "leaseId", "fence", "ttlSeconds"},
+        "lease release": {"nodeId", "leaseId", "fence"},
+        "lease sweep": set(), "lease resolve": {"nodeId", "leaseId", "fence", "action", "reason"},
+        "replay repair": set(),
+    }
+    fail(set(intent) == expected_fields[command], code, "Canonical mutation intent fields are invalid")
+    if "definitionHash" in intent:
+        fail(isinstance(intent["definitionHash"], str) and re.fullmatch(r"sha256:[0-9a-f]{64}", intent["definitionHash"]),
+             code, "Canonical definition hash is invalid")
+    if "nodeId" in intent:
+        fail(valid_string(intent["nodeId"], 128, pattern=True), code, "Canonical mutation node ID is invalid")
+    if "leaseId" in intent:
+        fail(intent["leaseId"] is None or valid_string(intent["leaseId"], 256, pattern=True),
+             code, "Canonical mutation lease ID is invalid")
+    if "fence" in intent:
+        fail(intent["fence"] is None or (isinstance(intent["fence"], int) and not isinstance(intent["fence"], bool)
+             and intent["fence"] >= 1), code, "Canonical mutation fence is invalid")
+    if "holderScope" in intent:
+        fail(valid_string(intent["holderScope"], 512, pattern=True), code, "Canonical holder scope is invalid")
+    if "ttlSeconds" in intent:
+        fail(isinstance(intent["ttlSeconds"], int) and not isinstance(intent["ttlSeconds"], bool)
+             and 1 <= intent["ttlSeconds"] <= 86400, code, "Canonical lease TTL is invalid")
+    if "targetState" in intent:
+        fail(intent["targetState"] in set().union(*STATES_BY_FAMILY.values()), code, "Canonical target state is invalid")
+    if "decision" in intent:
+        fail(intent["decision"] in {"approved", "rejected"}, code, "Canonical gate decision is invalid")
+    if "action" in intent:
+        fail(intent["action"] in {"retry", "cancel", "complete"}, code, "Canonical resolution action is invalid")
+    if "reason" in intent:
+        fail(intent["reason"] in {"expired-unsafe", "binding-rotated", "clock-recovery"},
+             code, "Canonical resolution reason is invalid")
+
+
 def validate_event_proof(event: Mapping[str, Any]) -> None:
     proof = event.get("proof")
     fail(isinstance(proof, dict) and set(proof) == {"schemaVersion", "proofKeyId", "algorithm",
@@ -1686,6 +1818,7 @@ def require_request_id(args: argparse.Namespace) -> str:
 def fingerprint(command: str, binding: Mapping[str, Any], args: argparse.Namespace, intent: Mapping[str, Any]) -> str:
     payload = authorization_payload(command, binding, args.request_id, intent,
                                     getattr(args, "expected_revision", None))
+    validate_authorization_payload(payload, "AUTHORITY_DENIED")
     channel = ProofChannel(getattr(args, "proof_fd", None))
     try:
         signature = channel.sign("authorize", payload, binding["proofKey"])
@@ -2176,6 +2309,8 @@ def command_lease_resolve(store: Store, args: argparse.Namespace) -> Dict[str, A
                 fail(replacement_binding["generation"] > holder["bindingGeneration"]
                      and replacement_binding["bindingHash"] != holder["bindingHash"],
                      "RECONCILIATION_REQUIRED", "Lease holder binding has not actually rotated")
+                fail(parse_time(replacement_binding["issuedAt"], "AUTHORITY_DENIED") <= now,
+                     "RECONCILIATION_REQUIRED", "Replacement binding is future-dated and not yet rotation evidence")
                 evidence = {"kind": "binding-rotation", "currentBinding": {
                     **binding_payload(replacement_binding), "signature": replacement_binding["signature"],
                 }}

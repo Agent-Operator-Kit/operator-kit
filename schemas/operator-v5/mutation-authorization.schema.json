@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/mutation-authorization.schema.json",
+  "title": "Operator V5 Canonical Mutation Authorization Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "command", "requestId", "bindingId", "bindingGeneration", "bindingHash", "intent", "expectedRevision"],
+  "properties": {
+    "schemaVersion": {"const": "operator.mutation-proof-request/v1"},
+    "command": {"enum": ["init", "replace-definition", "transition", "gate decide", "lease acquire", "lease renew", "lease release", "lease sweep", "lease resolve", "replay repair"]},
+    "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+    "bindingGeneration": {"type": "integer", "minimum": 1},
+    "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "intent": {"type": "object"},
+    "expectedRevision": {"type": ["integer", "null"], "minimum": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"command": {"enum": ["init", "replace-definition"]}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["definitionHash"],
+        "properties": {"definitionHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}}
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "transition"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "targetState", "leaseId", "fence"],
+        "properties": {
+          "nodeId": {"$ref": "#/$defs/nodeId"},
+          "targetState": {"enum": ["planned", "pending", "ready", "active", "blocked", "completed", "failed", "cancelled", "approved", "rejected"]},
+          "leaseId": {"anyOf": [{"$ref": "#/$defs/leaseId"}, {"type": "null"}]},
+          "fence": {"type": ["integer", "null"], "minimum": 1}
+        }
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "gate decide"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "decision"],
+        "properties": {"nodeId": {"$ref": "#/$defs/nodeId"}, "decision": {"enum": ["approved", "rejected"]}}
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "lease acquire"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "leaseId", "holderScope", "ttlSeconds"],
+        "properties": {
+          "nodeId": {"$ref": "#/$defs/nodeId"},
+          "leaseId": {"anyOf": [{"$ref": "#/$defs/leaseId"}, {"type": "null"}]},
+          "holderScope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+          "ttlSeconds": {"type": "integer", "minimum": 1, "maximum": 86400}
+        }
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "lease renew"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "leaseId", "fence", "ttlSeconds"],
+        "properties": {
+          "nodeId": {"$ref": "#/$defs/nodeId"}, "leaseId": {"$ref": "#/$defs/leaseId"},
+          "fence": {"type": "integer", "minimum": 1},
+          "ttlSeconds": {"type": "integer", "minimum": 1, "maximum": 86400}
+        }
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "lease release"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "leaseId", "fence"],
+        "properties": {
+          "nodeId": {"$ref": "#/$defs/nodeId"}, "leaseId": {"$ref": "#/$defs/leaseId"},
+          "fence": {"type": "integer", "minimum": 1}
+        }
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"enum": ["lease sweep", "replay repair"]}}, "required": ["command"]},
+      "then": {"properties": {"intent": {"type": "object", "additionalProperties": false, "maxProperties": 0}}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "lease resolve"}}, "required": ["command"]},
+      "then": {"properties": {"intent": {
+        "type": "object", "additionalProperties": false, "required": ["nodeId", "leaseId", "fence", "action", "reason"],
+        "properties": {
+          "nodeId": {"$ref": "#/$defs/nodeId"}, "leaseId": {"$ref": "#/$defs/leaseId"},
+          "fence": {"type": "integer", "minimum": 1},
+          "action": {"enum": ["retry", "cancel", "complete"]},
+          "reason": {"enum": ["expired-unsafe", "binding-rotated", "clock-recovery"]}
+        }
+      }}}
+    },
+    {
+      "if": {"properties": {"command": {"const": "init"}}, "required": ["command"]},
+      "then": {"properties": {"expectedRevision": {"type": "null"}}}
+    }
+  ],
+  "$defs": {
+    "nodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "leaseId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/control-event-unsigned.schema.json",
+  "title": "Operator V5 Unsigned Control Event For Caller Proof",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "clock", "actor", "type", "intent", "expectedRevision", "data", "result"],
+  "properties": {
+    "schemaVersion": {"$ref": "control-event.schema.json#/properties/schemaVersion"},
+    "sequence": {"$ref": "control-event.schema.json#/properties/sequence"},
+    "eventId": {"$ref": "control-event.schema.json#/properties/eventId"},
+    "requestId": {"$ref": "control-event.schema.json#/properties/requestId"},
+    "requestFingerprint": {"$ref": "control-event.schema.json#/properties/requestFingerprint"},
+    "occurredAt": {"$ref": "control-event.schema.json#/properties/occurredAt"},
+    "clock": {"$ref": "control-event.schema.json#/properties/clock"},
+    "actor": {"$ref": "control-event.schema.json#/properties/actor"},
+    "type": {"$ref": "control-event.schema.json#/properties/type"},
+    "intent": {"$ref": "control-event.schema.json#/properties/intent"},
+    "expectedRevision": {"$ref": "control-event.schema.json#/properties/expectedRevision"},
+    "data": {"$ref": "control-event.schema.json#/properties/data"},
+    "result": {"$ref": "control-event.schema.json#/properties/result"}
+  },
+  "allOf": [
+    {"if": {"properties": {"type": {"const": "graph.initialized"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "init"}}}}}},
+    {"if": {"properties": {"type": {"const": "definition.replaced"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "replace-definition"}}}}}},
+    {"if": {"properties": {"type": {"const": "node.transitioned"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "transition"}}}}}},
+    {"if": {"properties": {"type": {"const": "gate.decided"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "gate decide"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.acquired"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease acquire"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.renewed"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease renew"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.released"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease release"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.swept"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease sweep"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.resolved"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease resolve"}}}}}},
+    {"if": {"properties": {"type": {"const": "replay.repaired"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "replay repair"}}}}}}
+  ]
+}

@@ -40,11 +40,12 @@ anchor substitution without rewriting authenticated history fails closed. OS
 sandboxing remains the boundary against rewriting the anchor, runtime, and
 entire journal together.
 
-Versions are `operator.control-graph/v1`, `operator.control-event/v1`,
-`operator.control-projection/v1`, `operator.ownership-lease/v1`, and
-`operator.actor-binding/v1`, and `operator.control-snapshot/v1`. Unknown
-persisted state versions fail closed. Committed JSON Schemas cover all six
-records. Runtime validation additionally
+Versions include `operator.control-graph/v1`, `operator.control-event/v1`,
+`operator.control-projection/v1`, `operator.ownership-lease/v1`,
+`operator.actor-binding/v1`, `operator.control-snapshot/v1`, and the mutation
+authorization, unsigned-event, event-proof, proof-challenge, and proof-response
+wire records described below. Unknown persisted or wire versions fail closed.
+Committed JSON Schemas cover all eleven records. Runtime validation additionally
 enforces cross-record references, endpoints, cycles, transitions, assignment,
 time, signatures, generations, and fences.
 
@@ -174,24 +175,43 @@ Type rules still apply to an overpowered document:
 
 Possession of this readable document is insufficient. Every mutation also
 requires `--proof-fd N`, an inherited, connected, full-duplex stream socket to
-a caller-owned proof broker. The runtime sends two canonical JSON challenges:
+a trusted host proof broker. The connection is a strict two-phase protocol:
+one newline-delimited JSON record in each direction per phase, `authorize`
+followed by `event`, then the connection is discarded. One connection serves
+exactly one mutation. The proof key ID is fixed by the first challenge for the
+whole connection. Duplicate, reordered, unknown, or extra records; phase,
+version, or key confusion; and a key change between phases fail closed.
 
-1. `authorize` covers command, request ID, binding ID/generation/hash, complete
-   intent, and CAS;
-2. `event` covers the complete materialized event, including event identity,
+The runtime sends `operator.proof-challenge/v1` records containing one of two
+canonical payloads:
+
+1. `authorize` carries `operator.mutation-proof-request/v1` and covers command,
+   request ID, binding ID/generation/hash, complete intent, and CAS;
+2. `event` carries `operator.mutation-event-proof/v1` and covers the complete
+   materialized unsigned event, including event identity,
    trusted clock, actor snapshot, intent, CAS, data, and exact result.
 
-The broker returns RS256 signatures made by the private key corresponding to
-the binding's `proofKey`. Both signatures are verified before append and
-persisted for replay. Changing a CLI label, copying an operator/human binding,
-using a lane key with an operator binding, or altering request/intent/CAS/event
-content fails `AUTHORITY_DENIED`.
+The broker returns a strict `operator.proof-response/v1` record with the same
+phase and key ID plus an RS256 signature. Authorization challenges are limited
+to 64 KiB, event challenges to the 8 MiB event bound plus a 64 KiB envelope,
+and responses to 4 KiB. These are different limits: a valid event proof may be
+larger than 64 KiB. Both signatures are verified before append and persisted
+for replay. Changing a CLI label, copying an operator/human binding, using a
+lane key with an operator binding, or altering request/intent/CAS/event content
+fails `AUTHORITY_DENIED`.
+
+The host broker selects the signing key from trusted launcher/session policy
+and independently checks that the challenge key is the authorized key for that
+session. It must never select authority from `--actor-binding`, an untrusted
+binding document, or the challenge's `proofKeyId` alone.
 
 Private proof keys must never enter `OPERATOR_DIR`, a repository, a task
 packet, environment defaults, CLI arguments, or the graph process. RM-0003 and
 RM-0005 must use an OS-keychain or isolated broker: create a socket pair, keep
 the signing/keychain end in the trusted host service, and pass only the graph
 end as an inherited descriptor. There is deliberately no key-file option.
+Production mutations remain disabled until that broker integration and the
+permission-bypass removal described below are complete.
 There are no shipped actor, capability, scope, time, proof, or fault-injection
 shortcuts. Adversarial tests use a non-installed ephemeral broker against
 isolated temporary state.
@@ -228,8 +248,12 @@ ID/fence:
 
 `binding-rotated` and `clock-recovery` resolve a still-present lease only when
 the holder document has actually advanced generation/content or the persisted
-host/boot/monotonic source has actually changed. False reason assertions fail
-`RECONCILIATION_REQUIRED`. Terminal work cannot be leased.
+host/boot/monotonic source has actually changed. A replacement binding must
+have been issued no later than the resolution event; a future-dated document
+is not rotation evidence. A higher-generation replacement that was already
+issued but has since expired remains valid historical evidence of rotation.
+False reason assertions fail `RECONCILIATION_REQUIRED`. Terminal work cannot
+be leased.
 
 ## Trusted Time
 
@@ -238,9 +262,10 @@ cross-process boot-relative clock: Linux reads `/proc/uptime`; macOS calls
 `mach_continuous_time` and applies `mach_timebase_info` using Python's standard
 library `ctypes`. Unsupported platforms or unavailable sources return
 `CLOCK_UNAVAILABLE`; persisted expiry never falls back to `time.monotonic`, a
-process-relative epoch, or wall-derived boot time. Foreign hosts, changed
-boots/sources, and skewed
-wall clocks never expire a lease; they require explicit `clock-recovery`.
+process-relative epoch, or wall-derived boot time. Foreign hosts and changed
+boots or monotonic sources never expire a lease; they require explicit
+`clock-recovery`. Wall-clock skew alone is not proof of a clock-source
+discontinuity and cannot authorize `clock-recovery`.
 Mutations on a host other than the trust anchor's `canonicalHostId` fail.
 
 Event wall time is nondecreasing and bounded against same-host/boot monotonic
@@ -296,6 +321,11 @@ place.
 `operator.control-snapshot/v1` object: normalized
 nodes/edges/metadata/states, leases, fence tombstones, execution-start markers,
 reconciliations, binding generations, hashes, revisions, time, and event count.
+They are operationally read-only but not guaranteed filesystem-no-write
+operations: under the transaction lock they may quarantine/truncate an
+incomplete journal tail or roll a fully committed event forward into stale
+materializations. Sandboxed lanes therefore do not receive graph write access;
+RM-0004 receives snapshots through a trusted host delivery boundary.
 
 Replay validates versions, sizes, finite JSON, exact fields/results, unique
 event/request IDs, recomputed authorization/request hashes, intent/CAS,
@@ -345,13 +375,16 @@ and `JOURNAL_FULL`.
   or protection after trust-anchor/runtime compromise.
 - Host/boot/clock changes fail closed and require correction or explicit lease
   recovery; this API is not an independent time service.
-- Register the runtime, six schemas, template, and smoke in shared installer,
+- Register the runtime, eleven schemas, template, and smoke in shared installer,
   updater, and version surfaces on the integration branch.
-- RM-0004 consumes only snapshot/status and surfaces precondition, gate,
-  reconciliation, clock, and journal-full failures.
+- RM-0004 consumes only trusted-host-delivered snapshot/status output and
+  surfaces precondition, gate, reconciliation, clock, and journal-full
+  failures; it does not gain graph-directory write access.
 - RM-0003/RM-0005 select signed bindings, connect the matching keychain-backed
-  proof broker over an inherited socket, persist lease ID/fence, and never
-  retry reconciled work until an explicit resolution is observed.
+  proof broker over a fresh inherited socket per mutation, enforce the strict
+  two-phase record protocol, select its key from trusted host policy, persist
+  lease ID/fence, and never retry reconciled work until an explicit resolution
+  is observed. Production mutation launch remains disabled until this exists.
 - The downstream launcher integration must remove permission-bypass execution
   and OS-sandbox each Codex/Claude lane so it can write only its worktree and
   its own handoff directory; graph state, bindings, anchors, and runtime stay

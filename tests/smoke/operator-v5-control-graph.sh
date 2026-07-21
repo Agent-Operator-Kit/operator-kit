@@ -33,13 +33,27 @@ def canonical(value):
 def broker():
     with parent:
         stream = parent.makefile("rwb", buffering=0)
+        expected_phase = "authorize"
+        session_key = None
         while True:
             line = stream.readline()
             if not line:
                 return
             challenge = json.loads(line)
+            assert set(challenge) == {"schemaVersion", "operation", "phase", "proofKeyId", "payload"}
+            assert challenge["schemaVersion"] == "operator.proof-challenge/v1"
+            assert challenge["operation"] == "sign"
             phase = challenge["phase"]
+            assert phase == expected_phase
+            assert phase in {"authorize", "event"}
+            if session_key is None:
+                session_key = challenge["proofKeyId"]
+            assert challenge["proofKeyId"] == session_key
             payload = challenge["payload"]
+            assert payload["schemaVersion"] == (
+                "operator.mutation-proof-request/v1" if phase == "authorize"
+                else "operator.mutation-event-proof/v1"
+            )
             signed_value = copy.deepcopy(payload)
             alteration = os.environ.get("OPERATOR_GRAPH_SMOKE_ALTER_AUTH")
             if phase == "authorize" and alteration == "request":
@@ -62,7 +76,23 @@ def broker():
                 "proofKeyId": challenge["proofKeyId"],
                 "signature": base64.urlsafe_b64encode(signed).decode().rstrip("="),
             }
+            mode = os.environ.get("OPERATOR_GRAPH_SMOKE_RESPONSE_MODE")
+            if mode == "response-as-challenge":
+                response = challenge
+            elif mode == "wrong-version":
+                response["schemaVersion"] = "operator.proof-challenge/v1"
+            elif mode == "phase-reorder" and phase == "authorize":
+                response["phase"] = "event"
+            elif mode == "phase-reuse" and phase == "event":
+                response["phase"] = "authorize"
+            elif mode == "extra-field":
+                response["extra"] = True
+            elif mode == "key-change" and phase == "event":
+                response["proofKeyId"] = challenge["proofKeyId"] + "-changed"
             stream.write(canonical(response))
+            expected_phase = "event" if phase == "authorize" else "complete"
+            if expected_phase == "complete":
+                return
 
 thread = threading.Thread(target=broker, daemon=True)
 thread.start()
@@ -72,6 +102,74 @@ thread.join(timeout=2)
 raise SystemExit(completed.returncode)
 PY
 chmod +x "$PROOF_RUNNER"
+
+SIGNED_EVENT_FORGER="$TMP_ROOT/signed-event-forger.py"
+cat > "$SIGNED_EVENT_FORGER" <<'PY'
+#!/usr/bin/env python3
+import base64, datetime as dt, hashlib, json, subprocess, sys
+
+journal_path, mutation, key_path = sys.argv[1:]
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
+
+def sign(value):
+    raw = subprocess.run(["openssl", "dgst", "-sha256", "-sign", key_path],
+                         input=canonical(value), stdout=subprocess.PIPE, check=True).stdout
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+def timestamp(value):
+    return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+
+def format_time(value):
+    return value.astimezone(dt.timezone.utc).isoformat(timespec="microseconds").replace("+00:00", "Z")
+
+lines = open(journal_path, encoding="utf-8").readlines()
+events = [json.loads(line) for line in lines]
+if mutation == "renewal-reshape":
+    index = next(index for index, event in enumerate(events) if event["type"] == "lease.renewed")
+else:
+    index = next(index for index, event in enumerate(events) if event["type"] == "lease.acquired")
+event = events[index]
+
+if mutation == "terminal-acquire":
+    for lease in (event["data"]["lease"], event["result"]["data"]["lease"]):
+        lease["nodeId"] = "complete-task"
+    event["intent"]["nodeId"] = "complete-task"
+elif mutation == "invalid-ttl":
+    ttl = 86401
+    event["intent"]["ttlSeconds"] = ttl
+    for lease in (event["data"]["lease"], event["result"]["data"]["lease"]):
+        lease["expiresAt"] = format_time(timestamp(event["occurredAt"]) + dt.timedelta(seconds=ttl))
+        lease["clock"]["expiresMonotonicNs"] = event["clock"]["monotonicNs"] + ttl * 1_000_000_000
+elif mutation == "generated-id":
+    event["intent"]["leaseId"] = None
+elif mutation == "holder-divergence":
+    for lease in (event["data"]["lease"], event["result"]["data"]["lease"]):
+        lease["holder"]["actorId"] = "forged-holder"
+elif mutation == "renewal-reshape":
+    for lease in (event["data"]["lease"], event["result"]["data"]["lease"]):
+        lease["expiresAt"] = format_time(timestamp(lease["expiresAt"]) + dt.timedelta(seconds=1))
+else:
+    raise AssertionError(mutation)
+
+actor = event["actor"]
+authorization = {
+    "schemaVersion": "operator.mutation-proof-request/v1", "command": event["result"]["command"],
+    "requestId": event["requestId"], "bindingId": actor["bindingId"],
+    "bindingGeneration": actor["bindingGeneration"], "bindingHash": actor["bindingHash"],
+    "intent": event["intent"], "expectedRevision": event["expectedRevision"],
+}
+event["requestFingerprint"] = "sha256:" + hashlib.sha256(canonical(authorization)).hexdigest()
+event["proof"]["authorizationSignature"] = sign(authorization)
+unsigned = {key: value for key, value in event.items() if key != "proof"}
+event_payload = {"schemaVersion": "operator.mutation-event-proof/v1", "event": unsigned}
+event["proof"]["eventSignature"] = sign(event_payload)
+lines[index] = canonical(event).decode()
+with open(journal_path, "w", encoding="utf-8") as handle:
+    handle.writelines(lines)
+PY
+chmod +x "$SIGNED_EVENT_FORGER"
 
 GRAPH_SCRIPT="$TMP_ROOT/operator-graph-proof.sh"
 cat > "$GRAPH_SCRIPT" <<EOF
@@ -214,9 +312,10 @@ resign_binding() {
   local project_id="${3:--}"
   local graph_id="${4:--}"
   local expires_at="${5:--}"
-  python3 - "$path" "$generation" "$project_id" "$graph_id" "$expires_at" <<'PY'
+  local issued_at="${6:--}"
+  python3 - "$path" "$generation" "$project_id" "$graph_id" "$expires_at" "$issued_at" <<'PY'
 import base64, hashlib, json, sys
-path, generation, project_id, graph_id, expires_at = sys.argv[1:]
+path, generation, project_id, graph_id, expires_at, issued_at = sys.argv[1:]
 n = int("db69e0f76bb58ac09964d8a1e12d4a57a25e7165cb7cf59a95a4863fa8a297df2e10b3de56bcdaae20df6461c017b53a0b95025d93ce2915fc18b887c73628f1b6fe3106de12d788f498f3daf5d8087fe48080f501df5c36b5e7e409f5f95ce13019807cb7bb2f7b422a5284949a4c284c797a6479a97638031dcf39398c8067", 16)
 d = int("7c670dbc7aff558a59ee89bd4ed4c4ffe6f9b145cc182f90d423925269a4b6833db50ea6937b4469d20d96f6ad5943d1835b9b19bf81f65d96afd580767cc8bd26da0611cca73282da9402d58be9c1b737e2ec88e49b57132e978e5b34ac5d93b5acbde645ef01be52613c115a18cae32180c452f46c9fa35f490e5904795641", 16)
 value = json.load(open(path, encoding="utf-8"))
@@ -224,6 +323,7 @@ value["generation"] = int(generation)
 if project_id != "-": value["projectId"] = project_id
 if graph_id != "-": value["graphId"] = graph_id
 if expires_at != "-": value["expiresAt"] = expires_at
+if issued_at != "-": value["issuedAt"] = issued_at
 value["subject"]["id"] += f"-g{generation}"
 payload = {key: value[key] for key in ("schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes", "proofKey")}
 canonical = (json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
@@ -378,6 +478,79 @@ PY
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/deep.json"
 expect_error 5 INVALID_GRAPH env OPERATOR_DIR="$INVALID_DIR" bash "$GRAPH_SCRIPT" validate "$TMP_ROOT/oversized.json"
 
+# Event-phase broker records support the full event bound rather than the
+# 64-KiB binding limit. A real schema-valid init above 64 KiB succeeds.
+LARGE_DEFINITION="$TMP_ROOT/large-definition.json"
+python3 - "$LARGE_DEFINITION" <<'PY'
+import json, sys
+value = {
+    "schemaVersion": "operator.control-graph/v1", "graphId": "adversarial-smoke",
+    "nodes": [
+        {"id": f"large-{index:04d}", "kind": "task", "title": "x" * 300}
+        for index in range(400)
+    ],
+    "edges": [],
+}
+with open(sys.argv[1], "w", encoding="utf-8") as handle:
+    json.dump(value, handle, sort_keys=True, separators=(",", ":"))
+    handle.write("\n")
+PY
+[ "$(wc -c < "$LARGE_DEFINITION" | tr -d ' ')" -gt 65536 ] || fail "large definition did not cross 64 KiB"
+LARGE_DIR="$TMP_ROOT/large-operator"
+write_bindings "$LARGE_DIR"
+env OPERATOR_DIR="$LARGE_DIR" bash "$GRAPH_SCRIPT" init --definition "$LARGE_DEFINITION" \
+  --request-id large-init --actor-binding operator > /dev/null
+[ "$(wc -c < "$LARGE_DIR/graph/events.jsonl" | tr -d ' ')" -gt 65536 ] || fail "large event did not cross 64 KiB"
+env OPERATOR_DIR="$LARGE_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
+
+# The encoded event challenge is accepted at its explicit hard boundary and
+# rejected one byte over it before any socket write.
+PYTHONPATH="$KIT_ROOT/scripts" python3 - <<'PY'
+import json
+import operator_graph as graph
+
+def canonical(value):
+    return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+class FakeSocket:
+    def __init__(self, response):
+        self.response = response
+        self.sent = b""
+    def sendall(self, value):
+        self.sent += value
+    def recv(self, size):
+        value, self.response = self.response[:size], self.response[size:]
+        return value
+
+graph.verify_rsa_signature = lambda *args, **kwargs: None
+key = {"keyId": "boundary-proof", "publicKey": {"n": "f" * 256, "e": 65537}}
+response = canonical({"schemaVersion": graph.PROOF_RESPONSE_VERSION, "phase": "event",
+                      "proofKeyId": key["keyId"], "signature": "A"})
+base_payload = {"blob": ""}
+base_challenge = {"schemaVersion": graph.PROOF_CHALLENGE_VERSION, "operation": "sign", "phase": "event",
+                  "proofKeyId": key["keyId"], "payload": base_payload}
+padding = graph.MAX_PROOF_EVENT_CHALLENGE_BYTES - len(canonical(base_challenge))
+assert padding > 0
+channel = graph.ProofChannel.__new__(graph.ProofChannel)
+channel.socket = FakeSocket(response)
+channel.next_phase = "event"
+channel.proof_key_id = key["keyId"]
+assert channel.sign("event", {"blob": "x" * padding}, key) == "A"
+assert len(channel.socket.sent) == graph.MAX_PROOF_EVENT_CHALLENGE_BYTES
+
+channel = graph.ProofChannel.__new__(graph.ProofChannel)
+channel.socket = FakeSocket(response)
+channel.next_phase = "event"
+channel.proof_key_id = key["keyId"]
+try:
+    channel.sign("event", {"blob": "x" * (padding + 1)}, key)
+    raise AssertionError("over-bound event challenge was accepted")
+except graph.GraphError as error:
+    assert error.code == "AUTHORITY_DENIED", error.code
+    assert error.details["actualBytes"] == graph.MAX_PROOF_EVENT_CHALLENGE_BYTES + 1
+    assert channel.socket.sent == b""
+PY
+
 MAIN_DIR="$TMP_ROOT/main-operator"
 write_bindings "$MAIN_DIR"
 mkdir -p "$MAIN_DIR/roadmap"
@@ -406,6 +579,19 @@ expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOK
   bash "$GRAPH_SCRIPT" transition feature active --request-id altered-event-proof --actor-binding operator
 [ "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" = "$EVENT_COUNT_BEFORE_FAILED_PROOF" ] || \
   fail "failed event proof appended a journal record"
+
+# Challenge and response versions/shapes are distinct; one socket is strictly
+# authorize-then-event with one fixed host-selected proof key.
+for mode in response-as-challenge wrong-version phase-reorder extra-field; do
+  expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_RESPONSE_MODE="$mode" \
+    bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" --request-id "wire-$mode" --actor-binding operator
+done
+for mode in phase-reuse key-change; do
+  expect_error 8 AUTHORITY_DENIED env OPERATOR_DIR="$MAIN_DIR" OPERATOR_GRAPH_SMOKE_RESPONSE_MODE="$mode" \
+    bash "$GRAPH_SCRIPT" transition feature active --request-id "wire-$mode" --actor-binding operator
+done
+[ "$(wc -l < "$MAIN_DIR/graph/events.jsonl" | tr -d ' ')" = "$EVENT_COUNT_BEFORE_FAILED_PROOF" ] || \
+  fail "invalid proof wire session appended a journal record"
 
 # Signed capability documents fail closed when unsigned, altered, expired, or scoped elsewhere.
 for authority_case in unsigned altered expired wrong-project wrong-graph wrong-host wrong-key; do
@@ -864,6 +1050,25 @@ lease = json.load(open(sys.argv[1], encoding="utf-8"))["data"]["lease"]
 assert lease["fence"] == 2 and lease["holder"]["bindingGeneration"] == 2
 PY
 
+# Rotation evidence must already be issued at the resolution event. A higher
+# generation that was issued in the past remains historical evidence even when
+# its validity window has since expired.
+ROTATION_TIME_DIR="$TMP_ROOT/rotation-time-operator"
+write_bindings "$ROTATION_TIME_DIR"
+env OPERATOR_DIR="$ROTATION_TIME_DIR" bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" \
+  --request-id rotation-time-init --actor-binding operator > /dev/null
+env OPERATOR_DIR="$ROTATION_TIME_DIR" bash "$GRAPH_SCRIPT" lease acquire host-task \
+  --lease-id rotation-time-lease --holder-scope lane:a --request-id rotation-time-lease --actor-binding lane-a-recovery > /dev/null
+resign_binding "$ROTATION_TIME_DIR/graph/bindings/lane-a-recovery.json" 2 - - \
+  2099-01-01T00:00:00Z 2098-01-01T00:00:00Z
+expect_error 22 RECONCILIATION_REQUIRED env OPERATOR_DIR="$ROTATION_TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve host-task retry \
+  --lease-id rotation-time-lease --fence 1 --reason binding-rotated --request-id future-rotation --actor-binding operator
+resign_binding "$ROTATION_TIME_DIR/graph/bindings/lane-a-recovery.json" 3 - - \
+  2021-01-01T00:00:00Z 2020-01-01T00:00:00Z
+env OPERATOR_DIR="$ROTATION_TIME_DIR" bash "$GRAPH_SCRIPT" lease resolve host-task retry \
+  --lease-id rotation-time-lease --fence 1 --reason binding-rotated --request-id expired-issued-rotation --actor-binding operator > /dev/null
+env OPERATOR_DIR="$ROTATION_TIME_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
+
 # A real two-process lease race still has exactly one winner.
 RACE_DIR="$TMP_ROOT/race-operator"
 write_bindings "$RACE_DIR"
@@ -1001,6 +1206,25 @@ except graph.GraphError as error:
     assert error.code == "RECONCILIATION_REQUIRED", error.code
 PY
 
+# Replay must reject semantically impossible leases even when an actor with the
+# correct private key has fully re-signed the canonical authorization and event.
+SIGNED_LEASE_DIR="$TMP_ROOT/signed-lease-source"
+write_bindings "$SIGNED_LEASE_DIR"
+env OPERATOR_DIR="$SIGNED_LEASE_DIR" bash "$GRAPH_SCRIPT" init --definition "$DEFINITION" \
+  --request-id signed-lease-init --actor-binding operator > /dev/null
+env OPERATOR_DIR="$SIGNED_LEASE_DIR" bash "$GRAPH_SCRIPT" transition complete-task cancelled \
+  --request-id signed-terminal --actor-binding operator > /dev/null
+env OPERATOR_DIR="$SIGNED_LEASE_DIR" bash "$GRAPH_SCRIPT" lease acquire safe-task \
+  --lease-id forged-lease --holder-scope lane:a --ttl-seconds 300 --request-id signed-acquire --actor-binding lane-a > /dev/null
+env OPERATOR_DIR="$SIGNED_LEASE_DIR" bash "$GRAPH_SCRIPT" lease renew safe-task \
+  --lease-id forged-lease --fence 1 --ttl-seconds 600 --request-id signed-renew --actor-binding lane-a > /dev/null
+for mutation in terminal-acquire invalid-ttl generated-id holder-divergence renewal-reshape; do
+  target="$TMP_ROOT/signed-forge-$mutation"
+  copy_state "$SIGNED_LEASE_DIR" "$target"
+  python3 "$SIGNED_EVENT_FORGER" "$target/graph/events.jsonl" "$mutation" "$PROOF_KEY_DIR/lane-a.pem"
+  expect_error 13 CORRUPT_JOURNAL env OPERATOR_DIR="$target" bash "$GRAPH_SCRIPT" replay check
+done
+
 # Every persisted schema version fails closed when unknown.
 for mutation in unknown-event unknown-projection unknown-lease; do
   target="$TMP_ROOT/$mutation"
@@ -1129,30 +1353,167 @@ env OPERATOR_DIR="$MAIN_DIR" bash "$GRAPH_SCRIPT" replay check > /dev/null
 
 # Runtime materializations and authorization snapshots conform to committed schema field/capability contracts.
 python3 - "$KIT_ROOT/schemas/operator-v5" "$MAIN_DIR/graph" "$TMP_ROOT/snapshot.json" <<'PY'
-import json, sys
+import copy, datetime as dt, json, re, sys
 from pathlib import Path
 schemas, graph_dir, snapshot_path = map(Path, sys.argv[1:])
+
+class SchemaError(Exception):
+    pass
+
+def load_schema(name):
+    return json.load(open(schemas / name, encoding="utf-8"))
+
+def pointer(root, fragment):
+    value = root
+    if fragment:
+        assert fragment.startswith("/")
+        for part in fragment[1:].split("/"):
+            value = value[part.replace("~1", "/").replace("~0", "~")]
+    return value
+
+def check(value, schema, root=None, source=None, path="$", quiet=False):
+    root = schema if root is None else root
+    source = source or "<inline>"
+    try:
+        if "$ref" in schema:
+            ref = schema["$ref"]
+            if ref.startswith("#"):
+                return check(value, pointer(root, ref[1:]), root, source, path)
+            name, _, fragment = ref.partition("#")
+            external = load_schema(name)
+            return check(value, pointer(external, fragment), external, name, path)
+        if "allOf" in schema:
+            for item in schema["allOf"]: check(value, item, root, source, path)
+        if "anyOf" in schema:
+            if not any(matches(value, item, root, source, path) for item in schema["anyOf"]):
+                raise SchemaError(f"{path}: no anyOf branch matched")
+        if "oneOf" in schema:
+            if sum(matches(value, item, root, source, path) for item in schema["oneOf"]) != 1:
+                raise SchemaError(f"{path}: expected exactly one oneOf branch")
+        if "not" in schema and matches(value, schema["not"], root, source, path):
+            raise SchemaError(f"{path}: forbidden schema matched")
+        if "if" in schema and matches(value, schema["if"], root, source, path):
+            if "then" in schema: check(value, schema["then"], root, source, path)
+        elif "else" in schema:
+            check(value, schema["else"], root, source, path)
+        expected_type = schema.get("type")
+        if expected_type is not None:
+            choices = expected_type if isinstance(expected_type, list) else [expected_type]
+            type_match = {
+                "object": lambda: isinstance(value, dict),
+                "array": lambda: isinstance(value, list),
+                "string": lambda: isinstance(value, str),
+                "integer": lambda: isinstance(value, int) and not isinstance(value, bool),
+                "number": lambda: isinstance(value, (int, float)) and not isinstance(value, bool),
+                "boolean": lambda: isinstance(value, bool),
+                "null": lambda: value is None,
+            }
+            if not any(type_match[item]() for item in choices):
+                raise SchemaError(f"{path}: type mismatch {choices}")
+        if "const" in schema and value != schema["const"]:
+            raise SchemaError(f"{path}: const mismatch")
+        if "enum" in schema and value not in schema["enum"]:
+            raise SchemaError(f"{path}: enum mismatch")
+        if isinstance(value, dict):
+            required = set(schema.get("required", []))
+            if not required <= set(value):
+                raise SchemaError(f"{path}: missing {sorted(required - set(value))}")
+            if len(value) > schema.get("maxProperties", len(value)):
+                raise SchemaError(f"{path}: too many properties")
+            properties = schema.get("properties", {})
+            extra = set(value) - set(properties)
+            additional = schema.get("additionalProperties", True)
+            if additional is False and extra:
+                raise SchemaError(f"{path}: extra {sorted(extra)}")
+            for key, item in value.items():
+                if key in properties:
+                    check(item, properties[key], root, source, f"{path}.{key}")
+                elif isinstance(additional, dict):
+                    check(item, additional, root, source, f"{path}.{key}")
+        if isinstance(value, list):
+            if len(value) > schema.get("maxItems", len(value)) or len(value) < schema.get("minItems", 0):
+                raise SchemaError(f"{path}: array size")
+            if schema.get("uniqueItems") and len({json.dumps(item, sort_keys=True) for item in value}) != len(value):
+                raise SchemaError(f"{path}: duplicate items")
+            if isinstance(schema.get("items"), dict):
+                for index, item in enumerate(value): check(item, schema["items"], root, source, f"{path}[{index}]")
+        if isinstance(value, str):
+            if len(value) < schema.get("minLength", 0) or len(value) > schema.get("maxLength", len(value)):
+                raise SchemaError(f"{path}: string length")
+            if "pattern" in schema and re.fullmatch(schema["pattern"], value) is None:
+                raise SchemaError(f"{path}: pattern")
+            if schema.get("format") == "date-time":
+                dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            if value < schema.get("minimum", value) or value > schema.get("maximum", value):
+                raise SchemaError(f"{path}: numeric bound")
+    except (AssertionError, KeyError, ValueError, TypeError, SchemaError) as error:
+        if quiet: return False
+        if isinstance(error, SchemaError): raise
+        raise SchemaError(f"{path}: {error}") from error
+    return True
+
+def matches(value, schema, root, source, path):
+    try:
+        check(value, schema, root, source, path)
+        return True
+    except SchemaError:
+        return False
+
 binding_schema = json.load(open(schemas / "actor-binding.schema.json", encoding="utf-8"))
 binding = json.load(open(graph_dir / "bindings" / "operator.json", encoding="utf-8"))
-assert set(binding_schema["required"]) == set(binding)
-assert set(binding["capabilities"]) <= set(binding_schema["properties"]["capabilities"]["items"]["enum"])
-event_schema = json.load(open(schemas / "control-event.schema.json", encoding="utf-8"))
+check(binding, binding_schema, binding_schema, "actor-binding.schema.json")
+event_schema = load_schema("control-event.schema.json")
 events = [json.loads(line) for line in open(graph_dir / "events.jsonl", encoding="utf-8")]
 for event in events:
-    assert set(event_schema["required"]) == set(event)
-    assert set(event_schema["properties"]["actor"]["required"]) == set(event["actor"])
-projection_schema = json.load(open(schemas / "control-projection.schema.json", encoding="utf-8"))
+    check(event, event_schema, event_schema, "control-event.schema.json")
+projection_schema = load_schema("control-projection.schema.json")
 projection = json.load(open(graph_dir / "projection.json", encoding="utf-8"))
-assert set(projection_schema["required"]) == set(projection)
-lease_schema = json.load(open(schemas / "ownership-lease.schema.json", encoding="utf-8"))
-for lease in projection["leases"].values():
-    assert set(lease_schema["required"]) == set(lease)
-snapshot_schema = json.load(open(schemas / "control-snapshot.schema.json", encoding="utf-8"))
+check(projection, projection_schema, projection_schema, "control-projection.schema.json")
+snapshot_schema = load_schema("control-snapshot.schema.json")
 snapshot = json.load(open(snapshot_path, encoding="utf-8"))["data"]
-assert snapshot["schemaVersion"] == snapshot_schema["properties"]["schemaVersion"]["const"]
-assert set(snapshot_schema["required"]) == set(snapshot)
-assert all(set(snapshot_schema["properties"]["nodes"]["items"]["required"]) == set(node) for node in snapshot["nodes"])
-assert all(set(snapshot_schema["properties"]["edges"]["items"]["required"]) == set(edge) for edge in snapshot["edges"])
+check(snapshot, snapshot_schema, snapshot_schema, "control-snapshot.schema.json")
+
+authorization_schema = load_schema("mutation-authorization.schema.json")
+unsigned_schema = load_schema("control-event-unsigned.schema.json")
+event_payload_schema = load_schema("mutation-event-proof-payload.schema.json")
+challenge_schema = load_schema("proof-broker-challenge.schema.json")
+response_schema = load_schema("proof-broker-response.schema.json")
+first = events[0]
+authorization = {
+    "schemaVersion": "operator.mutation-proof-request/v1", "command": first["result"]["command"],
+    "requestId": first["requestId"], "bindingId": first["actor"]["bindingId"],
+    "bindingGeneration": first["actor"]["bindingGeneration"], "bindingHash": first["actor"]["bindingHash"],
+    "intent": first["intent"], "expectedRevision": first["expectedRevision"],
+}
+unsigned_event = {key: value for key, value in first.items() if key != "proof"}
+event_payload = {"schemaVersion": "operator.mutation-event-proof/v1", "event": unsigned_event}
+check(authorization, authorization_schema, authorization_schema, "mutation-authorization.schema.json")
+check(unsigned_event, unsigned_schema, unsigned_schema, "control-event-unsigned.schema.json")
+check(event_payload, event_payload_schema, event_payload_schema, "mutation-event-proof-payload.schema.json")
+for phase, payload, signature in (
+    ("authorize", authorization, first["proof"]["authorizationSignature"]),
+    ("event", event_payload, first["proof"]["eventSignature"]),
+):
+    challenge = {"schemaVersion": "operator.proof-challenge/v1", "operation": "sign", "phase": phase,
+                 "proofKeyId": first["proof"]["proofKeyId"], "payload": payload}
+    response = {"schemaVersion": "operator.proof-response/v1", "phase": phase,
+                "proofKeyId": first["proof"]["proofKeyId"], "signature": signature}
+    check(challenge, challenge_schema, challenge_schema, "proof-broker-challenge.schema.json")
+    check(response, response_schema, response_schema, "proof-broker-response.schema.json")
+
+negative_snapshots = []
+bad = copy.deepcopy(snapshot)
+next(iter(bad["executionStarted"].values()))["revision"] = 0
+negative_snapshots.append(bad)
+bad = copy.deepcopy(snapshot)
+bad["reconciliations"]["malformed"] = {"leaseId": "x", "fence": 1, "reason": "invented"}
+negative_snapshots.append(bad)
+bad = copy.deepcopy(snapshot)
+next(iter(bad["bindingGenerations"].values()))["bindingHash"] = "not-a-hash"
+negative_snapshots.append(bad)
+for bad in negative_snapshots:
+    assert not matches(bad, snapshot_schema, snapshot_schema, "control-snapshot.schema.json", "$")
 PY
 
 ROADMAP_AFTER="$(shasum -a 256 "$MAIN_DIR/roadmap/sentinel.txt")"
