@@ -1,137 +1,106 @@
 # Operator V5 Control Graph
 
-Status: normative V5 graph, transaction, actor-binding, event, projection, and
-ownership-lease contract.
+Status: normative V5 graph, transaction, signed authority, event, projection,
+and ownership-lease contract.
 
-This API is the sole owner of V5 node and edge shapes, graph-state
-preconditions and transitions, graph revisions, request idempotency, event
-journaling, actor capabilities, ownership leases, fencing, graph locking, and
-replay. Schedulers and runners consume the locked snapshot API and never parse
-or write graph files.
+This API is the sole owner of V5 node/edge shapes, transitions and
+preconditions, revisions, idempotency, journaling, capabilities, ownership
+leases, fencing, locking, and replay. Schedulers and runners consume `status`
+or `snapshot`; they never parse or write graph files.
 
 ## Durable State And Trust Boundary
 
-For the configured `OPERATOR_DIR`, graph state is:
-
 ```text
-OPERATOR_DIR/graph/
-├── bindings/
-│   └── <binding-id>.json
-├── definition.json
-├── projection.json
-└── events.jsonl
+OPERATOR_DIR/
+├── authority/
+│   └── control-graph-public-key.json
+└── graph/
+    ├── bindings/
+    │   └── <binding-id>.json
+    ├── definition.json
+    ├── projection.json
+    └── events.jsonl
 ```
 
 `events.jsonl` is the append-only transaction record. `definition.json` and
-`projection.json` are deterministic materializations. `bindings/` is trusted
-local configuration provisioned by the control plane or authorized human; it
-is not event history.
+`projection.json` are deterministic materializations. Graph commands never
+write roadmap files.
 
-The local filesystem is the security boundary. `bindings/` and each binding
-must be real, non-symlinked, non-group/world-writable paths. Any process that
-can replace a trusted binding or modify the runtime has equivalent local
-control-plane authority. Bindings are not remote authentication, signatures,
-or protection from a compromised local account. Deployments with mutually
-untrusted OS users must provision ownership/ACL isolation outside this API.
+Bindings are signed capability documents, not trusted filesystem labels. The
+control plane provisions `control-graph-public-key.json` with project ID,
+graph ID, key ID, canonical host ID, and an RSA public key. Its private key
+must never be present in a lane, worktree, `OPERATOR_DIR`, environment
+variable, or CLI argument. The trust anchor must be mounted or otherwise kept
+outside every bypass-permissions lane's write scope. A lane may rewrite a
+mode-0600 binding file but cannot create the required RS256 signature.
+Replacing the public-key anchor or runtime is control-plane compromise.
 
-Graph commands write no roadmap files. Product intent remains under
-`OPERATOR_DIR/roadmap`; it is not runtime authority.
-
-Version identifiers are:
-
-- `operator.control-graph/v1`
-- `operator.control-event/v1`
-- `operator.control-projection/v1`
-- `operator.ownership-lease/v1`
-- `operator.actor-binding/v1`
-
-Unknown versions fail closed with `UNKNOWN_VERSION`. Committed JSON Schemas
-cover graph, event, projection, and lease records. Runtime checks add
-cross-record constraints: references, endpoint kinds, cycles, transition
-preconditions, event semantics, timestamps, assignments, and fences.
+Versions are `operator.control-graph/v1`, `operator.control-event/v1`,
+`operator.control-projection/v1`, `operator.ownership-lease/v1`, and
+`operator.actor-binding/v1`. Unknown persisted state versions fail closed.
+Committed JSON Schemas cover all five records. Runtime validation additionally
+enforces cross-record references, endpoints, cycles, transitions, assignment,
+time, signatures, generations, and fences.
 
 ## Typed Definition
 
-A definition has `schemaVersion`, stable `graphId`, normalized `nodes` and
-`edges`, and runtime-owned positive `definitionRevision`. Input definitions may
-omit `definitionRevision`; init sets it to 1 and every replacement increments
-it.
+Definitions contain `schemaVersion`, stable `graphId`, nodes, edges, and a
+runtime-owned positive `definitionRevision`. Input may omit the revision; init
+sets 1 and replacement increments it.
 
-Node families are:
-
-| Family | Kinds | Default state | Success-terminal |
+| Family | Kinds | Required initial state | Success-terminal |
 | --- | --- | --- | --- |
-| container | `goal`, `feature`, `lane` | `planned` | `completed` |
-| work | `task`, `validation`, `integration`, `feedback` | `pending` | `completed` |
-| gate | `human-gate` | `pending` | `approved` |
+| container | goal, feature, lane | `planned` | `completed` |
+| work | task, validation, integration, feedback | `pending` | `completed` |
+| gate | human-gate | `pending` | `approved` |
 
-Node IDs are unique. A node has a title, priority from 0 through 1000, and
-object metadata. Missing title, priority, metadata, and initial state normalize
-to the node ID, 0, `{}`, and the family default.
-
-Work may opt into automatic expired-lease reclaim only with both flags:
+An explicitly supplied non-default initial state is invalid. V1 has no
+migration shortcut: activation, completion, and gate decisions must be
+attributed events. Priority is an integer from 0 through 1000. Work opts into
+safe expired-lease reclaim only with both flags:
 
 ```json
 {"execution":{"idempotent":true,"reclaimable":true}}
 ```
 
-Omission or either false value means reclaim requires explicit sweep and
-reconciliation.
-
-Allowed edge endpoints are:
+Allowed edges are:
 
 | Edge | From | To |
 | --- | --- | --- |
-| `contains` | goal, feature, lane | every kind except goal |
-| `depends-on` | every kind except human-gate | every node kind |
-| `assigned-to` | task, validation, integration, feedback | lane |
-| `validated-by` | task, integration | validation |
-| `gated-by` | goal, feature, task, integration | human-gate |
-| `integrates-into` | integration | feature |
-| `feedback-for` | feedback | every kind except feedback |
+| contains | goal, feature, lane | every kind except goal |
+| depends-on | every kind except human-gate | every kind |
+| assigned-to | work | lane |
+| validated-by | task, integration | validation |
+| gated-by | goal, feature, task, integration | human-gate |
+| integrates-into | integration | feature |
+| feedback-for | feedback | every kind except feedback |
 
-Edge IDs and `(kind, from, to)` tuples are unique. Both endpoints must exist,
-self-edges are invalid, and the combined directed `contains`/`depends-on`
-subgraph must be acyclic.
+References and IDs must be unique; self-edges are invalid. The combined
+`contains`/`depends-on` graph must be acyclic.
 
-### Gate Metadata
+### Gates
 
-Every `gated-by` edge normalizes metadata to:
+`gated-by` metadata normalizes to `protectedTransitions`. The safe default is
+`["active","completed"]`; integration defaults to and must always cover
+`ready`, `active`, and `completed`. Listed values must be actual transition
+targets for the source family. JSON Schema validates the field shape and
+values; runtime validation enforces source-node-specific coverage.
 
-```json
-{"protectedTransitions":["active","completed"]}
-```
-
-That safe default applies to non-integration sources. The integration default
-is `ready`, `active`, and `completed`, so integration cannot begin without an
-explicit approved gate. A nonempty, unique `protectedTransitions` array may
-narrow or expand protection to valid states of the source family.
-
-For every protected transition, every applicable gate must exist, be a
-`human-gate`, and be `approved`. Pending, rejected, cancelled, missing, or
-invalid gates fail closed. Integration transitions to ready, active, or
-completed additionally require at least one applicable `gated-by` edge;
-absence returns `GATE_REQUIRED`.
+Every applicable gate must be approved. Missing, pending, rejected, cancelled,
+or invalid gates fail closed. An integration transition to ready, active, or
+completed without an applicable gate returns `GATE_REQUIRED`.
 
 ### Append-Only Identity
 
-Definition replacement cannot change `graphId`, remove an existing node ID, or
-change an existing node's kind. Node IDs therefore cannot be reused and fence
-tombstones never reset.
+Replacement cannot change graph ID, remove or kind-change an existing node, or
+reuse its ID. Fence tombstones therefore never reset. A work node becomes
+execution-started on its first lease even while still pending; projection
+records the first revision/time in `executionStarted`. From then on—or after
+any node activates or becomes terminal—kind, title, initial state, metadata,
+and outgoing assignment/dependency/validation/gate/integration edges are
+immutable. Completed history is never reopened; forward work uses new nodes.
 
-Once a node has moved from its original state, or is terminal, its kind, title,
-initial state, metadata, and outgoing dependency, validation, gate, assignment,
-and integration edges are immutable. This prevents definition replacement from
-deleting execution preconditions after work begins while still allowing new
-forward nodes to contain, depend on, or link feedback to completed history.
-Priority remains control-plane state and may change through an operator/system
-definition replacement.
-Completed history is never reopened or rewritten; new cancellation, feedback,
-or forward-improvement nodes carry later work.
-
-## Published Transitions And Preconditions
-
-Unlisted transitions return `INVALID_TRANSITION`:
+## Transitions And Preconditions
 
 ```text
 containers
@@ -146,234 +115,196 @@ active  -> blocked | completed | failed | cancelled
 blocked -> ready | active | failed | cancelled
 failed  -> ready | cancelled
 
-human gates (only `gate decide`)
+human gates (gate decide only)
 pending -> approved | rejected
 ```
 
-Before a node becomes `ready` or `active`, every `depends-on` target must be
-success-terminal for its family. Before a node becomes `completed`, every
-`validated-by` target must be success-terminal. Gate checks then apply to the
-target state. These checks run inside the transaction lock and again during
-replay, so a scheduler bug or forged journal cannot bypass them.
+Before ready/active, all `depends-on` targets must be success-terminal. Before
+completed, all `validated-by` targets must be success-terminal. Gate checks
+then apply. Transaction and replay enforce the same rules.
 
-An unleased generic transition is a control-plane operation available only to
-an operator or system binding with `transition`. If a current lease
-exists, the command must supply its lease ID and fence and use the same actor
-binding that owns the lease. An expired lease cannot transition. Human gates
-never use generic transition.
+An unleased generic transition is restricted to operator/system. If a lease
+exists, lease ID, fence, binding generation, and binding hash must match.
+Human gates use only `gate decide`. Subagents cannot integrate.
 
-## Actor Binding And Capabilities
+## Signed Actor Bindings
 
-Mutations require `--actor-binding ID`. The runtime resolves only
-`OPERATOR_DIR/graph/bindings/ID.json`; callers cannot supply arbitrary paths.
+Mutations require `--actor-binding ID`, resolved only below `graph/bindings`.
+A binding includes:
 
 ```json
 {
-  "schemaVersion": "operator.actor-binding/v1",
-  "bindingId": "lane-control-graph",
-  "subject": {
-    "type": "lane",
-    "id": "control-graph-worker",
-    "laneNodeId": "lane-control-graph"
-  },
-  "capabilities": ["lease", "transition"],
-  "leaseScopes": [
-    {"scope": "lane:control-graph", "laneNodeId": "lane-control-graph"}
-  ]
+  "schemaVersion":"operator.actor-binding/v1",
+  "bindingId":"lane-control-graph",
+  "generation":4,
+  "projectId":"my-project",
+  "graphId":"operator-v5",
+  "issuedAt":"2026-07-21T08:00:00Z",
+  "expiresAt":"2026-07-22T08:00:00Z",
+  "subject":{"type":"lane","id":"worker","laneNodeId":"lane-control-graph"},
+  "capabilities":["lease","transition"],
+  "leaseScopes":[{"scope":"lane:control-graph","laneNodeId":"lane-control-graph"}],
+  "signature":{"keyId":"control-2026-07","algorithm":"RS256","value":"..."}
 }
 ```
 
-Subject types are `operator`, `lane`, `host`, `human`, `subagent`, and
-`system`. Lane subjects require `laneNodeId`; host subjects require
-`hostRunnerId`. Only lane and host bindings may contain lease scopes. Each
-scope binds a structured scope string to exactly one lane node. A lane binding
-cannot name another lane's node; a host must list every allowed lane scope
-explicitly.
+Unsigned, altered, expired, wrong-project, wrong-graph, wrong-key, or
+wrong-host authority fails `AUTHORITY_DENIED`. Generations only increase; old
+or same-generation-different-content documents fail closed. Capabilities are
+`graph-init`, `graph-replace`, `gate-decision`, `lease`, `transition`, `sweep`,
+`lease-resolve`, and `replay-repair`.
 
-Capabilities are `graph-init`, `graph-replace`, `gate-decision`, `lease`,
-`transition`, `sweep`, and `replay-repair`. `test-injection` is reserved for
-isolated runtime tests.
+Type rules still apply to an overpowered document:
 
-Type restrictions remain even if an overpowered binding lists a capability:
+- operator/system: init, replacement/priority, replay repair;
+- human only: gate decision;
+- lane/host only: acquire/hold lease;
+- operator/system/host: sweep;
+- operator/system/human: resolve reconciliation;
+- subagents: never lease, decide gates, change graph/priority, or integrate.
 
-- only operator/system may initialize or replace a graph, including priority;
-- only human may decide a gate;
-- only lane/host may acquire or hold a lease;
-- only operator/system/host may sweep;
-- only operator/system may repair replay drift;
-- subagents cannot lease, decide gates, replace graph/priority, or integrate.
+There are no shipped actor, capability, scope, time, or fault-injection flags,
+hidden or otherwise. Environment variables cannot mint authority. Adversarial
+tests use a non-installed harness against isolated temporary state.
 
-Changing `--actor-type` or `--actor-id` labels does not change a binding's
-identity. Raw actor flags exist solely behind
-`--test-only-unsafe-actor-flags` plus `OPERATOR_GRAPH_TESTING=1`; they are
-hidden from normal help and require explicit test capabilities/scopes.
+Each event snapshots binding generation, project/graph/key IDs, validity
+window, subject, capabilities, scopes, and canonical binding/capability hashes.
+It also retains the binding signature. Replay verifies that signature against
+the external trust anchor and recomputes both hashes without consulting the
+current binding file.
 
-Each event snapshots binding ID, canonical binding hash, the complete typed
-subject, capabilities, and lease scopes. Replay validates that the recorded
-capability, actor type, scope, and lane assignment could perform the event
-without consulting a mutable current binding.
+## Assignment, Leases, And Reconciliation
 
-## Assignment And Ownership Leases
+Only nonterminal work may be leased. The requested holder scope must be signed
+into a lane/host binding and its lane node must match `assigned-to`. A lease
+records holder binding ID/generation/hash, scope/lane, timestamps, canonical
+host/boot monotonic clock, and fence. TTL is 1 through 86400 seconds.
 
-Only work nodes can be leased. Acquire requires `--holder-scope`, and that
-scope must appear in the binding. The node must have `assigned-to` pointing to
-the scope's lane node. A lane cannot lease work assigned to another lane; host
-identity alone never authorizes a scope.
+Every acquisition increments the permanent per-node fence tombstone. Same-ID
+binding rotation cannot inherit renew, release, or transition rights.
 
-A lease records node ID, lease ID, holder type/ID/binding/scope/lane node,
-acquire/renew/expiry timestamps, and positive fence. TTL is 1 through 86400
-seconds. Only one unexpired lease exists per node.
+Safe idempotent/reclaimable pending, ready, or blocked work may be reclaimed
+after monotonic expiry. Active or otherwise unsafe nonterminal work requires
+reconciliation. `lease sweep` removes its lease, blocks active work, and
+persists a `reconciliations` record; sweep alone never authorizes another run.
+Operator/system/human must journal `lease resolve` with the retained lease
+ID/fence:
 
-Every acquisition increments the retained per-node fence. Release and sweep
-remove the active lease but retain the tombstone. Because definitions never
-remove IDs, a remove/re-add sequence cannot restart fencing.
+- `retry`: clear reconciliation; active becomes blocked; then a new lease may
+  acquire the next fence;
+- `cancel`: clear reconciliation and mark cancelled;
+- `complete`: clear reconciliation and record explicit adjudicated completion.
 
-An expired lease is automatically reclaimable only when the node metadata is
-both idempotent and reclaimable and its state is pending, ready, or blocked.
-Active work is never automatically reclaimed. Other expired nonterminal work
-returns `RECONCILIATION_REQUIRED` until `lease sweep` removes the lease and
-moves the node to `blocked`, recording `reconciliation: true`. A later acquire
-then receives the next fence. Terminal work retains its terminal state when an
-expired lease is swept.
+`binding-rotated` and `clock-recovery` resolve a still-present lease. Terminal
+work cannot be leased.
 
 ## Trusted Time
 
-Authorization, expiration, reclaim, renewal, release, and transition use the
-runtime's UTC wall clock. Public callers cannot inject time. Test time requires
-all three: `OPERATOR_GRAPH_TESTING=1`, hidden `--test-only-now`, and a binding
-with `test-injection`.
+Binding validity uses canonical-host wall time. Lease expiry uses the
+canonical host/boot monotonic sample. Foreign hosts, changed boots, and skewed
+wall clocks never expire a lease; they require explicit `clock-recovery`.
+Mutations on a host other than the trust anchor's `canonicalHostId` fail.
 
-Event time is nondecreasing. A transaction whose trusted time precedes the
-last event returns `CLOCK_ROLLBACK`; replay classifies backward journal time as
-corruption. An ordinary actor therefore cannot claim that another lease has
-expired by supplying a future timestamp.
+Event wall time is nondecreasing and bounded against same-host/boot monotonic
+elapsed time. Rollback returns `CLOCK_ROLLBACK`; excessive forward movement
+returns `CLOCK_SKEW`. Callers cannot inject clocks.
 
-## Events, Revisions, CAS, And Idempotency
+## Events, CAS, And Idempotency
 
-Every mutation has a bounded `requestId` and appends exactly one committed
-event. Event sequence is strict, gap-free, and equal to projection revision.
-Definition revision is separate and changes only on replacement.
+Every mutation requires a bounded request ID and appends one event. Event
+sequence is strict, gap-free, and equals projection revision. Event IDs and
+request IDs are globally unique in the journal.
 
-Events record a `requestFingerprint`: SHA-256 of canonical command intent,
-binding ID/hash/subject, node and target or definition hash, lease/fence,
-relevant command options, CAS revision, and test time when used. An exact retry
-returns the original journaled result without appending. Reusing a request ID
-with different command, binding, target, definition, lease/fence, TTL, scope,
-or CAS returns `REQUEST_CONFLICT` before other state checks.
+Events persist canonical `intent` and `expectedRevision`. Replay recomputes the
+request fingerprint over command, binding ID/hash/subject, intent, and CAS.
+Exact retries return the original result without appending; changed intent
+returns `REQUEST_CONFLICT`. Optional `--expected-revision` applies to every
+mutation except init and returns `REVISION_CONFLICT` on mismatch.
 
-`--expected-revision` provides CAS for every mutation except init. A mismatch
-returns `REVISION_CONFLICT` without an event.
+## Locking, Commit, Recovery, And Journal Bounds
 
-## Journal Commit, Locking, And Recovery
+The atomic `graph/.lock` owner records host, boot, PID, process-start identity,
+unique token/epoch, heartbeat, and diagnostic expiry. Expiry never authorizes
+takeover of a live/paused owner. Foreign locks are never reclaimed from wall
+time. Same-host/boot takeover requires proven death or PID reuse. Ownerless or
+malformed locks are quarantined by atomic rename only after a conservative
+grace period; creator failure removes the directory. Ownership is rechecked
+immediately before append and every materialization replacement.
 
-The writer uses the atomic directory `graph/.lock`. Its owner record contains
-host, boot, PID, process-start identity, token, heartbeat, and short expiry.
-The owner refreshes its heartbeat during a transaction. Foreign-host PIDs are
-never interpreted as local. A foreign live lease fails closed; an expired lock
-may be recovered. On the same host/boot, a missing process or mismatched
-process-start token detects death/PID reuse.
+Under that lock the runtime:
 
-The commit order is:
+1. recovers an incomplete tail and preflights committed size;
+2. validates/replays the candidate event before modifying the journal;
+3. appends one newline-committed canonical event and fsyncs;
+4. atomically temp+fsync+replaces definition and projection, checking the lock
+   token before each replacement.
 
-1. append one canonical event ending in a newline commit marker;
-2. `fsync` the journal;
-3. replay the complete journal;
-4. atomically temp+`fsync`+replace definition;
-5. atomically temp+`fsync`+replace projection;
-6. `fsync` parent directories.
+An incomplete final line is truncated; committed middle/tail corruption is
+never skipped. A committed event ahead of materialization rolls forward on the
+next locked load, so an exact retry succeeds. Same-revision drift returns
+`REPLAY_DRIFT`; only explicit `replay repair` rematerializes it.
 
-An incomplete final record without the newline marker is uncommitted. Under
-the lock it is truncated to the last committed newline. Invalid JSON or
-semantics in any newline-committed record, including the middle, is
-`CORRUPT_JOURNAL` and is never skipped.
+No successful append may exceed 256 MiB. At the exact boundary the event is
+accepted; the next mutation returns `JOURNAL_FULL`. V1 has no online checkpoint
+or rotation API. Operators must stop writers and use separately reviewed,
+signed migration/checkpoint tooling—never truncate or replace this journal in
+place.
 
-If a fully committed event is ahead of a missing or lower-revision
-materialization, the next locked command automatically rolls both
-materializations forward before request lookup. An exact retry therefore
-returns the committed original result after crashes following the event or
-between definition/projection replacement. Same-revision semantic drift is
-not silently repaired; `replay check` returns `REPLAY_DRIFT` and repair remains
-explicit.
+## Snapshot, Replay, And Bounds
 
-## Snapshot And Replay APIs
+`status` and `snapshot` return the same locked deterministic object: normalized
+nodes/edges/metadata/states, leases, fence tombstones, execution-start markers,
+reconciliations, binding generations, hashes, revisions, time, and event count.
 
-`status` and `snapshot` both acquire the graph lock and return the same
-deterministic data object. It contains projection schema version, graph ID,
-projection and definition revisions, definition hash, last event time, event
-count, normalized sorted nodes with metadata and current state, normalized
-sorted edges with metadata, active leases, and fence tombstones. RM-0004 and
-RM-0003 consume this API rather than files.
+Replay validates versions, sizes, finite JSON, exact fields/results, unique
+event/request IDs, recomputed authorization/request hashes, intent/CAS,
+time/clock order, capabilities, assignment, transitions/preconditions,
+reconciliation, expiry, fences, and immutable history. Corruption is
+`CORRUPT_JOURNAL`; it is not repaired.
 
-Replay validates versions, sizes, JSON numbers, exact fields, strict sequence,
-unique request IDs, request fingerprint shape, nondecreasing time, actor and
-capability, event-specific data, exact command/result/data consistency,
-assignment, state preconditions, lease order, expiry, fences, and history
-immutability. `replay repair` appends an attributed repair event and atomically
-replaces both materializations. It cannot repair a corrupt journal.
-
-## Input Bounds
-
-The runtime rejects non-finite numbers, control characters, overlong IDs and
-scopes, unsafe binding paths, excessive node/edge counts, metadata over 64 KiB,
-JSON nesting over 32, graph files over 4 MiB, event records over 8 MiB, and
-journals over 256 MiB. Cycle validation is iterative, avoiding recursion
-failure on large graphs. Invalid journal timestamps and values are reported as
-`CORRUPT_JOURNAL`, never CLI usage errors or tracebacks.
+The runtime bounds IDs/scopes, JSON depth/items, node/edge counts, 64 KiB
+metadata, 4 MiB graphs, 8 MiB event records, and a 256 MiB journal. Cycle and
+JSON validation are iterative where recursion risk matters.
 
 ## CLI
 
 ```text
 operator-graph init [--definition FILE] [--graph-id ID] MUTATION
 operator-graph validate [DEFINITION]
-operator-graph status
-operator-graph snapshot
+operator-graph status | snapshot
 operator-graph replace-definition DEFINITION MUTATION
 operator-graph transition NODE STATE [--lease-id ID --fence N] MUTATION
 operator-graph gate decide NODE approved|rejected MUTATION
-operator-graph lease acquire NODE --holder-scope SCOPE
-    [--lease-id ID] [--ttl-seconds N] MUTATION
-operator-graph lease renew NODE --lease-id ID --fence N
-    [--ttl-seconds N] MUTATION
+operator-graph lease acquire NODE --holder-scope SCOPE [--lease-id ID] [--ttl-seconds N] MUTATION
+operator-graph lease renew NODE --lease-id ID --fence N [--ttl-seconds N] MUTATION
 operator-graph lease release NODE --lease-id ID --fence N MUTATION
 operator-graph lease sweep MUTATION
+operator-graph lease resolve NODE retry|cancel|complete --lease-id ID --fence N
+    --reason expired-unsafe|binding-rotated|clock-recovery MUTATION
 operator-graph replay check
 operator-graph replay repair MUTATION
 
 MUTATION := --request-id ID --actor-binding ID [--expected-revision N]
 ```
 
-The shell entry point resolves `OPERATOR_DIR` from the environment or project
-config. Direct Python callers may put global `--operator-dir PATH` before the
-command.
-
-Success is compact JSON on stdout. Failure is compact JSON on stderr with
-`ok:false` and `error:{code,message,details?}`. Callers branch on `error.code`,
-not messages. Stable codes include `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`,
+Stable error codes include `USAGE`, `IO_ERROR`, `UNKNOWN_VERSION`,
 `INVALID_GRAPH`, `REVISION_CONFLICT`, `REQUEST_CONFLICT`, `AUTHORITY_DENIED`,
 `LEASE_CONFLICT`, `FENCE_STALE`, `INVALID_TRANSITION`, `REPLAY_DRIFT`,
 `CORRUPT_JOURNAL`, `NOT_INITIALIZED`, `INVALID_STATE`, `LOCK_TIMEOUT`,
 `LEASE_REQUIRED`, `LEASE_EXPIRED`, `PRECONDITION_FAILED`, `GATE_REQUIRED`,
-`RECONCILIATION_REQUIRED`, and `CLOCK_ROLLBACK`.
+`RECONCILIATION_REQUIRED`, `CLOCK_ROLLBACK`, `CLOCK_SKEW`, and `JOURNAL_FULL`.
 
-## Remaining Boundaries
+## Remaining Boundaries And Integration Follow-Ups
 
-- Binding provisioning/rotation is a control-plane and installer concern; this
-  API validates and consumes bindings but does not mint authority.
-- Local bindings are filesystem capabilities, not cryptographic remote tokens.
-- The graph is intentionally bounded for deterministic single-writer local
-  operation; larger distributed graphs require a different storage contract.
-- Wall-clock rollback fails closed and requires host clock correction; the API
-  does not operate an independent trusted-time service.
-
-## Integration Follow-Ups
-
-- Register the runtime, four schemas, graph template, and smoke in shared
-  installer/updater/version surfaces, including creation of trusted
-  `graph/bindings` with restrictive permissions.
-- RM-0004 should consume only `snapshot`/`status`, surface
-  `PRECONDITION_FAILED` and `GATE_REQUIRED` reasons, and use request IDs/CAS.
-- RM-0003 should provision/select host or lane bindings, persist lease ID and
-  fence, sweep expired work for reconciliation, and fail its tick closed on
-  lock, clock, replay, or version errors.
-- RM-0001/RM-0002 adapters should map durable lanes, feature instances, and host
-  runners into binding subjects/scopes without granting host-derived authority.
+- Trust-anchor/private-key provisioning, signed binding issuance/rotation, and
+  offline journal migration are control-plane/installer responsibilities.
+- RS256 documents provide local authorization, not remote identity federation
+  or protection after trust-anchor/runtime compromise.
+- Host/boot/clock changes fail closed and require correction or explicit lease
+  recovery; this API is not an independent time service.
+- Register the runtime, five schemas, template, and smoke in shared installer,
+  updater, and version surfaces on the integration branch.
+- RM-0004 consumes only snapshot/status and surfaces precondition, gate,
+  reconciliation, clock, and journal-full failures.
+- RM-0003 selects signed lane/host bindings, persists lease ID/fence, and never
+  retries reconciled work until an explicit resolution is observed.

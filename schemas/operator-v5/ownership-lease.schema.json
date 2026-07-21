@@ -4,7 +4,7 @@
   "title": "Operator V5 Ownership Lease",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence"],
+  "required": ["schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence", "clock"],
   "properties": {
     "schemaVersion": {"const": "operator.ownership-lease/v1"},
     "nodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
@@ -12,11 +12,13 @@
     "holder": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["actorType", "actorId", "bindingId", "scope", "laneNodeId"],
+      "required": ["actorType", "actorId", "bindingId", "bindingGeneration", "bindingHash", "scope", "laneNodeId"],
       "properties": {
         "actorType": {"enum": ["lane", "host"]},
         "actorId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+        "bindingGeneration": {"type": "integer", "minimum": 1},
+        "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
         "scope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
       }
@@ -24,6 +26,17 @@
     "acquiredAt": {"type": "string", "format": "date-time"},
     "renewedAt": {"type": "string", "format": "date-time"},
     "expiresAt": {"type": "string", "format": "date-time"},
-    "fence": {"type": "integer", "minimum": 1}
+    "fence": {"type": "integer", "minimum": 1},
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hostId", "bootId", "acquiredMonotonicNs", "expiresMonotonicNs"],
+      "properties": {
+        "hostId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "bootId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "acquiredMonotonicNs": {"type": "integer", "minimum": 0},
+        "expiresMonotonicNs": {"type": "integer", "minimum": 1}
+      }
+    }
   }
 }

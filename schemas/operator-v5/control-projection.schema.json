@@ -4,7 +4,7 @@
   "title": "Operator V5 Control Projection",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences"],
+  "required": ["schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations"],
   "properties": {
     "schemaVersion": {"const": "operator.control-projection/v1"},
     "graphId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
@@ -28,6 +28,39 @@
       "type": "object",
       "maxProperties": 10000,
       "additionalProperties": {"type": "integer", "minimum": 1}
+    },
+    "executionStarted": {
+      "type": "object",
+      "maxProperties": 10000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["revision", "occurredAt"],
+        "properties": {"revision": {"type": "integer", "minimum": 1}, "occurredAt": {"type": "string", "format": "date-time"}}
+      }
+    },
+    "reconciliations": {
+      "type": "object",
+      "maxProperties": 10000,
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false,
+        "required": ["leaseId", "fence", "reason", "requiredAt", "priorState"],
+        "properties": {
+          "leaseId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+          "fence": {"type": "integer", "minimum": 1},
+          "reason": {"enum": ["expired-unsafe", "binding-rotated", "clock-recovery"]},
+          "requiredAt": {"type": "string", "format": "date-time"},
+          "priorState": {"enum": ["pending", "ready", "active", "blocked", "completed", "failed", "cancelled"]}
+        }
+      }
+    },
+    "bindingGenerations": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object", "additionalProperties": false, "required": ["generation", "bindingHash"],
+        "properties": {
+          "generation": {"type": "integer", "minimum": 1},
+          "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+        }
+      }
     }
   }
 }

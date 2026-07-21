@@ -8,6 +8,7 @@ materializations updated under one host-aware transaction lock.
 from __future__ import annotations
 
 import argparse
+import base64
 import contextlib
 import datetime as dt
 import hashlib
@@ -33,12 +34,13 @@ EVENT_VERSION = "operator.control-event/v1"
 PROJECTION_VERSION = "operator.control-projection/v1"
 LEASE_VERSION = "operator.ownership-lease/v1"
 BINDING_VERSION = "operator.actor-binding/v1"
+AUTHORITY_VERSION = "operator.authority-key/v1"
 LOCK_VERSION = "operator.graph-lock/v1"
 
 ACTOR_TYPES = {"operator", "lane", "host", "human", "subagent", "system"}
 CAPABILITIES = {
     "graph-init", "graph-replace", "gate-decision", "lease", "transition",
-    "sweep", "replay-repair", "test-injection",
+    "sweep", "lease-resolve", "replay-repair",
 }
 NODE_KINDS = {
     "goal", "feature", "lane", "task", "validation", "human-gate",
@@ -109,6 +111,7 @@ EVENT_COMMANDS = {
     "lease.renewed": "lease renew",
     "lease.released": "lease release",
     "lease.swept": "lease sweep",
+    "lease.resolved": "lease resolve",
     "replay.repaired": "replay repair",
 }
 EVENT_CAPABILITIES = {
@@ -120,6 +123,7 @@ EVENT_CAPABILITIES = {
     "lease.renewed": "lease",
     "lease.released": "lease",
     "lease.swept": "sweep",
+    "lease.resolved": "lease-resolve",
     "replay.repaired": "replay-repair",
 }
 
@@ -127,6 +131,8 @@ MAX_GRAPH_BYTES = 4 * 1024 * 1024
 MAX_BINDING_BYTES = 64 * 1024
 MAX_JOURNAL_BYTES = 256 * 1024 * 1024
 MAX_EVENT_BYTES = 8 * 1024 * 1024
+MAX_FORWARD_CLOCK_SKEW_SECONDS = 5.0
+OWNERLESS_LOCK_GRACE_SECONDS = 2.0
 MAX_NODES = 10000
 MAX_EDGES = 50000
 MAX_METADATA_BYTES = 64 * 1024
@@ -158,6 +164,8 @@ EXIT_CODES = {
     "GATE_REQUIRED": 21,
     "RECONCILIATION_REQUIRED": 22,
     "CLOCK_ROLLBACK": 23,
+    "JOURNAL_FULL": 24,
+    "CLOCK_SKEW": 25,
 }
 
 
@@ -332,7 +340,8 @@ def validate_definition(value: Mapping[str, Any], materialized: bool = True) -> 
         fail(kind in NODE_KINDS, "INVALID_GRAPH", f"Unknown node kind: {kind}")
         family = family_for(kind)
         state = raw.get("initialState", INITIAL_STATES[family])
-        fail(state in STATES_BY_FAMILY[family], "INVALID_GRAPH", f"Invalid initialState for {kind}: {state}")
+        fail(state == INITIAL_STATES[family], "INVALID_GRAPH",
+             f"New {kind} nodes must begin at transactional default state: {INITIAL_STATES[family]}")
         priority = raw.get("priority", 0)
         fail(isinstance(priority, int) and not isinstance(priority, bool) and 0 <= priority <= 1000,
              "INVALID_GRAPH", f"Invalid priority for node {node_id}")
@@ -383,11 +392,15 @@ def validate_definition(value: Mapping[str, Any], materialized: bool = True) -> 
         if kind == "gated-by":
             require_keys(metadata, set(), {"protectedTransitions"}, f"metadata for gated edge {edge_id}")
             protected = metadata.get("protectedTransitions", default_gate_transitions(node_by_id[source]["kind"]))
-            family_states = STATES_BY_FAMILY[family_for(node_by_id[source]["kind"])]
+            source_family = family_for(node_by_id[source]["kind"])
+            actual_targets = set().union(*TRANSITIONS[source_family].values())
             fail(isinstance(protected, list) and bool(protected) and len(protected) == len(set(protected)),
                  "INVALID_GRAPH", f"gated-by edge {edge_id} requires unique protectedTransitions")
-            fail(all(isinstance(item, str) and item in family_states for item in protected),
+            fail(all(isinstance(item, str) and item in actual_targets for item in protected),
                  "INVALID_GRAPH", f"gated-by edge {edge_id} has an invalid protected transition")
+            if node_by_id[source]["kind"] == "integration":
+                fail({"ready", "active", "completed"} <= set(protected), "INVALID_GRAPH",
+                     f"integration gated-by edge {edge_id} must protect ready, active, and completed")
             metadata = {"protectedTransitions": sorted(protected)}
         normalized_edges.append({"id": edge_id, "kind": kind, "from": source, "to": target, "metadata": metadata})
 
@@ -440,21 +453,28 @@ def blank_projection(definition: Mapping[str, Any], occurred_at: str, sequence: 
         "nodeStates": {node["id"]: node["initialState"] for node in definition["nodes"]},
         "leases": {},
         "leaseFences": {},
+        "executionStarted": {},
+        "reconciliations": {},
+        "bindingGenerations": {},
     }
 
 
 def validate_lease(value: Mapping[str, Any], code: str = "INVALID_STATE") -> None:
-    required = {"schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence"}
+    required = {"schemaVersion", "nodeId", "leaseId", "holder", "acquiredAt", "renewedAt", "expiresAt", "fence", "clock"}
     fail(isinstance(value, dict) and set(value) == required, code, "Lease fields are invalid")
     validate_version(value.get("schemaVersion"), LEASE_VERSION, "lease")
     fail(valid_string(value.get("nodeId"), 128, pattern=True), code, "Lease nodeId is invalid")
     fail(valid_string(value.get("leaseId"), 256, pattern=True), code, "Lease leaseId is invalid")
     holder = value.get("holder")
-    holder_fields = {"actorType", "actorId", "bindingId", "scope", "laneNodeId"}
+    holder_fields = {"actorType", "actorId", "bindingId", "bindingGeneration", "bindingHash", "scope", "laneNodeId"}
     fail(isinstance(holder, dict) and set(holder) == holder_fields, code, "Lease holder is invalid")
     fail(holder.get("actorType") in {"lane", "host"}, code, "Lease holder actorType is invalid")
     fail(valid_string(holder.get("actorId"), 256, pattern=True), code, "Lease holder actorId is invalid")
     fail(valid_binding_id(holder.get("bindingId")), code, "Lease holder bindingId is invalid")
+    fail(isinstance(holder.get("bindingGeneration"), int) and not isinstance(holder["bindingGeneration"], bool)
+         and holder["bindingGeneration"] >= 1, code, "Lease holder bindingGeneration is invalid")
+    fail(isinstance(holder.get("bindingHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", holder["bindingHash"]),
+         code, "Lease holder bindingHash is invalid")
     fail(valid_string(holder.get("scope"), 512, pattern=True), code, "Lease holder scope is invalid")
     fail(valid_string(holder.get("laneNodeId"), 128, pattern=True), code, "Lease holder laneNodeId is invalid")
     acquired = parse_time(value.get("acquiredAt"), code)
@@ -463,10 +483,17 @@ def validate_lease(value: Mapping[str, Any], code: str = "INVALID_STATE") -> Non
     fail(acquired <= renewed < expires, code, "Lease timestamps are not ordered")
     fail(isinstance(value.get("fence"), int) and not isinstance(value["fence"], bool) and value["fence"] >= 1,
          code, "Lease fence is invalid")
+    clock = value.get("clock")
+    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "acquiredMonotonicNs", "expiresMonotonicNs"},
+         code, "Lease clock is invalid")
+    fail(valid_string(clock.get("hostId"), 256) and valid_string(clock.get("bootId"), 256), code, "Lease clock identity is invalid")
+    fail(all(isinstance(clock.get(key), int) and not isinstance(clock[key], bool) and clock[key] >= 0
+             for key in ("acquiredMonotonicNs", "expiresMonotonicNs")), code, "Lease monotonic clock is invalid")
+    fail(clock["expiresMonotonicNs"] > clock["acquiredMonotonicNs"], code, "Lease monotonic expiry is not ordered")
 
 
 def validate_projection(value: Mapping[str, Any], definition: Mapping[str, Any]) -> None:
-    required = {"schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences"}
+    required = {"schemaVersion", "graphId", "revision", "definitionRevision", "definitionHash", "updatedAt", "nodeStates", "leases", "leaseFences", "executionStarted", "reconciliations", "bindingGenerations"}
     fail(isinstance(value, dict) and set(value) == required, "INVALID_STATE", "Projection fields are invalid")
     validate_version(value.get("schemaVersion"), PROJECTION_VERSION, "projection")
     fail(value.get("graphId") == definition["graphId"], "INVALID_STATE", "Projection graphId does not match definition")
@@ -492,6 +519,31 @@ def validate_projection(value: Mapping[str, Any], definition: Mapping[str, Any])
              "INVALID_STATE", f"Invalid lease fence tombstone: {node_id}")
         if node_id in leases:
             fail(fence == leases[node_id]["fence"], "INVALID_STATE", f"Lease fence mismatch for node: {node_id}")
+    started = value.get("executionStarted")
+    fail(isinstance(started, dict), "INVALID_STATE", "Projection executionStarted must be an object")
+    for node_id, marker in started.items():
+        fail(node_id in node_map and node_map[node_id]["kind"] in WORK_KINDS, "INVALID_STATE", f"Execution marker references invalid node: {node_id}")
+        fail(isinstance(marker, dict) and set(marker) == {"revision", "occurredAt"}
+             and isinstance(marker.get("revision"), int) and marker["revision"] >= 1, "INVALID_STATE", f"Execution marker is invalid: {node_id}")
+        parse_time(marker.get("occurredAt"), "INVALID_STATE")
+    reconciliations = value.get("reconciliations")
+    fail(isinstance(reconciliations, dict), "INVALID_STATE", "Projection reconciliations must be an object")
+    for node_id, record in reconciliations.items():
+        fail(node_id in node_map and isinstance(record, dict), "INVALID_STATE", f"Reconciliation references invalid node: {node_id}")
+        required_record = {"leaseId", "fence", "reason", "requiredAt", "priorState"}
+        fail(set(record) == required_record and valid_string(record.get("leaseId"), 256, pattern=True)
+             and isinstance(record.get("fence"), int) and record["fence"] >= 1
+             and record.get("reason") in {"expired-unsafe", "binding-rotated", "clock-recovery"}
+             and record.get("priorState") in STATES_BY_FAMILY["work"], "INVALID_STATE", f"Reconciliation record is invalid: {node_id}")
+        parse_time(record.get("requiredAt"), "INVALID_STATE")
+    generations = value.get("bindingGenerations")
+    fail(isinstance(generations, dict), "INVALID_STATE", "Projection bindingGenerations must be an object")
+    for binding_id, record in generations.items():
+        fail(valid_binding_id(binding_id) and isinstance(record, dict) and set(record) == {"generation", "bindingHash"},
+             "INVALID_STATE", f"Binding generation record is invalid: {binding_id}")
+        fail(isinstance(record.get("generation"), int) and record["generation"] >= 1
+             and isinstance(record.get("bindingHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", record["bindingHash"]),
+             "INVALID_STATE", f"Binding generation value is invalid: {binding_id}")
 
 
 def find_node(definition: Mapping[str, Any], node_id: str) -> Dict[str, Any]:
@@ -536,12 +588,23 @@ def transition_preconditions(definition: Mapping[str, Any], projection: Mapping[
 
 
 def validate_actor_record(actor: Any, code: str) -> None:
-    required = {"type", "id", "bindingId", "bindingHash", "capabilities", "subject", "leaseScopes"}
+    required = {"type", "id", "bindingId", "bindingGeneration", "bindingHash", "capabilityHash",
+                "projectId", "graphId", "issuedAt", "expiresAt", "keyId", "signature", "capabilities", "subject", "leaseScopes"}
     fail(isinstance(actor, dict) and set(actor) == required, code, "Event actor is invalid")
     fail(actor.get("type") in ACTOR_TYPES, code, "Event actor type is invalid")
     fail(valid_string(actor.get("id"), 256, pattern=True), code, "Event actor id is invalid")
     fail(valid_binding_id(actor.get("bindingId")), code, "Event actor bindingId is invalid")
+    fail(isinstance(actor.get("bindingGeneration"), int) and not isinstance(actor["bindingGeneration"], bool)
+         and actor["bindingGeneration"] >= 1, code, "Event actor bindingGeneration is invalid")
     fail(isinstance(actor.get("bindingHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", actor["bindingHash"]), code, "Event actor bindingHash is invalid")
+    fail(isinstance(actor.get("capabilityHash"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", actor["capabilityHash"]), code, "Event actor capabilityHash is invalid")
+    for key in ("projectId", "graphId", "keyId"):
+        fail(valid_string(actor.get(key), 128, pattern=True), code, f"Event actor {key} is invalid")
+    fail(isinstance(actor.get("signature"), str) and 1 <= len(actor["signature"]) <= 2048
+         and re.fullmatch(r"[A-Za-z0-9_-]+", actor["signature"]), code, "Event actor signature is invalid")
+    issued = parse_time(actor.get("issuedAt"), code)
+    expires = parse_time(actor.get("expiresAt"), code)
+    fail(issued < expires, code, "Event actor validity interval is invalid")
     capabilities = actor.get("capabilities")
     fail(isinstance(capabilities, list) and capabilities == sorted(set(capabilities)) and set(capabilities) <= CAPABILITIES,
          code, "Event actor capabilities are invalid")
@@ -571,6 +634,15 @@ def validate_actor_record(actor: Any, code: str) -> None:
             fail(scope["laneNodeId"] == subject["laneNodeId"], code, "Event lane actor scope crosses lane nodes")
     if actor["type"] not in {"lane", "host"}:
         fail(not scopes, code, "Event non-owner actor contains lease scopes")
+    recorded_binding = {
+        "schemaVersion": BINDING_VERSION, "bindingId": actor["bindingId"],
+        "generation": actor["bindingGeneration"], "projectId": actor["projectId"], "graphId": actor["graphId"],
+        "issuedAt": actor["issuedAt"], "expiresAt": actor["expiresAt"], "subject": actor["subject"],
+        "capabilities": actor["capabilities"], "leaseScopes": actor["leaseScopes"],
+    }
+    fail(actor["bindingHash"] == sha256_value(recorded_binding), code, "Event actor bindingHash does not match authorization snapshot")
+    fail(actor["capabilityHash"] == sha256_value(capability_payload(recorded_binding)), code,
+         "Event actor capabilityHash does not match authorization snapshot")
 
 
 def expected_result_data(event_type: str, data: Mapping[str, Any], prior_definition: Optional[Mapping[str, Any]],
@@ -592,17 +664,22 @@ def expected_result_data(event_type: str, data: Mapping[str, Any], prior_definit
         return {"lease": data["lease"]}
     if event_type == "lease.swept":
         return {"expired": data["expired"], "count": len(data["expired"])}
+    if event_type == "lease.resolved":
+        return dict(data)
     if event_type == "replay.repaired":
         return {"repairedRevision": data["repairedRevision"]}
     raise GraphError("CORRUPT_JOURNAL", f"Unknown event type: {event_type}")
 
 
-def validate_event(event: Any, sequence: int, seen_requests: Set[str]) -> None:
-    required = {"schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "actor", "type", "data", "result"}
+def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_event_ids: Set[str]) -> None:
+    required = {"schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "clock",
+                "actor", "type", "intent", "expectedRevision", "data", "result"}
     fail(isinstance(event, dict) and set(event) == required, "CORRUPT_JOURNAL", "Event fields are invalid", {"line": sequence})
     validate_version(event.get("schemaVersion"), EVENT_VERSION, "event")
     fail(event.get("sequence") == sequence, "CORRUPT_JOURNAL", "Event sequence is not strict", {"expected": sequence, "actual": event.get("sequence")})
     fail(valid_string(event.get("eventId"), 128, pattern=True), "CORRUPT_JOURNAL", "Event eventId is invalid")
+    fail(event["eventId"] not in seen_event_ids, "CORRUPT_JOURNAL", f"Duplicate eventId in journal: {event['eventId']}")
+    seen_event_ids.add(event["eventId"])
     request_id = event.get("requestId")
     fail(valid_string(request_id, 256, pattern=True), "CORRUPT_JOURNAL", "Event requestId is invalid")
     fail(request_id not in seen_requests, "CORRUPT_JOURNAL", f"Duplicate requestId in journal: {request_id}")
@@ -610,10 +687,25 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str]) -> None:
     fail(isinstance(event.get("requestFingerprint"), str) and re.fullmatch(r"sha256:[0-9a-f]{64}", event["requestFingerprint"]),
          "CORRUPT_JOURNAL", "Event requestFingerprint is invalid")
     parse_time(event.get("occurredAt"), "CORRUPT_JOURNAL")
+    clock = event.get("clock")
+    fail(isinstance(clock, dict) and set(clock) == {"hostId", "bootId", "monotonicNs"}
+         and valid_string(clock.get("hostId"), 256) and valid_string(clock.get("bootId"), 256)
+         and isinstance(clock.get("monotonicNs"), int) and not isinstance(clock["monotonicNs"], bool)
+         and clock["monotonicNs"] >= 0, "CORRUPT_JOURNAL", "Event clock is invalid")
     validate_actor_record(event.get("actor"), "CORRUPT_JOURNAL")
     event_type = event.get("type")
     fail(event_type in EVENT_COMMANDS, "CORRUPT_JOURNAL", f"Unknown event type: {event_type}")
     fail(EVENT_CAPABILITIES[event_type] in event["actor"]["capabilities"], "CORRUPT_JOURNAL", f"Event actor lacked required capability: {event_type}")
+    fail(isinstance(event.get("intent"), dict), "CORRUPT_JOURNAL", "Event intent must be an object")
+    fail(event.get("expectedRevision") is None or (isinstance(event["expectedRevision"], int)
+         and not isinstance(event["expectedRevision"], bool) and event["expectedRevision"] >= 1),
+         "CORRUPT_JOURNAL", "Event expectedRevision is invalid")
+    expected_fingerprint = sha256_value({
+        "command": EVENT_COMMANDS[event_type], "bindingId": event["actor"]["bindingId"],
+        "bindingHash": event["actor"]["bindingHash"], "subject": event["actor"]["subject"],
+        "intent": event["intent"], "expectedRevision": event["expectedRevision"],
+    })
+    fail(event["requestFingerprint"] == expected_fingerprint, "CORRUPT_JOURNAL", "Event request fingerprint does not match canonical intent")
     fail(isinstance(event.get("data"), dict), "CORRUPT_JOURNAL", "Event data must be an object")
     result = event.get("result")
     result_fields = {"ok", "command", "requestId", "revision", "data"}
@@ -628,7 +720,7 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
         raise GraphError("NOT_INITIALIZED", f"Missing event journal: {path}")
     try:
         size = path.stat().st_size
-        fail(size <= MAX_JOURNAL_BYTES, "CORRUPT_JOURNAL", "Event journal is too large")
+        fail(size <= MAX_JOURNAL_BYTES + MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Event journal exceeds recoverable size")
         data = path.read_bytes()
     except OSError as exc:
         raise GraphError("IO_ERROR", f"Cannot read event journal: {path}", str(exc)) from exc
@@ -647,27 +739,35 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
         except OSError as exc:
             raise GraphError("IO_ERROR", "Cannot recover partial journal tail", str(exc)) from exc
         data = data[:committed_length]
+    fail(len(data) <= MAX_JOURNAL_BYTES, "CORRUPT_JOURNAL", "Committed event journal is too large")
     fail(bool(data), "CORRUPT_JOURNAL", "Event journal has no committed records")
     events: List[Dict[str, Any]] = []
     seen_requests: Set[str] = set()
+    seen_event_ids: Set[str] = set()
     previous_time: Optional[dt.datetime] = None
     for line_number, raw_line in enumerate(data.splitlines(keepends=True), 1):
         fail(raw_line.endswith(b"\n") and len(raw_line) <= MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Invalid journal record boundary", {"line": line_number})
         try:
             event = json.loads(raw_line.decode("utf-8"), parse_constant=reject_constant)
-            validate_event(event, line_number, seen_requests)
+            validate_event(event, line_number, seen_requests, seen_event_ids)
         except GraphError:
             raise
         except (UnicodeDecodeError, json.JSONDecodeError, ValueError, RecursionError) as exc:
             raise GraphError("CORRUPT_JOURNAL", "Journal contains invalid JSON", {"line": line_number, "error": str(exc)}) from exc
         occurred = parse_time(event["occurredAt"], "CORRUPT_JOURNAL")
         fail(previous_time is None or occurred >= previous_time, "CORRUPT_JOURNAL", "Event time moved backwards", {"line": line_number})
+        if events and event["clock"]["hostId"] == events[-1]["clock"]["hostId"] and event["clock"]["bootId"] == events[-1]["clock"]["bootId"]:
+            monotonic_delta = (event["clock"]["monotonicNs"] - events[-1]["clock"]["monotonicNs"]) / 1_000_000_000
+            fail(monotonic_delta >= 0, "CORRUPT_JOURNAL", "Event monotonic clock moved backwards", {"line": line_number})
+            wall_delta = (occurred - previous_time).total_seconds() if previous_time is not None else 0
+            fail(wall_delta <= monotonic_delta + MAX_FORWARD_CLOCK_SKEW_SECONDS, "CORRUPT_JOURNAL",
+                 "Event wall clock exceeded bounded forward skew", {"line": line_number})
         previous_time = occurred
         events.append(event)
     return events
 
 
-def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str, Any]] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     definition: Optional[Dict[str, Any]] = None
     projection: Optional[Dict[str, Any]] = None
     for event in events:
@@ -677,15 +777,42 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
         occurred_at = event["occurredAt"]
         prior_definition = definition
         prior_projection = None if projection is None else json.loads(json.dumps(projection))
+        occurred = parse_time(occurred_at, "CORRUPT_JOURNAL")
+        if authority is not None:
+            fail(event["actor"]["projectId"] == authority["projectId"]
+                 and event["actor"]["graphId"] == authority["graphId"]
+                 and event["actor"]["keyId"] == authority["keyId"],
+                 "CORRUPT_JOURNAL", "Event authorization does not match the trust anchor")
+            recorded_payload = {
+                "schemaVersion": BINDING_VERSION, "bindingId": event["actor"]["bindingId"],
+                "generation": event["actor"]["bindingGeneration"], "projectId": event["actor"]["projectId"],
+                "graphId": event["actor"]["graphId"], "issuedAt": event["actor"]["issuedAt"],
+                "expiresAt": event["actor"]["expiresAt"], "subject": event["actor"]["subject"],
+                "capabilities": event["actor"]["capabilities"], "leaseScopes": event["actor"]["leaseScopes"],
+            }
+            try:
+                verify_rsa_signature(recorded_payload, event["actor"]["signature"],
+                                     authority["publicKey"]["n"], authority["publicKey"]["e"])
+            except GraphError as exc:
+                raise GraphError("CORRUPT_JOURNAL", "Event actor signature verification failed", exc.details) from exc
+        fail(parse_time(event["actor"]["issuedAt"], "CORRUPT_JOURNAL") <= occurred
+             < parse_time(event["actor"]["expiresAt"], "CORRUPT_JOURNAL"),
+             "CORRUPT_JOURNAL", "Event occurred outside actor binding validity")
+        fail(event["expectedRevision"] is None or event["expectedRevision"] == sequence - 1,
+             "CORRUPT_JOURNAL", "Event CAS evidence does not match prior revision")
         if sequence == 1:
             fail(event_type == "graph.initialized", "CORRUPT_JOURNAL", "First event must be graph.initialized")
         if event_type == "graph.initialized":
             fail(sequence == 1 and definition is None and set(data) == {"definition"}, "CORRUPT_JOURNAL", "graph.initialized data is invalid")
             fail(event["actor"]["type"] in {"operator", "system"}, "CORRUPT_JOURNAL", "Unauthorized graph initialization actor")
             definition = validate_definition(data["definition"], materialized=True)
+            fail(event["actor"]["graphId"] == definition["graphId"], "CORRUPT_JOURNAL", "Initialization authority graph mismatch")
             projection = blank_projection(definition, occurred_at, sequence)
         else:
             fail(definition is not None and projection is not None, "CORRUPT_JOURNAL", "Event appears before initialization")
+            fail(event["actor"]["graphId"] == definition["graphId"]
+                 and event["actor"]["projectId"] == events[0]["actor"]["projectId"],
+                 "CORRUPT_JOURNAL", "Event authority project or graph mismatch")
             if event_type == "definition.replaced":
                 fail(set(data) == {"definition"} and event["actor"]["type"] in {"operator", "system"},
                      "CORRUPT_JOURNAL", "definition.replaced data or actor is invalid")
@@ -698,7 +825,7 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                 for node_id, old_node in old_nodes.items():
                     fail(new_nodes[node_id]["kind"] == old_node["kind"], "CORRUPT_JOURNAL", f"Replacement changed node kind: {node_id}")
                     current_state = projection["nodeStates"][node_id]
-                    if current_state != old_node["initialState"] or current_state in TERMINAL_STATES[family_for(old_node["kind"])]:
+                    if node_id in projection["executionStarted"] or current_state != old_node["initialState"] or current_state in TERMINAL_STATES[family_for(old_node["kind"])]:
                         old_identity = {key: old_node[key] for key in ("kind", "title", "initialState", "metadata")}
                         new_identity = {key: new_nodes[node_id][key] for key in ("kind", "title", "initialState", "metadata")}
                         fail(old_identity == new_identity, "CORRUPT_JOURNAL", f"Replacement rewrote activated or terminal node: {node_id}")
@@ -728,9 +855,12 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                     if current_lease is None:
                         fail(event["actor"]["type"] in {"operator", "system"}, "CORRUPT_JOURNAL", "Unauthorized unleased transition")
                     else:
-                        fail(parse_time(current_lease["expiresAt"], "CORRUPT_JOURNAL") > parse_time(occurred_at, "CORRUPT_JOURNAL"),
+                        fail(not lease_clock_expired(current_lease, event["clock"], "CORRUPT_JOURNAL"),
                              "CORRUPT_JOURNAL", "Expired lease transitioned a node")
-                        fail(current_lease["holder"]["bindingId"] == event["actor"]["bindingId"], "CORRUPT_JOURNAL", "Transition binding did not hold lease")
+                        fail(current_lease["holder"]["bindingId"] == event["actor"]["bindingId"]
+                             and current_lease["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
+                             and current_lease["holder"]["bindingHash"] == event["actor"]["bindingHash"],
+                             "CORRUPT_JOURNAL", "Transition binding did not hold lease")
                     transition_preconditions(definition, projection, node["id"], data["to"])
                 projection["nodeStates"][node["id"]] = data["to"]
             elif event_type == "lease.acquired":
@@ -740,6 +870,9 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                 node = find_node(definition, lease["nodeId"])
                 fail(node["kind"] in WORK_KINDS and event["actor"]["type"] in {"lane", "host"}, "CORRUPT_JOURNAL", "Invalid lease acquisition actor or node")
                 fail(lease["holder"]["bindingId"] == event["actor"]["bindingId"], "CORRUPT_JOURNAL", "Lease holder binding mismatch")
+                fail(lease["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
+                     and lease["holder"]["bindingHash"] == event["actor"]["bindingHash"],
+                     "CORRUPT_JOURNAL", "Lease holder binding generation mismatch")
                 recorded_scope = [scope for scope in event["actor"]["leaseScopes"] if scope["scope"] == lease["holder"]["scope"]]
                 fail(len(recorded_scope) == 1 and recorded_scope[0]["laneNodeId"] == lease["holder"]["laneNodeId"],
                      "CORRUPT_JOURNAL", "Lease holder scope was not present in recorded actor binding")
@@ -747,15 +880,20 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                 fail(assigned, "CORRUPT_JOURNAL", "Lease acquisition violated assignment")
                 current = projection["leases"].get(node["id"])
                 if current is not None:
-                    fail(parse_time(current["expiresAt"], "CORRUPT_JOURNAL") <= parse_time(occurred_at, "CORRUPT_JOURNAL"), "CORRUPT_JOURNAL", "Lease acquired over unexpired lease")
+                    fail(lease_clock_expired(current, event["clock"], "CORRUPT_JOURNAL"), "CORRUPT_JOURNAL", "Lease acquired over unexpired lease")
                     execution = node["metadata"].get("execution", {})
                     safe = projection["nodeStates"][node["id"]] in {"pending", "ready", "blocked"}
                     fail(execution.get("idempotent") is True and execution.get("reclaimable") is True and safe,
                          "CORRUPT_JOURNAL", "Unsafe automatic lease reclaim")
                 fail(lease["fence"] == projection["leaseFences"].get(node["id"], 0) + 1, "CORRUPT_JOURNAL", "Lease fence is not monotonic")
                 fail(lease["acquiredAt"] == occurred_at and lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Lease acquisition time mismatch")
+                fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
+                     and lease["clock"]["acquiredMonotonicNs"] == event["clock"]["monotonicNs"],
+                     "CORRUPT_JOURNAL", "Lease acquisition clock mismatch")
+                fail(node["id"] not in projection["reconciliations"], "CORRUPT_JOURNAL", "Lease acquired while reconciliation was required")
                 projection["leases"][node["id"]] = lease
                 projection["leaseFences"][node["id"]] = lease["fence"]
+                projection["executionStarted"].setdefault(node["id"], {"revision": sequence, "occurredAt": occurred_at})
             elif event_type == "lease.renewed":
                 fail(set(data) == {"lease"}, "CORRUPT_JOURNAL", "lease.renewed data is invalid")
                 lease = data["lease"]
@@ -763,22 +901,31 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                 current = projection["leases"].get(lease["nodeId"])
                 fail(current is not None and current["leaseId"] == lease["leaseId"] and current["fence"] == lease["fence"], "CORRUPT_JOURNAL", "Renewal does not match current lease")
                 fail(current["holder"] == lease["holder"] and current["acquiredAt"] == lease["acquiredAt"], "CORRUPT_JOURNAL", "Renewal changed immutable fields")
-                fail(current["holder"]["bindingId"] == event["actor"]["bindingId"] and parse_time(current["expiresAt"], "CORRUPT_JOURNAL") > parse_time(occurred_at, "CORRUPT_JOURNAL"),
+                fail(current["holder"]["bindingId"] == event["actor"]["bindingId"]
+                     and current["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
+                     and current["holder"]["bindingHash"] == event["actor"]["bindingHash"]
+                     and not lease_clock_expired(current, event["clock"], "CORRUPT_JOURNAL"),
                      "CORRUPT_JOURNAL", "Unauthorized or expired renewal")
                 fail(lease["renewedAt"] == occurred_at, "CORRUPT_JOURNAL", "Renewal time mismatch")
+                fail(lease["clock"]["hostId"] == event["clock"]["hostId"] and lease["clock"]["bootId"] == event["clock"]["bootId"]
+                     and lease["clock"]["acquiredMonotonicNs"] == current["clock"]["acquiredMonotonicNs"],
+                     "CORRUPT_JOURNAL", "Renewal clock mismatch")
                 projection["leases"][lease["nodeId"]] = lease
             elif event_type == "lease.released":
                 fail(set(data) == {"nodeId", "leaseId", "fence"}, "CORRUPT_JOURNAL", "lease.released data is invalid")
                 current = projection["leases"].get(data["nodeId"])
                 fail(current is not None and current["leaseId"] == data["leaseId"] and current["fence"] == data["fence"], "CORRUPT_JOURNAL", "Release does not match current lease")
-                fail(current["holder"]["bindingId"] == event["actor"]["bindingId"] and parse_time(current["expiresAt"], "CORRUPT_JOURNAL") > parse_time(occurred_at, "CORRUPT_JOURNAL"),
+                fail(current["holder"]["bindingId"] == event["actor"]["bindingId"]
+                     and current["holder"]["bindingGeneration"] == event["actor"]["bindingGeneration"]
+                     and current["holder"]["bindingHash"] == event["actor"]["bindingHash"]
+                     and not lease_clock_expired(current, event["clock"], "CORRUPT_JOURNAL"),
                      "CORRUPT_JOURNAL", "Unauthorized or expired release")
                 projection["leases"].pop(data["nodeId"])
             elif event_type == "lease.swept":
                 fail(set(data) == {"expired"} and event["actor"]["type"] in {"operator", "system", "host"}, "CORRUPT_JOURNAL", "lease.swept data or actor is invalid")
                 expected = []
                 for node_id, lease in sorted(projection["leases"].items()):
-                    if parse_time(lease["expiresAt"], "CORRUPT_JOURNAL") <= parse_time(occurred_at, "CORRUPT_JOURNAL"):
+                    if lease_clock_expired(lease, event["clock"], "CORRUPT_JOURNAL"):
                         node = find_node(definition, node_id)
                         prior_state = projection["nodeStates"][node_id]
                         execution = node["metadata"].get("execution", {})
@@ -793,6 +940,32 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
                 for item in data["expired"]:
                     projection["leases"].pop(item["nodeId"], None)
                     projection["nodeStates"][item["nodeId"]] = item["toState"]
+                    if item["reconciliation"]:
+                        projection["reconciliations"][item["nodeId"]] = {
+                            "leaseId": item["leaseId"], "fence": item["fence"], "reason": "expired-unsafe",
+                            "requiredAt": occurred_at, "priorState": item["fromState"],
+                        }
+            elif event_type == "lease.resolved":
+                fail(set(data) == {"nodeId", "leaseId", "fence", "action", "fromState", "toState", "reason"}
+                     and event["actor"]["type"] in {"operator", "system", "human"},
+                     "CORRUPT_JOURNAL", "lease.resolved data or actor is invalid")
+                fail(data["action"] in {"retry", "cancel", "complete"}, "CORRUPT_JOURNAL", "Unknown reconciliation action")
+                fail(data["reason"] in {"expired-unsafe", "binding-rotated", "clock-recovery"}, "CORRUPT_JOURNAL", "Unknown reconciliation reason")
+                current_lease = projection["leases"].get(data["nodeId"])
+                record = projection["reconciliations"].get(data["nodeId"])
+                if record is None and current_lease is not None:
+                    record = {"leaseId": current_lease["leaseId"], "fence": current_lease["fence"],
+                              "reason": data["reason"], "requiredAt": occurred_at,
+                              "priorState": projection["nodeStates"][data["nodeId"]]}
+                fail(record is not None and record["leaseId"] == data["leaseId"] and record["fence"] == data["fence"],
+                     "CORRUPT_JOURNAL", "Resolution does not match reconciliation")
+                fail(record["reason"] == data["reason"], "CORRUPT_JOURNAL", "Resolution reason does not match reconciliation")
+                fail(data["fromState"] == projection["nodeStates"][data["nodeId"]], "CORRUPT_JOURNAL", "Resolution source state mismatch")
+                expected_to = ("blocked" if data["fromState"] == "active" else data["fromState"]) if data["action"] == "retry" else ("cancelled" if data["action"] == "cancel" else "completed")
+                fail(data["toState"] == expected_to, "CORRUPT_JOURNAL", "Resolution target state mismatch")
+                projection["leases"].pop(data["nodeId"], None)
+                projection["reconciliations"].pop(data["nodeId"], None)
+                projection["nodeStates"][data["nodeId"]] = data["toState"]
             elif event_type == "replay.repaired":
                 fail(set(data) == {"repairedRevision"} and data["repairedRevision"] == sequence - 1
                      and event["actor"]["type"] in {"operator", "system"}, "CORRUPT_JOURNAL", "replay.repaired data or actor is invalid")
@@ -801,20 +974,35 @@ def _replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[s
         fail(event["result"]["data"] == expected_data, "CORRUPT_JOURNAL", f"Event result data mismatch: {event_type}")
         projection["revision"] = sequence
         projection["updatedAt"] = occurred_at
+        observed = projection["bindingGenerations"].get(event["actor"]["bindingId"])
+        if observed is not None:
+            fail(event["actor"]["bindingGeneration"] >= observed["generation"], "CORRUPT_JOURNAL", "Rotated actor binding was replayed")
+            if event["actor"]["bindingGeneration"] == observed["generation"]:
+                fail(event["actor"]["bindingHash"] == observed["bindingHash"], "CORRUPT_JOURNAL", "Actor binding generation changed content")
+        projection["bindingGenerations"][event["actor"]["bindingId"]] = {
+            "generation": event["actor"]["bindingGeneration"], "bindingHash": event["actor"]["bindingHash"],
+        }
     assert definition is not None and projection is not None
     validate_projection(projection, definition)
     return definition, projection
 
 
-def replay(events: Sequence[Mapping[str, Any]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str, Any]] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     try:
-        return _replay(events)
+        return _replay(events, authority)
     except GraphError as exc:
         if exc.code in {"CORRUPT_JOURNAL", "UNKNOWN_VERSION"}:
             raise
         raise GraphError("CORRUPT_JOURNAL", exc.message, exc.details) from exc
     except (KeyError, TypeError, ValueError, RecursionError) as exc:
         raise GraphError("CORRUPT_JOURNAL", "Journal event is semantically invalid", str(exc)) from exc
+
+
+def lease_clock_expired(lease: Mapping[str, Any], clock: Mapping[str, Any], code: str = "INVALID_STATE") -> bool:
+    lease_clock = lease["clock"]
+    fail(clock["hostId"] == lease_clock["hostId"] and clock["bootId"] == lease_clock["bootId"],
+         code, "Lease expiry requires explicit recovery after host or boot change")
+    return clock["monotonicNs"] >= lease_clock["expiresMonotonicNs"]
 
 
 def fsync_directory(path: Path) -> None:
@@ -828,7 +1016,7 @@ def fsync_directory(path: Path) -> None:
         os.close(descriptor)
 
 
-def atomic_write_json(path: Path, value: Any) -> None:
+def atomic_write_json(path: Path, value: Any, before_replace: Optional[Any] = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}.{uuid.uuid4()}")
     try:
@@ -836,8 +1024,14 @@ def atomic_write_json(path: Path, value: Any) -> None:
             handle.write(canonical_bytes(value))
             handle.flush()
             os.fsync(handle.fileno())
+        if before_replace is not None:
+            before_replace()
         os.replace(temporary, path)
         fsync_directory(path.parent)
+    except GraphError:
+        with contextlib.suppress(OSError):
+            temporary.unlink()
+        raise
     except OSError as exc:
         with contextlib.suppress(OSError):
             temporary.unlink()
@@ -907,12 +1101,25 @@ HOST_ID = host_id()
 BOOT_ID = boot_id()
 
 
+def host_monotonic_ns() -> int:
+    linux_uptime = Path("/proc/uptime")
+    try:
+        return int(float(linux_uptime.read_text(encoding="utf-8").split()[0]) * 1_000_000_000)
+    except (OSError, ValueError, IndexError):
+        pass
+    if BOOT_ID.startswith("boot-epoch:"):
+        with contextlib.suppress(ValueError):
+            return max(0, int((time.time() - int(BOOT_ID.split(":", 1)[1])) * 1_000_000_000))
+    return time.monotonic_ns()
+
+
 class DirectoryLock:
     def __init__(self, path: Path, timeout: float = 10.0, lease_seconds: float = 30.0):
         self.path = path
         self.timeout = timeout
         self.lease_seconds = lease_seconds
         self.token = str(uuid.uuid4())
+        self.epoch = host_monotonic_ns()
         self.pid = os.getpid()
         self.start = process_start(self.pid)
         self.stop_event = threading.Event()
@@ -927,6 +1134,7 @@ class DirectoryLock:
             "pid": self.pid,
             "processStart": self.start,
             "token": self.token,
+            "epoch": self.epoch,
             "heartbeatAt": format_time(now),
             "expiresAt": format_time(now + dt.timedelta(seconds=self.lease_seconds)),
         }
@@ -934,8 +1142,10 @@ class DirectoryLock:
     def __enter__(self) -> "DirectoryLock":
         deadline = time.monotonic() + self.timeout
         while True:
+            created = False
             try:
                 self.path.mkdir(mode=0o700)
+                created = True
                 atomic_write_json(self.path / "owner.json", self.owner())
                 self.heartbeat_thread = threading.Thread(target=self._heartbeat, daemon=True)
                 self.heartbeat_thread.start()
@@ -945,7 +1155,15 @@ class DirectoryLock:
                 if time.monotonic() >= deadline:
                     raise GraphError("LOCK_TIMEOUT", f"Timed out waiting for graph lock: {self.path}")
                 time.sleep(0.025)
+            except GraphError:
+                if created:
+                    with contextlib.suppress(OSError):
+                        shutil.rmtree(self.path)
+                raise
             except OSError as exc:
+                if created:
+                    with contextlib.suppress(OSError):
+                        shutil.rmtree(self.path)
                 raise GraphError("IO_ERROR", f"Cannot create graph lock: {self.path}", str(exc)) from exc
 
     def _heartbeat(self) -> None:
@@ -962,31 +1180,43 @@ class DirectoryLock:
     def _break_stale(self) -> None:
         try:
             owner = read_json_file(self.path / "owner.json", "LOCK_TIMEOUT", "LOCK_TIMEOUT", MAX_BINDING_BYTES)
-            required = {"schemaVersion", "hostId", "bootId", "pid", "processStart", "token", "heartbeatAt", "expiresAt"}
+            required = {"schemaVersion", "hostId", "bootId", "pid", "processStart", "token", "epoch", "heartbeatAt", "expiresAt"}
             if set(owner) != required or owner.get("schemaVersion") != LOCK_VERSION:
-                return
-            expired = parse_time(owner["expiresAt"], "LOCK_TIMEOUT") <= utc_now()
+                raise GraphError("LOCK_TIMEOUT", "Malformed graph lock owner")
             same_host_boot = owner["hostId"] == HOST_ID and owner["bootId"] == BOOT_ID
+            if not same_host_boot:
+                return
             confirmed_dead_or_reused = False
-            if same_host_boot:
-                try:
-                    pid = int(owner["pid"])
-                    os.kill(pid, 0)
-                    confirmed_dead_or_reused = process_start(pid) != owner["processStart"]
-                except (ProcessLookupError, ValueError):
-                    confirmed_dead_or_reused = True
-                except PermissionError:
-                    confirmed_dead_or_reused = False
-            if not expired and not confirmed_dead_or_reused:
+            try:
+                pid = int(owner["pid"])
+                os.kill(pid, 0)
+                confirmed_dead_or_reused = process_start(pid) != owner["processStart"]
+            except (ProcessLookupError, ValueError):
+                confirmed_dead_or_reused = True
+            except PermissionError:
+                confirmed_dead_or_reused = False
+            if not confirmed_dead_or_reused:
                 return
         except GraphError:
-            return
+            try:
+                age = time.time() - self.path.stat().st_mtime
+            except OSError:
+                return
+            if age < OWNERLESS_LOCK_GRACE_SECONDS:
+                return
         stale = self.path.with_name(f".lock.stale.{uuid.uuid4()}")
         try:
             os.rename(self.path, stale)
         except OSError:
             return
         shutil.rmtree(stale, ignore_errors=True)
+
+    def assert_owned(self) -> None:
+        owner = read_json_file(self.path / "owner.json", "LOCK_TIMEOUT", "LOCK_TIMEOUT", MAX_BINDING_BYTES)
+        fail(owner.get("token") == self.token and owner.get("epoch") == self.epoch
+             and owner.get("hostId") == HOST_ID and owner.get("bootId") == BOOT_ID
+             and owner.get("pid") == self.pid and owner.get("processStart") == self.start,
+             "LOCK_TIMEOUT", "Graph transaction lock ownership was lost")
 
     def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
         self.stop_event.set()
@@ -1005,18 +1235,25 @@ class Store:
         self.operator_dir = operator_dir
         self.graph_dir = operator_dir / "graph"
         self.binding_dir = self.graph_dir / "bindings"
+        self.authority_path = self.operator_dir / "authority" / "control-graph-public-key.json"
         self.definition_path = self.graph_dir / "definition.json"
         self.projection_path = self.graph_dir / "projection.json"
         self.events_path = self.graph_dir / "events.jsonl"
         self.lock_path = self.graph_dir / ".lock"
+        self.active_lock: Optional[DirectoryLock] = None
 
     def lock(self) -> DirectoryLock:
         self.graph_dir.mkdir(parents=True, exist_ok=True)
-        timeout = 10.0
-        if os.environ.get("OPERATOR_GRAPH_TESTING") == "1":
-            with contextlib.suppress(ValueError):
-                timeout = max(0.05, min(float(os.environ.get("OPERATOR_GRAPH_TEST_LOCK_TIMEOUT", "10")), 10.0))
-        return DirectoryLock(self.lock_path, timeout=timeout)
+        return StoreLock(self, DirectoryLock(self.lock_path, timeout=10.0))
+
+    def assert_lock(self) -> None:
+        fail(self.active_lock is not None, "IO_ERROR", "Graph transaction lock is not held")
+        self.active_lock.assert_owned()
+
+    def load_authority(self) -> Dict[str, Any]:
+        fail(self.authority_path.exists() and not self.authority_path.is_symlink()
+             and stat.S_ISREG(self.authority_path.stat().st_mode), "AUTHORITY_DENIED", "Authority trust anchor is missing or unsafe")
+        return validate_authority(read_json_file(self.authority_path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES))
 
     def has_state(self) -> bool:
         if self.definition_path.exists() or self.projection_path.exists():
@@ -1028,7 +1265,7 @@ class Store:
 
     def load(self, auto_roll_forward: bool = True) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]:
         events = read_events(self.events_path, recover_tail=True)
-        replayed_definition, replayed_projection = replay(events)
+        replayed_definition, replayed_projection = replay(events, self.load_authority())
         try:
             definition = validate_definition(read_json_file(self.definition_path, "NOT_INITIALIZED", "INVALID_STATE", MAX_GRAPH_BYTES), materialized=True)
             raw_projection = read_json_file(self.projection_path, "NOT_INITIALIZED", "INVALID_STATE", MAX_GRAPH_BYTES)
@@ -1063,14 +1300,91 @@ class Store:
         return definition, projection, events
 
     def write_materialized(self, definition: Mapping[str, Any], projection: Mapping[str, Any]) -> None:
-        atomic_write_json(self.definition_path, definition)
-        atomic_write_json(self.projection_path, projection)
+        self.assert_lock()
+        atomic_write_json(self.definition_path, definition, self.assert_lock)
+        self.assert_lock()
+        atomic_write_json(self.projection_path, projection, self.assert_lock)
 
 
-def validate_binding(binding: Mapping[str, Any], expected_id: str) -> Dict[str, Any]:
-    require_keys(binding, {"schemaVersion", "bindingId", "subject", "capabilities", "leaseScopes"}, set(), "actor binding", "AUTHORITY_DENIED")
-    validate_version(binding.get("schemaVersion"), BINDING_VERSION, "actor binding")
+class StoreLock:
+    def __init__(self, store: Store, lock: DirectoryLock):
+        self.store = store
+        self.lock = lock
+
+    def __enter__(self) -> DirectoryLock:
+        self.lock.__enter__()
+        self.store.active_lock = self.lock
+        return self.lock
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self.store.active_lock = None
+        self.lock.__exit__(exc_type, exc, traceback)
+
+
+def binding_payload(binding: Mapping[str, Any]) -> Dict[str, Any]:
+    return {key: binding[key] for key in (
+        "schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt",
+        "subject", "capabilities", "leaseScopes",
+    )}
+
+
+def capability_payload(binding: Mapping[str, Any]) -> Dict[str, Any]:
+    return {key: binding[key] for key in ("subject", "capabilities", "leaseScopes")}
+
+
+def decode_base64url(value: Any) -> bytes:
+    fail(isinstance(value, str) and 1 <= len(value) <= 2048 and not has_control(value),
+         "AUTHORITY_DENIED", "Capability signature is invalid")
+    try:
+        return base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    except (ValueError, TypeError) as exc:
+        raise GraphError("AUTHORITY_DENIED", "Capability signature is invalid") from exc
+
+
+def verify_rsa_signature(payload: Mapping[str, Any], signature: str, modulus_hex: str, exponent: int) -> None:
+    try:
+        modulus = int(modulus_hex, 16)
+    except (TypeError, ValueError) as exc:
+        raise GraphError("AUTHORITY_DENIED", "Authority public key is invalid") from exc
+    fail(modulus.bit_length() >= 1024 and modulus.bit_length() <= 8192 and exponent in {3, 65537},
+         "AUTHORITY_DENIED", "Authority public key is invalid")
+    encoded_signature = decode_base64url(signature)
+    width = (modulus.bit_length() + 7) // 8
+    fail(len(encoded_signature) == width, "AUTHORITY_DENIED", "Capability signature has the wrong size")
+    decoded = pow(int.from_bytes(encoded_signature, "big"), exponent, modulus).to_bytes(width, "big")
+    digest_info = bytes.fromhex("3031300d060960864801650304020105000420") + hashlib.sha256(canonical_bytes(payload)).digest()
+    expected = b"\x00\x01" + b"\xff" * (width - len(digest_info) - 3) + b"\x00" + digest_info
+    fail(decoded == expected, "AUTHORITY_DENIED", "Capability signature verification failed")
+
+
+def validate_authority(value: Mapping[str, Any]) -> Dict[str, Any]:
+    required = {"schemaVersion", "projectId", "graphId", "keyId", "canonicalHostId", "algorithm", "publicKey"}
+    fail(isinstance(value, dict) and set(value) == required, "AUTHORITY_DENIED", "Authority trust anchor fields are invalid")
+    fail(value.get("schemaVersion") == AUTHORITY_VERSION, "AUTHORITY_DENIED", "Unsupported authority trust anchor version")
+    for key in ("projectId", "graphId", "keyId"):
+        fail(valid_string(value.get(key), 128, pattern=True), "AUTHORITY_DENIED", f"Authority {key} is invalid")
+    fail(valid_string(value.get("canonicalHostId"), 256), "AUTHORITY_DENIED", "Authority canonicalHostId is invalid")
+    fail(value.get("algorithm") == "RS256", "AUTHORITY_DENIED", "Authority algorithm is unsupported")
+    public_key = value.get("publicKey")
+    fail(isinstance(public_key, dict) and set(public_key) == {"n", "e"}
+         and isinstance(public_key.get("n"), str) and re.fullmatch(r"[0-9a-f]+", public_key["n"])
+         and isinstance(public_key.get("e"), int), "AUTHORITY_DENIED", "Authority public key is invalid")
+    return dict(value)
+
+
+def validate_binding(binding: Mapping[str, Any], expected_id: str, authority: Mapping[str, Any]) -> Dict[str, Any]:
+    required = {"schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt",
+                "subject", "capabilities", "leaseScopes", "signature"}
+    require_keys(binding, required, set(), "actor binding", "AUTHORITY_DENIED")
+    fail(binding.get("schemaVersion") == BINDING_VERSION, "AUTHORITY_DENIED", "Unsupported actor binding version")
     fail(binding.get("bindingId") == expected_id and valid_binding_id(expected_id), "AUTHORITY_DENIED", "Actor binding ID is invalid")
+    fail(isinstance(binding.get("generation"), int) and not isinstance(binding["generation"], bool)
+         and binding["generation"] >= 1, "AUTHORITY_DENIED", "Actor binding generation is invalid")
+    fail(binding.get("projectId") == authority["projectId"], "AUTHORITY_DENIED", "Actor binding belongs to a different project")
+    fail(binding.get("graphId") == authority["graphId"], "AUTHORITY_DENIED", "Actor binding belongs to a different graph")
+    issued = parse_time(binding.get("issuedAt"), "AUTHORITY_DENIED")
+    expires = parse_time(binding.get("expiresAt"), "AUTHORITY_DENIED")
+    fail(issued < expires, "AUTHORITY_DENIED", "Actor binding validity interval is invalid")
     subject = binding.get("subject")
     fail(isinstance(subject, dict), "AUTHORITY_DENIED", "Actor binding subject must be an object")
     actor_type = subject.get("type")
@@ -1101,47 +1415,32 @@ def validate_binding(binding: Mapping[str, Any], expected_id: str) -> Dict[str, 
             fail(scope["laneNodeId"] == subject["laneNodeId"], "AUTHORITY_DENIED", "Lane binding scope crosses lane nodes")
     if actor_type not in {"lane", "host"}:
         fail(not scopes, "AUTHORITY_DENIED", "Only lane or host bindings may have lease scopes")
-    return dict(binding)
+    signature = binding.get("signature")
+    fail(isinstance(signature, dict) and set(signature) == {"keyId", "algorithm", "value"}
+         and signature.get("keyId") == authority["keyId"] and signature.get("algorithm") == authority["algorithm"],
+         "AUTHORITY_DENIED", "Actor binding signature metadata is invalid")
+    verify_rsa_signature(binding_payload(binding), signature.get("value"), authority["publicKey"]["n"], authority["publicKey"]["e"])
+    result = dict(binding)
+    result["bindingHash"] = sha256_value(binding_payload(binding))
+    result["capabilityHash"] = sha256_value(capability_payload(binding))
+    return result
 
 
 def load_binding(store: Store, args: argparse.Namespace, capability: str) -> Dict[str, Any]:
     binding_id = getattr(args, "actor_binding", None)
-    unsafe = getattr(args, "test_only_unsafe_actor_flags", False)
-    if unsafe:
-        fail(os.environ.get("OPERATOR_GRAPH_TESTING") == "1", "AUTHORITY_DENIED", "Test-only actor flags require OPERATOR_GRAPH_TESTING=1")
-        actor_type = getattr(args, "actor_type", None)
-        actor_id = getattr(args, "actor_id", None)
-        caps = sorted(set(getattr(args, "test_only_capability", []) or []))
-        fail(actor_type in ACTOR_TYPES and valid_string(actor_id, 256, pattern=True), "AUTHORITY_DENIED", "Test-only actor identity is invalid")
-        subject: Dict[str, Any] = {"type": actor_type, "id": actor_id}
-        lane_node = getattr(args, "test_only_lane_node_id", None)
-        host_runner = getattr(args, "test_only_host_runner_id", None)
-        if actor_type == "lane":
-            fail(valid_string(lane_node, 128, pattern=True), "AUTHORITY_DENIED", "Test lane actor requires --test-only-lane-node-id")
-            subject["laneNodeId"] = lane_node
-        elif actor_type == "host":
-            fail(valid_string(host_runner, 128, pattern=True), "AUTHORITY_DENIED", "Test host actor requires --test-only-host-runner-id")
-            subject["hostRunnerId"] = host_runner
-        scopes = []
-        for raw in getattr(args, "test_only_lease_scope", []) or []:
-            parts = raw.split("=", 1)
-            fail(len(parts) == 2, "USAGE", "Test lease scope must be SCOPE=LANE_NODE")
-            scopes.append({"scope": parts[0], "laneNodeId": parts[1]})
-        binding = {"schemaVersion": BINDING_VERSION, "bindingId": f"test-{actor_type}-{actor_id}",
-                   "subject": subject, "capabilities": caps, "leaseScopes": scopes}
-        binding = validate_binding(binding, binding["bindingId"])
-    else:
-        fail(valid_binding_id(binding_id), "AUTHORITY_DENIED", "--actor-binding is required")
-        path = store.binding_dir / f"{binding_id}.json"
-        fail(store.binding_dir.is_dir() and not store.binding_dir.is_symlink(), "AUTHORITY_DENIED", "Trusted binding directory is missing or unsafe")
-        fail((store.binding_dir.stat().st_mode & 0o022) == 0, "AUTHORITY_DENIED", "Binding directory is group/world writable")
-        fail(path.parent.resolve() == store.binding_dir.resolve(), "AUTHORITY_DENIED", "Actor binding path escapes trusted directory")
-        fail(path.exists() and not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "AUTHORITY_DENIED", "Actor binding file is missing or unsafe")
-        fail((path.stat().st_mode & 0o022) == 0, "AUTHORITY_DENIED", "Actor binding file is group/world writable")
-        binding = read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES)
-        binding = validate_binding(binding, binding_id)
+    fail(valid_binding_id(binding_id), "AUTHORITY_DENIED", "--actor-binding is required")
+    authority = store.load_authority()
+    fail(authority["canonicalHostId"] == HOST_ID, "AUTHORITY_DENIED",
+         "Mutations must run on the authority's canonical host", {"canonicalHostId": authority["canonicalHostId"], "localHostId": HOST_ID})
+    path = store.binding_dir / f"{binding_id}.json"
+    fail(path.parent.resolve() == store.binding_dir.resolve(), "AUTHORITY_DENIED", "Actor binding path escapes binding directory")
+    fail(path.exists() and not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "AUTHORITY_DENIED", "Actor binding document is missing or unsafe")
+    binding = read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES)
+    binding = validate_binding(binding, binding_id, authority)
+    now = utc_now()
+    fail(parse_time(binding["issuedAt"], "AUTHORITY_DENIED") <= now < parse_time(binding["expiresAt"], "AUTHORITY_DENIED"),
+         "AUTHORITY_DENIED", "Actor binding is not currently valid")
     fail(capability in binding["capabilities"], "AUTHORITY_DENIED", f"Actor binding lacks capability: {capability}")
-    binding["bindingHash"] = sha256_value({key: binding[key] for key in ("schemaVersion", "bindingId", "subject", "capabilities", "leaseScopes")})
     return binding
 
 
@@ -1150,7 +1449,15 @@ def actor_record(binding: Mapping[str, Any]) -> Dict[str, Any]:
         "type": binding["subject"]["type"],
         "id": binding["subject"]["id"],
         "bindingId": binding["bindingId"],
+        "bindingGeneration": binding["generation"],
         "bindingHash": binding["bindingHash"],
+        "capabilityHash": binding["capabilityHash"],
+        "projectId": binding["projectId"],
+        "graphId": binding["graphId"],
+        "issuedAt": binding["issuedAt"],
+        "expiresAt": binding["expiresAt"],
+        "keyId": binding["signature"]["keyId"],
+        "signature": binding["signature"]["value"],
         "capabilities": binding["capabilities"],
         "subject": binding["subject"],
         "leaseScopes": binding["leaseScopes"],
@@ -1171,7 +1478,6 @@ def fingerprint(command: str, binding: Mapping[str, Any], args: argparse.Namespa
         "subject": binding["subject"],
         "intent": dict(intent),
         "expectedRevision": getattr(args, "expected_revision", None),
-        "testOnlyNow": getattr(args, "test_only_now", None),
     }
     return sha256_value(payload)
 
@@ -1195,28 +1501,32 @@ def check_cas(projection: Mapping[str, Any], expected: Optional[int]) -> None:
         })
 
 
-def transaction_time(args: argparse.Namespace, binding: Mapping[str, Any], events: Sequence[Mapping[str, Any]]) -> dt.datetime:
-    injected = getattr(args, "test_only_now", None)
-    if injected is not None:
-        fail(os.environ.get("OPERATOR_GRAPH_TESTING") == "1" and "test-injection" in binding["capabilities"],
-             "AUTHORITY_DENIED", "Test-only time injection is not authorized")
-        now = parse_time(injected)
-    else:
-        now = utc_now()
+def check_binding_generation(binding: Mapping[str, Any], projection: Mapping[str, Any]) -> None:
+    observed = projection["bindingGenerations"].get(binding["bindingId"])
+    if observed is None:
+        return
+    fail(binding["generation"] >= observed["generation"], "AUTHORITY_DENIED", "Actor binding generation has been rotated")
+    if binding["generation"] == observed["generation"]:
+        fail(binding["bindingHash"] == observed["bindingHash"], "AUTHORITY_DENIED",
+             "Actor binding content changed without a generation increment")
+
+
+def transaction_time(events: Sequence[Mapping[str, Any]]) -> Tuple[dt.datetime, Dict[str, Any]]:
+    now = utc_now()
+    clock = {"hostId": HOST_ID, "bootId": BOOT_ID, "monotonicNs": host_monotonic_ns()}
     if events:
         previous = parse_time(events[-1]["occurredAt"], "CORRUPT_JOURNAL")
         fail(now >= previous, "CLOCK_ROLLBACK", "Trusted transaction time moved behind the journal", {
             "previousEventTime": events[-1]["occurredAt"], "transactionTime": format_time(now)
         })
-    return now
-
-
-def fault_mode(args: argparse.Namespace, binding: Mapping[str, Any]) -> Optional[str]:
-    value = getattr(args, "test_only_fault", None)
-    if value is not None:
-        fail(os.environ.get("OPERATOR_GRAPH_TESTING") == "1" and "test-injection" in binding["capabilities"],
-             "AUTHORITY_DENIED", "Test-only fault injection is not authorized")
-    return value
+        previous_clock = events[-1]["clock"]
+        if previous_clock["hostId"] == HOST_ID and previous_clock["bootId"] == BOOT_ID:
+            monotonic_delta = (clock["monotonicNs"] - previous_clock["monotonicNs"]) / 1_000_000_000
+            fail(monotonic_delta >= 0, "CLOCK_ROLLBACK", "Trusted monotonic clock moved backwards", {
+                "previousMonotonicNs": previous_clock["monotonicNs"], "transactionMonotonicNs": clock["monotonicNs"]})
+            fail((now - previous).total_seconds() <= monotonic_delta + MAX_FORWARD_CLOCK_SKEW_SECONDS,
+                 "CLOCK_SKEW", "Trusted wall clock exceeded bounded forward skew")
+    return now, clock
 
 
 def make_result(command: str, request_id: str, revision: int, data: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1225,8 +1535,13 @@ def make_result(command: str, request_id: str, revision: int, data: Mapping[str,
 
 def commit_event(store: Store, events: Sequence[Mapping[str, Any]], event_type: str, data: Mapping[str, Any],
                  binding: Mapping[str, Any], request_id: str, request_fingerprint: str,
-                 result_data: Mapping[str, Any], occurred_at: str, fault: Optional[str]) -> Dict[str, Any]:
+                 result_data: Mapping[str, Any], occurred_at: str, clock: Mapping[str, Any],
+                 intent: Mapping[str, Any], expected_revision: Optional[int]) -> Dict[str, Any]:
     sequence = len(events) + 1
+    occurred = parse_time(occurred_at, "INVALID_STATE")
+    fail(parse_time(binding["issuedAt"], "AUTHORITY_DENIED") <= occurred
+         < parse_time(binding["expiresAt"], "AUTHORITY_DENIED"),
+         "AUTHORITY_DENIED", "Actor binding expired before the transaction committed")
     command = EVENT_COMMANDS[event_type]
     result = make_result(command, request_id, sequence, result_data)
     event = {
@@ -1236,22 +1551,28 @@ def commit_event(store: Store, events: Sequence[Mapping[str, Any]], event_type: 
         "requestId": request_id,
         "requestFingerprint": request_fingerprint,
         "occurredAt": occurred_at,
+        "clock": dict(clock),
         "actor": actor_record(binding),
         "type": event_type,
+        "intent": dict(intent),
+        "expectedRevision": expected_revision,
         "data": dict(data),
         "result": result,
     }
     encoded = canonical_bytes(event)
-    if fault == "partial-tail":
-        append_bytes(store.events_path, encoded[:max(1, len(encoded) // 2)])
-        raise GraphError("TEST_FAULT", "Injected partial journal tail")
+    fail(len(encoded) <= MAX_EVENT_BYTES, "INVALID_STATE", "Event exceeds maximum journal record size")
+    store.assert_lock()
+    try:
+        committed_size = store.events_path.stat().st_size
+    except FileNotFoundError:
+        committed_size = 0
+    except OSError as exc:
+        raise GraphError("IO_ERROR", "Cannot preflight event journal size", str(exc)) from exc
+    fail(committed_size + len(encoded) <= MAX_JOURNAL_BYTES, "JOURNAL_FULL",
+         "Event journal is full; offline checkpoint/rotation is required")
+    replayed_definition, replayed_projection = replay([*events, event], store.load_authority())
+    store.assert_lock()
     append_bytes(store.events_path, encoded)
-    if fault == "after-event":
-        raise GraphError("TEST_FAULT", "Injected crash after committed event")
-    replayed_definition, replayed_projection = replay([*events, event])
-    if fault == "after-definition":
-        atomic_write_json(store.definition_path, replayed_definition)
-        raise GraphError("TEST_FAULT", "Injected crash between definition and projection replacement")
     store.write_materialized(replayed_definition, replayed_projection)
     return result
 
@@ -1270,7 +1591,7 @@ def immutable_replacement_checks(definition: Mapping[str, Any], projection: Mapp
         new_node = new_nodes[node_id]
         fail(new_node["kind"] == old_node["kind"], "INVALID_GRAPH", f"Definition replacement cannot change node kind: {node_id}")
         state = projection["nodeStates"][node_id]
-        if state != old_node["initialState"] or state in TERMINAL_STATES[family_for(old_node["kind"])]:
+        if node_id in projection["executionStarted"] or state != old_node["initialState"] or state in TERMINAL_STATES[family_for(old_node["kind"])]:
             old_identity = {key: old_node[key] for key in ("kind", "title", "initialState", "metadata")}
             new_identity = {key: new_node[key] for key in ("kind", "title", "initialState", "metadata")}
             fail(old_identity == new_identity, "INVALID_GRAPH", f"Definition replacement cannot rewrite activated or terminal node: {node_id}")
@@ -1290,21 +1611,23 @@ def command_init(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
         fail(valid_string(args.graph_id, 128, pattern=True), "USAGE", "graph-id is invalid")
         definition = default_definition(args.graph_id)
     definition = validate_definition(definition, materialized=True)
+    fail(definition["graphId"] == binding["graphId"], "AUTHORITY_DENIED", "Initialization definition does not match authority graph")
     intent = {"definitionHash": definition_hash(definition)}
     request_fingerprint = fingerprint("init", binding, args, intent)
     with store.lock():
         if store.has_state():
             current_definition, projection, events = store.load()
+            check_binding_generation(binding, projection)
             duplicate = duplicate_result(events, request_id, request_fingerprint)
             if duplicate is not None:
                 return duplicate
             return {"ok": True, "command": "init", "requestId": request_id, "revision": projection["revision"],
                     "data": {"initialized": False, "alreadyInitialized": True, "graphId": current_definition["graphId"]}}
         events: List[Dict[str, Any]] = []
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         result_data = {"initialized": True, "alreadyInitialized": False, "graphId": definition["graphId"]}
         return commit_event(store, events, "graph.initialized", {"definition": definition}, binding, request_id,
-                            request_fingerprint, result_data, format_time(now), fault_mode(args, binding))
+                            request_fingerprint, result_data, format_time(now), clock, intent, None)
 
 
 def command_validate(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1334,6 +1657,9 @@ def snapshot_data(definition: Mapping[str, Any], projection: Mapping[str, Any], 
         "edges": definition["edges"],
         "leases": projection["leases"],
         "leaseFences": projection["leaseFences"],
+        "executionStarted": projection["executionStarted"],
+        "reconciliations": projection["reconciliations"],
+        "bindingGenerations": projection["bindingGenerations"],
     }
 
 
@@ -1352,6 +1678,7 @@ def command_replace_definition(store: Store, args: argparse.Namespace) -> Dict[s
     request_fingerprint = fingerprint("replace-definition", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
@@ -1360,15 +1687,15 @@ def command_replace_definition(store: Store, args: argparse.Namespace) -> Dict[s
         replacement["definitionRevision"] = definition["definitionRevision"] + 1
         replacement = validate_definition(replacement, materialized=True)
         immutable_replacement_checks(definition, projection, replacement)
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         result_data = {"graphId": replacement["graphId"], "definitionRevision": replacement["definitionRevision"],
                        "nodes": len(replacement["nodes"]), "edges": len(replacement["edges"])}
         return commit_event(store, events, "definition.replaced", {"definition": replacement}, binding, request_id,
-                            request_fingerprint, result_data, format_time(now), fault_mode(args, binding))
+                            request_fingerprint, result_data, format_time(now), clock, intent, args.expected_revision)
 
 
 def require_current_lease(projection: Mapping[str, Any], node_id: str, binding: Mapping[str, Any],
-                          lease_id: Optional[str], fence: Optional[int], now: dt.datetime) -> None:
+                          lease_id: Optional[str], fence: Optional[int], clock: Mapping[str, Any]) -> None:
     lease = projection["leases"].get(node_id)
     if lease is None:
         if lease_id is not None or fence is not None:
@@ -1378,8 +1705,11 @@ def require_current_lease(projection: Mapping[str, Any], node_id: str, binding: 
     if lease_id != lease["leaseId"] or fence != lease["fence"]:
         code = "FENCE_STALE" if fence is not None and fence <= lease["fence"] else "LEASE_CONFLICT"
         raise GraphError(code, f"Lease credentials do not match current owner for node: {node_id}", {"currentFence": lease["fence"]})
-    fail(parse_time(lease["expiresAt"], "INVALID_STATE") > now, "LEASE_EXPIRED", f"Lease has expired for node: {node_id}")
-    fail(lease["holder"]["bindingId"] == binding["bindingId"], "AUTHORITY_DENIED", f"Actor binding does not hold lease for node: {node_id}")
+    fail(not lease_clock_expired(lease, clock, "RECONCILIATION_REQUIRED"), "LEASE_EXPIRED", f"Lease has expired for node: {node_id}")
+    fail(lease["holder"]["bindingId"] == binding["bindingId"]
+         and lease["holder"]["bindingGeneration"] == binding["generation"]
+         and lease["holder"]["bindingHash"] == binding["bindingHash"], "AUTHORITY_DENIED",
+         f"Actor binding generation does not hold lease for node: {node_id}")
 
 
 def command_transition(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1389,6 +1719,7 @@ def command_transition(store: Store, args: argparse.Namespace) -> Dict[str, Any]
     request_fingerprint = fingerprint("transition", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
@@ -1399,12 +1730,12 @@ def command_transition(store: Store, args: argparse.Namespace) -> Dict[str, Any]
         fail(not (binding["subject"]["type"] == "subagent" and node["kind"] == "integration"), "AUTHORITY_DENIED", "Subagents cannot integrate")
         current = projection["nodeStates"][args.node_id]
         fail(args.state in TRANSITIONS[family][current], "INVALID_TRANSITION", f"Transition is not allowed for {node['kind']}: {current} -> {args.state}", {"allowed": sorted(TRANSITIONS[family][current])})
-        now = transaction_time(args, binding, events)
-        require_current_lease(projection, args.node_id, binding, args.lease_id, args.fence, now)
+        now, clock = transaction_time(events)
+        require_current_lease(projection, args.node_id, binding, args.lease_id, args.fence, clock)
         transition_preconditions(definition, projection, args.node_id, args.state)
         data = {"nodeId": args.node_id, "from": current, "to": args.state}
         return commit_event(store, events, "node.transitioned", data, binding, request_id, request_fingerprint,
-                            data, format_time(now), fault_mode(args, binding))
+                            data, format_time(now), clock, intent, args.expected_revision)
 
 
 def command_gate_decide(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1415,6 +1746,7 @@ def command_gate_decide(store: Store, args: argparse.Namespace) -> Dict[str, Any
     request_fingerprint = fingerprint("gate decide", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
@@ -1423,10 +1755,10 @@ def command_gate_decide(store: Store, args: argparse.Namespace) -> Dict[str, Any
         fail(node["kind"] == "human-gate", "INVALID_GRAPH", f"Node is not a human gate: {args.node_id}")
         current = projection["nodeStates"][args.node_id]
         fail(args.decision in TRANSITIONS["gate"][current], "INVALID_TRANSITION", f"Gate decision is not allowed: {current} -> {args.decision}")
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         data = {"nodeId": args.node_id, "from": current, "to": args.decision}
         return commit_event(store, events, "gate.decided", data, binding, request_id, request_fingerprint,
-                            data, format_time(now), fault_mode(args, binding))
+                            data, format_time(now), clock, intent, args.expected_revision)
 
 
 def validate_ttl(value: int) -> None:
@@ -1452,17 +1784,21 @@ def command_lease_acquire(store: Store, args: argparse.Namespace) -> Dict[str, A
     request_fingerprint = fingerprint("lease acquire", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
         check_cas(projection, args.expected_revision)
         node = find_node(definition, args.node_id)
         fail(node["kind"] in WORK_KINDS, "AUTHORITY_DENIED", "Only work nodes may be leased")
+        fail(projection["nodeStates"][args.node_id] not in TERMINAL_STATES["work"], "INVALID_STATE", "Terminal work cannot be leased")
+        fail(args.node_id not in projection["reconciliations"], "RECONCILIATION_REQUIRED",
+             f"Node requires explicit lease resolution before reassignment: {args.node_id}")
         assigned = any(edge["kind"] == "assigned-to" and edge["from"] == args.node_id and edge["to"] == scope["laneNodeId"] for edge in definition["edges"])
         fail(assigned, "AUTHORITY_DENIED", "Lease acquisition does not match assigned-to", {"nodeId": args.node_id, "laneNodeId": scope["laneNodeId"]})
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         current = projection["leases"].get(args.node_id)
-        if current is not None and parse_time(current["expiresAt"], "INVALID_STATE") > now:
+        if current is not None and not lease_clock_expired(current, clock, "RECONCILIATION_REQUIRED"):
             raise GraphError("LEASE_CONFLICT", f"Node already has an unexpired lease: {args.node_id}", {"leaseId": current["leaseId"], "fence": current["fence"], "expiresAt": current["expiresAt"]})
         if current is not None:
             execution = node["metadata"].get("execution", {})
@@ -1476,24 +1812,31 @@ def command_lease_acquire(store: Store, args: argparse.Namespace) -> Dict[str, A
             "nodeId": args.node_id,
             "leaseId": lease_id,
             "holder": {"actorType": binding["subject"]["type"], "actorId": binding["subject"]["id"],
-                       "bindingId": binding["bindingId"], "scope": scope["scope"], "laneNodeId": scope["laneNodeId"]},
+                       "bindingId": binding["bindingId"], "bindingGeneration": binding["generation"],
+                       "bindingHash": binding["bindingHash"], "scope": scope["scope"], "laneNodeId": scope["laneNodeId"]},
             "acquiredAt": timestamp,
             "renewedAt": timestamp,
             "expiresAt": format_time(now + dt.timedelta(seconds=args.ttl_seconds)),
             "fence": fence,
+            "clock": {"hostId": clock["hostId"], "bootId": clock["bootId"],
+                      "acquiredMonotonicNs": clock["monotonicNs"],
+                      "expiresMonotonicNs": clock["monotonicNs"] + args.ttl_seconds * 1_000_000_000},
         }
         validate_lease(lease)
         result_data = {"lease": lease, "reclaimed": current is not None}
         return commit_event(store, events, "lease.acquired", {"lease": lease}, binding, request_id,
-                            request_fingerprint, result_data, timestamp, fault_mode(args, binding))
+                            request_fingerprint, result_data, timestamp, clock, intent, args.expected_revision)
 
 
-def check_lease_operation(projection: Mapping[str, Any], args: argparse.Namespace, binding: Mapping[str, Any], now: dt.datetime) -> Dict[str, Any]:
+def check_lease_operation(projection: Mapping[str, Any], args: argparse.Namespace, binding: Mapping[str, Any], clock: Mapping[str, Any]) -> Dict[str, Any]:
     lease = projection["leases"].get(args.node_id)
     fail(lease is not None, "FENCE_STALE", f"No current lease exists for node: {args.node_id}")
     fail(args.lease_id == lease["leaseId"] and args.fence == lease["fence"], "FENCE_STALE", f"Lease credentials are stale for node: {args.node_id}", {"currentFence": lease["fence"]})
-    fail(lease["holder"]["bindingId"] == binding["bindingId"], "AUTHORITY_DENIED", f"Actor binding does not hold lease for node: {args.node_id}")
-    fail(parse_time(lease["expiresAt"], "INVALID_STATE") > now, "LEASE_EXPIRED", f"Lease has expired for node: {args.node_id}")
+    fail(lease["holder"]["bindingId"] == binding["bindingId"]
+         and lease["holder"]["bindingGeneration"] == binding["generation"]
+         and lease["holder"]["bindingHash"] == binding["bindingHash"], "RECONCILIATION_REQUIRED",
+         f"Lease holder binding was rotated for node: {args.node_id}")
+    fail(not lease_clock_expired(lease, clock, "RECONCILIATION_REQUIRED"), "LEASE_EXPIRED", f"Lease has expired for node: {args.node_id}")
     return lease
 
 
@@ -1505,16 +1848,19 @@ def command_lease_renew(store: Store, args: argparse.Namespace) -> Dict[str, Any
     request_fingerprint = fingerprint("lease renew", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
         check_cas(projection, args.expected_revision)
-        now = transaction_time(args, binding, events)
-        lease = dict(check_lease_operation(projection, args, binding, now))
+        now, clock = transaction_time(events)
+        lease = dict(check_lease_operation(projection, args, binding, clock))
         lease["renewedAt"] = format_time(now)
         lease["expiresAt"] = format_time(now + dt.timedelta(seconds=args.ttl_seconds))
+        lease["clock"] = dict(lease["clock"])
+        lease["clock"]["expiresMonotonicNs"] = clock["monotonicNs"] + args.ttl_seconds * 1_000_000_000
         return commit_event(store, events, "lease.renewed", {"lease": lease}, binding, request_id,
-                            request_fingerprint, {"lease": lease}, format_time(now), fault_mode(args, binding))
+                            request_fingerprint, {"lease": lease}, format_time(now), clock, intent, args.expected_revision)
 
 
 def command_lease_release(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1524,15 +1870,16 @@ def command_lease_release(store: Store, args: argparse.Namespace) -> Dict[str, A
     request_fingerprint = fingerprint("lease release", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
         check_cas(projection, args.expected_revision)
-        now = transaction_time(args, binding, events)
-        lease = check_lease_operation(projection, args, binding, now)
+        now, clock = transaction_time(events)
+        lease = check_lease_operation(projection, args, binding, clock)
         data = {"nodeId": args.node_id, "leaseId": lease["leaseId"], "fence": lease["fence"]}
         return commit_event(store, events, "lease.released", data, binding, request_id,
-                            request_fingerprint, data, format_time(now), fault_mode(args, binding))
+                            request_fingerprint, data, format_time(now), clock, intent, args.expected_revision)
 
 
 def command_lease_sweep(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1543,14 +1890,15 @@ def command_lease_sweep(store: Store, args: argparse.Namespace) -> Dict[str, Any
     request_fingerprint = fingerprint("lease sweep", binding, args, intent)
     with store.lock():
         definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             return duplicate
         check_cas(projection, args.expected_revision)
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         expired = []
         for node_id, lease in sorted(projection["leases"].items()):
-            if parse_time(lease["expiresAt"], "INVALID_STATE") <= now:
+            if lease_clock_expired(lease, clock, "RECONCILIATION_REQUIRED"):
                 node = find_node(definition, node_id)
                 prior_state = projection["nodeStates"][node_id]
                 execution = node["metadata"].get("execution", {})
@@ -1561,7 +1909,45 @@ def command_lease_sweep(store: Store, args: argparse.Namespace) -> Dict[str, Any
                                 "fromState": prior_state, "toState": target_state, "reconciliation": reconciliation})
         data = {"expired": expired}
         return commit_event(store, events, "lease.swept", data, binding, request_id, request_fingerprint,
-                            {"expired": expired, "count": len(expired)}, format_time(now), fault_mode(args, binding))
+                            {"expired": expired, "count": len(expired)}, format_time(now), clock, intent, args.expected_revision)
+
+
+def command_lease_resolve(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
+    request_id = require_request_id(args)
+    binding = load_binding(store, args, "lease-resolve")
+    fail(binding["subject"]["type"] in {"operator", "system", "human"}, "AUTHORITY_DENIED",
+         "Only operator, system, or human bindings may resolve lease reconciliation")
+    intent = {"nodeId": args.node_id, "leaseId": args.lease_id, "fence": args.fence,
+              "action": args.action, "reason": args.reason}
+    request_fingerprint = fingerprint("lease resolve", binding, args, intent)
+    with store.lock():
+        definition, projection, events = store.load()
+        check_binding_generation(binding, projection)
+        duplicate = duplicate_result(events, request_id, request_fingerprint)
+        if duplicate is not None:
+            return duplicate
+        check_cas(projection, args.expected_revision)
+        node = find_node(definition, args.node_id)
+        fail(node["kind"] in WORK_KINDS, "INVALID_GRAPH", "Only work nodes have lease reconciliation")
+        current_lease = projection["leases"].get(args.node_id)
+        record = projection["reconciliations"].get(args.node_id)
+        if record is None:
+            fail(current_lease is not None and args.reason in {"binding-rotated", "clock-recovery"},
+                 "RECONCILIATION_REQUIRED", "Node has no reconciliation requiring resolution")
+            record = {"leaseId": current_lease["leaseId"], "fence": current_lease["fence"]}
+        else:
+            fail(args.reason == record["reason"], "RECONCILIATION_REQUIRED", "Resolution reason does not match persisted reconciliation")
+        fail(args.lease_id == record["leaseId"] and args.fence == record["fence"], "FENCE_STALE",
+             "Resolution lease credentials are stale")
+        current = projection["nodeStates"][args.node_id]
+        fail(current not in TERMINAL_STATES["work"], "INVALID_STATE", "Terminal work does not require lease resolution")
+        target = ("blocked" if current == "active" else current) if args.action == "retry" else (
+            "cancelled" if args.action == "cancel" else "completed")
+        now, clock = transaction_time(events)
+        data = {"nodeId": args.node_id, "leaseId": args.lease_id, "fence": args.fence,
+                "action": args.action, "fromState": current, "toState": target, "reason": args.reason}
+        return commit_event(store, events, "lease.resolved", data, binding, request_id, request_fingerprint,
+                            data, format_time(now), clock, intent, args.expected_revision)
 
 
 def command_replay_check(store: Store, args: argparse.Namespace) -> Dict[str, Any]:
@@ -1580,16 +1966,17 @@ def command_replay_repair(store: Store, args: argparse.Namespace) -> Dict[str, A
         events = read_events(store.events_path, recover_tail=True)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
-            definition, projection = replay(events)
+            definition, projection = replay(events, store.load_authority())
             store.write_materialized(definition, projection)
             return duplicate
-        definition, projection = replay(events)
+        definition, projection = replay(events, store.load_authority())
+        check_binding_generation(binding, projection)
         check_cas(projection, args.expected_revision)
-        now = transaction_time(args, binding, events)
+        now, clock = transaction_time(events)
         repaired_revision = projection["revision"]
         return commit_event(store, events, "replay.repaired", {"repairedRevision": repaired_revision}, binding,
                             request_id, request_fingerprint, {"repairedRevision": repaired_revision},
-                            format_time(now), fault_mode(args, binding))
+                            format_time(now), clock, intent, args.expected_revision)
 
 
 def add_mutation_options(parser: argparse.ArgumentParser, cas: bool = True) -> None:
@@ -1597,15 +1984,6 @@ def add_mutation_options(parser: argparse.ArgumentParser, cas: bool = True) -> N
     if cas:
         parser.add_argument("--expected-revision", type=int)
     parser.add_argument("--actor-binding")
-    parser.add_argument("--test-only-now", help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-fault", choices=["partial-tail", "after-event", "after-definition"], help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-unsafe-actor-flags", action="store_true", help=argparse.SUPPRESS)
-    parser.add_argument("--actor-type", choices=sorted(ACTOR_TYPES), help=argparse.SUPPRESS)
-    parser.add_argument("--actor-id", help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-capability", action="append", choices=sorted(CAPABILITIES), help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-lane-node-id", help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-host-runner-id", help=argparse.SUPPRESS)
-    parser.add_argument("--test-only-lease-scope", action="append", help=argparse.SUPPRESS)
 
 
 class JSONArgumentParser(argparse.ArgumentParser):
@@ -1678,6 +2056,14 @@ def build_parser() -> argparse.ArgumentParser:
     sweep = lease_sub.add_parser("sweep")
     add_mutation_options(sweep)
     sweep.set_defaults(handler=command_lease_sweep)
+    resolve = lease_sub.add_parser("resolve")
+    resolve.add_argument("node_id")
+    resolve.add_argument("action", choices=["retry", "cancel", "complete"])
+    resolve.add_argument("--lease-id", required=True)
+    resolve.add_argument("--fence", type=int, required=True)
+    resolve.add_argument("--reason", required=True, choices=["expired-unsafe", "binding-rotated", "clock-recovery"])
+    add_mutation_options(resolve)
+    resolve.set_defaults(handler=command_lease_resolve)
 
     replay_parser = sub.add_parser("replay")
     replay_sub = replay_parser.add_subparsers(dest="replay_command", required=True)

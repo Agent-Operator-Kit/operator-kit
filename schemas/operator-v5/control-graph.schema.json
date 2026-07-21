@@ -49,7 +49,12 @@
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {"if": {"properties": {"kind": {"enum": ["goal", "feature", "lane"]}}, "required": ["kind"]}, "then": {"properties": {"initialState": {"const": "planned"}}}},
+        {"if": {"properties": {"kind": {"enum": ["task", "validation", "integration", "feedback"]}}, "required": ["kind"]}, "then": {"properties": {"initialState": {"const": "pending"}}}},
+        {"if": {"properties": {"kind": {"const": "human-gate"}}, "required": ["kind"]}, "then": {"properties": {"initialState": {"const": "pending"}}}}
+      ]
     },
     "edge": {
       "type": "object",

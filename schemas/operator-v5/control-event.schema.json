@@ -4,7 +4,7 @@
   "title": "Operator V5 Control Event",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "actor", "type", "data", "result"],
+  "required": ["schemaVersion", "sequence", "eventId", "requestId", "requestFingerprint", "occurredAt", "clock", "actor", "type", "intent", "expectedRevision", "data", "result"],
   "properties": {
     "schemaVersion": {"const": "operator.control-event/v1"},
     "sequence": {"type": "integer", "minimum": 1},
@@ -12,19 +12,35 @@
     "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
     "requestFingerprint": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "occurredAt": {"type": "string", "format": "date-time"},
+    "clock": {
+      "type": "object", "additionalProperties": false, "required": ["hostId", "bootId", "monotonicNs"],
+      "properties": {
+        "hostId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "bootId": {"type": "string", "minLength": 1, "maxLength": 256},
+        "monotonicNs": {"type": "integer", "minimum": 0}
+      }
+    },
     "actor": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "id", "bindingId", "bindingHash", "capabilities", "subject", "leaseScopes"],
+      "required": ["type", "id", "bindingId", "bindingGeneration", "bindingHash", "capabilityHash", "projectId", "graphId", "issuedAt", "expiresAt", "keyId", "signature", "capabilities", "subject", "leaseScopes"],
       "properties": {
         "type": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
         "id": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+        "bindingGeneration": {"type": "integer", "minimum": 1},
         "bindingHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "capabilityHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "projectId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "graphId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "issuedAt": {"type": "string", "format": "date-time"},
+        "expiresAt": {"type": "string", "format": "date-time"},
+        "keyId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "signature": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[A-Za-z0-9_-]+$"},
         "capabilities": {
           "type": "array",
           "uniqueItems": true,
-          "items": {"enum": ["graph-init", "graph-replace", "gate-decision", "lease", "transition", "sweep", "replay-repair", "test-injection"]}
+          "items": {"enum": ["graph-init", "graph-replace", "gate-decision", "lease", "transition", "sweep", "lease-resolve", "replay-repair"]}
         },
         "subject": {
           "type": "object",
@@ -68,8 +84,10 @@
       }
     },
     "type": {
-      "enum": ["graph.initialized", "definition.replaced", "node.transitioned", "gate.decided", "lease.acquired", "lease.renewed", "lease.released", "lease.swept", "replay.repaired"]
+      "enum": ["graph.initialized", "definition.replaced", "node.transitioned", "gate.decided", "lease.acquired", "lease.renewed", "lease.released", "lease.swept", "lease.resolved", "replay.repaired"]
     },
+    "intent": {"type": "object"},
+    "expectedRevision": {"type": ["integer", "null"], "minimum": 1},
     "data": {"type": "object"},
     "result": {
       "type": "object",
@@ -77,7 +95,7 @@
       "required": ["ok", "command", "requestId", "revision", "data"],
       "properties": {
         "ok": {"const": true},
-        "command": {"enum": ["init", "replace-definition", "transition", "gate decide", "lease acquire", "lease renew", "lease release", "lease sweep", "replay repair"]},
+        "command": {"enum": ["init", "replace-definition", "transition", "gate decide", "lease acquire", "lease renew", "lease release", "lease sweep", "lease resolve", "replay repair"]},
         "requestId": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
         "revision": {"type": "integer", "minimum": 1},
         "data": {"type": "object"}
@@ -93,6 +111,7 @@
     {"if": {"properties": {"type": {"const": "lease.renewed"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease renew"}}}}}},
     {"if": {"properties": {"type": {"const": "lease.released"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease release"}}}}}},
     {"if": {"properties": {"type": {"const": "lease.swept"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease sweep"}}}}}},
+    {"if": {"properties": {"type": {"const": "lease.resolved"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "lease resolve"}}}}}},
     {"if": {"properties": {"type": {"const": "replay.repaired"}}}, "then": {"properties": {"result": {"properties": {"command": {"const": "replay repair"}}}}}}
   ]
 }

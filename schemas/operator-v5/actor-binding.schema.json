@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/actor-binding.schema.json",
+  "title": "Operator V5 Signed Actor Binding",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "bindingId", "generation", "projectId", "graphId", "issuedAt", "expiresAt", "subject", "capabilities", "leaseScopes", "signature"],
+  "properties": {
+    "schemaVersion": {"const": "operator.actor-binding/v1"},
+    "bindingId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._\\-]*$"},
+    "generation": {"type": "integer", "minimum": 1},
+    "projectId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "graphId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+    "issuedAt": {"type": "string", "format": "date-time"},
+    "expiresAt": {"type": "string", "format": "date-time"},
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id"],
+      "properties": {
+        "type": {"enum": ["operator", "lane", "host", "human", "subagent", "system"]},
+        "id": {"type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "hostRunnerId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+      },
+      "allOf": [
+        {"if": {"properties": {"type": {"const": "lane"}}, "required": ["type"]}, "then": {"required": ["laneNodeId"], "not": {"required": ["hostRunnerId"]}}},
+        {"if": {"properties": {"type": {"const": "host"}}, "required": ["type"]}, "then": {"required": ["hostRunnerId"], "not": {"required": ["laneNodeId"]}}},
+        {"if": {"properties": {"type": {"enum": ["operator", "human", "subagent", "system"]}}, "required": ["type"]}, "then": {"not": {"anyOf": [{"required": ["laneNodeId"]}, {"required": ["hostRunnerId"]}]}}}
+      ]
+    },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"enum": ["graph-init", "graph-replace", "gate-decision", "lease", "transition", "sweep", "lease-resolve", "replay-repair"]}
+    },
+    "leaseScopes": {
+      "type": "array",
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scope", "laneNodeId"],
+        "properties": {
+          "scope": {"type": "string", "minLength": 1, "maxLength": 512, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+          "laneNodeId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"}
+        }
+      }
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["keyId", "algorithm", "value"],
+      "properties": {
+        "keyId": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"},
+        "algorithm": {"const": "RS256"},
+        "value": {"type": "string", "minLength": 1, "maxLength": 2048, "pattern": "^[A-Za-z0-9_-]+$"}
+      }
+    }
+  }
+}

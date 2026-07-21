@@ -1,21 +1,21 @@
 # Operator V5 Control Graph
 
-This directory is the local V5 execution authority:
+This directory contains signed bindings plus the definition, append-only
+journal, deterministic projection, and transient `.lock`. The control-plane
+public trust anchor lives separately at
+`../authority/control-graph-public-key.json`; its private key must never be in
+the workspace or a lane environment, and the anchor must be outside bypass
+lane write scope.
 
-- `bindings/`: trusted actor/capability records provisioned by the control plane;
-- `definition.json`: current normalized typed graph;
-- `events.jsonl`: append-only committed transaction journal;
-- `projection.json`: deterministic current state, leases, and fence tombstones;
-- `.lock`: transient host-aware transaction lock.
+Binding files are untrusted until their RS256 signature, project/graph scope,
+validity window, and generation verify. Unix mode alone does not confer
+authority. There are no production actor/time/fault injection flags.
 
-Keep `bindings/` and its files non-symlinked and non-group/world-writable. A
-process able to modify a binding has that binding's local authority. Bindings
-are filesystem capabilities, not remote authentication.
+Use `bash scripts/operator-graph.sh`; never edit graph state or create the lock
+directly. Schedulers and runners consume `status`/`snapshot`, including
+reconciliation and execution-start history. `lease sweep` does not authorize a
+retry: operator/system/human must journal `lease resolve` first.
 
-Use `bash scripts/operator-graph.sh`; never edit graph files or create the lock
-directly. Schedulers and runners consume `status` or `snapshot`, not files.
-Roadmap state remains separate under `roadmap/`.
-
-Run `validate` for state validation, `replay check` for deterministic drift
-detection, and an explicitly request-ID'd, operator/system-bound `replay repair`
-only when the journal is valid.
+Use `validate` for state validation and `replay check` for drift. The 256 MiB
+journal has no in-place V1 rotation; stop writers and use reviewed migration
+tooling if `JOURNAL_FULL` is reached. Roadmap state remains separate.
