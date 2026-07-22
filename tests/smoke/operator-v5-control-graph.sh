@@ -744,10 +744,13 @@ class FakeSocket:
     def __init__(self, response):
         self.response = response
         self.sent = b""
+        self.shutdown_direction = None
     def sendall(self, value):
         self.sent += value
     def settimeout(self, value):
         pass
+    def shutdown(self, direction):
+        self.shutdown_direction = direction
     def recv(self, size):
         value, self.response = self.response[:size], self.response[size:]
         return value
@@ -767,6 +770,7 @@ channel.next_phase = "event"
 channel.proof_key_id = key["keyId"]
 assert channel.sign("event", {"blob": "x" * padding}, key) == "A"
 assert len(channel.socket.sent) == graph.MAX_PROOF_EVENT_CHALLENGE_BYTES
+assert channel.socket.shutdown_direction == graph.socket.SHUT_WR
 
 channel = graph.ProofChannel.__new__(graph.ProofChannel)
 channel.socket = FakeSocket(response)

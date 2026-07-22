@@ -1719,6 +1719,8 @@ class ProofChannel:
         })
         try:
             self.socket.sendall(encoded)
+            if phase == "event":
+                self.socket.shutdown(socket.SHUT_WR)
             response = bytearray()
             while not response.endswith(b"\n"):
                 chunk = self.socket.recv(4096)

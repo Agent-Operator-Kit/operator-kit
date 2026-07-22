@@ -107,7 +107,7 @@ OPERATOR_KIT_VERSION="4"
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
 cursor|Cursor CLI|$repo_name-cursor|cursor/operator|cursor agent
-ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
 '
 EOF
   else
@@ -122,8 +122,8 @@ OPERATOR_KIT_VERSION="4"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
-backend|Codex CLI|$repo_name-backend|codex/backend|codex --dangerously-bypass-approvals-and-sandbox
-ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+backend|Codex CLI|$repo_name-backend|codex/backend|codex --sandbox workspace-write
+ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
 '
 EOF
   fi
@@ -141,7 +141,7 @@ if [ ! -f "$repo_root/CLAUDE.md" ]; then
   cp "$KIT_ROOT/templates/repo/CLAUDE.md" "$repo_root/CLAUDE.md"
 fi
 
-for command in operator-bootstrap.md operator-status.md; do
+for command in operator-bootstrap.md operator-status.md operator-open.md operator-tick.md operator-goal-context.md; do
   if [ ! -f "$repo_root/.claude/commands/$command" ]; then
     cp "$KIT_ROOT/templates/claude/commands/$command" "$repo_root/.claude/commands/$command"
   fi
