@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-v5/mutation-event-proof-payload.schema.json",
+  "$comment": "JSON Schema validates structure and semantic integers only. Raw bytes MUST first pass Operator Canonical JSON v1 lexical parsing, which rejects decimal, exponent, and negative-zero number spellings before schema validation, hashing, signing, or persistence.",
+  "title": "Operator V5 Complete Event Caller-Proof Payload",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "event"],
+  "properties": {
+    "schemaVersion": {"const": "operator.mutation-event-proof/v1"},
+    "event": {"$ref": "control-event-unsigned.schema.json"}
+  }
+}
