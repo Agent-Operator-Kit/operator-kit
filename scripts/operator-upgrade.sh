@@ -161,7 +161,7 @@ prepare_source() {
 
   if [ -d "$SOURCE" ]; then
     SOURCE_PATH="$(cd "$SOURCE" && pwd)"
-    if [ "$NO_FETCH" -eq 0 ] && git -C "$SOURCE_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [ "$DRY_RUN" -eq 0 ] && [ "$NO_FETCH" -eq 0 ] && git -C "$SOURCE_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       if [ -n "$(git -C "$SOURCE_PATH" status --porcelain)" ]; then
         printf 'Source has local changes; skipping git pull: %s\n' "$SOURCE_PATH" >&2
       else
@@ -251,7 +251,10 @@ print_section "Operator Kit Upgrade"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
-printf 'Default kit version: 4\n'
+case "$CHANNEL" in
+  latest|main) printf 'Fresh-install kit version: 5\n' ;;
+  *) printf 'Fresh-install kit version: selected legacy channel\n' ;;
+esac
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'

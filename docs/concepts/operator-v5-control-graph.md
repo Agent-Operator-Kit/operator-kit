@@ -294,12 +294,12 @@ session. It must never select authority from `--actor-binding`, an untrusted
 binding document, or the challenge's `proofKeyId` alone.
 
 Private proof keys must never enter `OPERATOR_DIR`, a repository, a task
-packet, environment defaults, CLI arguments, or the graph process. RM-0003 and
-RM-0005 must use an OS-keychain or isolated broker: create a socket pair, keep
+packet, environment defaults, CLI arguments, or the graph process. The shipped
+RM-0003/RM-0005 host uses the OS keychain and isolated broker: it creates a socket pair, keeps
 the signing/keychain end in the trusted host service, and pass only the graph
 end as an inherited descriptor. There is deliberately no key-file option.
-Production mutations remain disabled until that broker integration and the
-permission-bypass removal described below are complete.
+Production mutations are enabled only through that bound host/broker path;
+missing session, keychain, binding, containment, or sandbox readiness fails closed.
 There are no shipped actor, capability, scope, time, proof, or fault-injection
 shortcuts. Adversarial tests use a non-installed ephemeral broker against
 isolated temporary state.
@@ -474,8 +474,8 @@ and `JOURNAL_FULL`.
   proof broker over a fresh inherited socket per mutation, enforce the strict
   two-phase record protocol, select its key from trusted host policy, persist
   lease ID/fence, and never retry reconciled work until an explicit resolution
-  is observed. Production mutation launch remains disabled until this exists.
-- The downstream launcher integration must remove permission-bypass execution
-  and OS-sandbox each Codex/Claude lane so it can write only its worktree and
+  is observed. This is the only shipped production mutation launch path.
+- The shipped launcher prohibits permission-bypass execution and OS-sandboxes
+  each Codex/Claude lane so it can write only its worktree and
   its own handoff directory; graph state, bindings, anchors, and runtime stay
   outside that writable boundary.

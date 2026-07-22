@@ -29,6 +29,25 @@ Worker agents own:
 
 This model is intentionally conservative. It favors traceability and integration quality over agents freely editing the same branch.
 
+## V5 Graph Authority
+
+Operator V5 keeps V4 feature folders for planning and evidence, but runtime
+authority moves to the signed typed control graph. The append-only journal,
+current lease, and monotonic fence—not a chat, tmux pane, prompt, task file, or
+roadmap item—authorize execution. The scheduler only derives a frontier; the
+bounded loop only executes it; Codex and Claude hosts can mutate only through
+their bound signed session and isolated proof broker.
+
+Human decisions remain explicit graph gates for subjective design selection,
+stable-branch integration, push/publish/release, credentials, destructive or
+production changes, and other irreversible work. Dissatisfaction creates a new
+forward feedback node instead of rewriting completed history.
+
+The V5 runtime never uses permission-bypass launches. Private authority/proof
+keys never belong in the repo, `OPERATOR_DIR`, environment, command line, task
+packet, or handoff. See [Operator V5 architecture](operator-v5.md) and the
+[V4-to-V5 migration guide](../guides/operator-v5-migration.md).
+
 ## V4 Feature Sessions
 
 Operator V4 keeps the same conservative integration model, but changes the

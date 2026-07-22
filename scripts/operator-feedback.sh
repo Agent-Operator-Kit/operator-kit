@@ -2,6 +2,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ "${OPERATOR_DESIGN_FLOW_PROVIDER_MODE:-}" = "feedback" ]; then
+  [ "$#" -eq 0 ] || {
+    printf 'Design-flow feedback provider does not accept arguments.\n' >&2
+    exit 2
+  }
+  PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin"
+  export PATH
+  unset PYTHONPATH PYTHONHOME
+  exec /usr/bin/python3 -E -s "$SCRIPT_DIR/operator_design_provider.py" feedback
+fi
+
 # shellcheck source=scripts/operator-lib.sh
 source "$SCRIPT_DIR/operator-lib.sh"
 operator_load_config

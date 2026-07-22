@@ -14,6 +14,7 @@ import json
 import os
 from pathlib import Path
 import socket
+import subprocess
 import sys
 import tempfile
 import threading
@@ -51,8 +52,22 @@ class FakeGraph:
         return dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
 
     @staticmethod
+    def utc_now() -> dt.datetime:
+        return dt.datetime.now(dt.timezone.utc)
+
+    @staticmethod
     def host_monotonic_sample() -> tuple[str, int]:
         return "macos-mach-continuous", time.monotonic_ns()
+
+    @staticmethod
+    def validate_authority(value: Mapping[str, Any]) -> Mapping[str, Any]:
+        return value
+
+    @staticmethod
+    def validate_binding(value: Mapping[str, Any], binding_id: str,
+                         _authority: Mapping[str, Any]) -> Mapping[str, Any]:
+        assert value["bindingId"] == binding_id
+        return value
 
     @staticmethod
     def sha256_value(value: Any) -> str:
@@ -394,8 +409,9 @@ def path_tests(host: Any) -> None:
             old_root = base / "old-root"
             root.rename(old_root)
             root.mkdir(mode=0o700)
-            store.atomic_write_bytes(("anchored-after-root-swap",), b"old inode")
-            assert (old_root / "anchored-after-root-swap").read_bytes() == b"old inode"
+            expect_error(host, "IO_ERROR", lambda: store.atomic_write_bytes(
+                ("anchored-after-root-swap",), b"old inode"))
+            assert not (old_root / "anchored-after-root-swap").exists()
             assert not (root / "anchored-after-root-swap").exists()
 
 
@@ -423,6 +439,185 @@ def lease_snapshot(host: Any, record: Mapping[str, Any], fence: int = 1,
     }
 
 
+def binding_manifest_stress_tests(host: Any, graph_path: Path,
+                                  template: Mapping[str, Any]) -> None:
+    original_graph = host.graph_module
+    original_lanes = host.parse_lanes
+    with tempfile.TemporaryDirectory() as temporary:
+        root = Path(temporary)
+        root.chmod(0o700)
+        (root / "authority").mkdir(mode=0o700)
+        (root / "graph" / "bindings").mkdir(parents=True, mode=0o700)
+        (root / "authority" / "control-graph-public-key.json").write_bytes(b"{}\n")
+        os.chmod(root / "authority" / "control-graph-public-key.json", 0o600)
+        selected_id = "stress-selected"
+        for index in range(96):
+            value = copy.deepcopy(template)
+            binding_id = selected_id if index == 47 else f"stress-{index:04d}"
+            value["bindingId"] = binding_id
+            value["padding"] = "x" * 48000
+            if binding_id == selected_id:
+                value["subject"] = {"type": "host", "id": "codex-stress",
+                                    "hostRunnerId": "codex-cli"}
+                value["capabilities"] = sorted(set([*value.get("capabilities", []), "lease"]))
+                value["leaseScopes"] = [{"scope": "scope:stress-lane",
+                                         "laneNodeId": "stress-lane"}]
+            else:
+                value["subject"] = {"type": "operator", "id": f"other-{index}"}
+                value["capabilities"] = []
+                value["leaseScopes"] = []
+            path = root / "graph" / "bindings" / f"{binding_id}.json"
+            path.write_bytes(host.canonical(value)); os.chmod(path, 0o600)
+        graph = FakeGraph(host)
+        host.graph_module = lambda: graph
+        host.parse_lanes = lambda: {"stress-lane": {
+            "lane": "stress-lane", "owner": "Codex CLI", "worktreeName": "stress",
+            "branch": "stress", "worktree": str(root),
+            "invocation": "codex --sandbox workspace-write",
+        }}
+        store = host.AnchoredStore(root, acquire_exclusive=True, initialize_capability=True)
+        previous = host._ACTIVE_HOST_ROOT
+        host._ACTIVE_HOST_ROOT = store
+        try:
+            snapshot = {"nodes": [{"id": "stress-task"}], "edges": [{
+                "kind": "assigned-to", "from": "stress-task", "to": "stress-lane"}]}
+            probe = host.validated_actor(selected_id, retain=False)
+            assert probe["subject"]["hostRunnerId"] == "codex-cli" and "lease" in probe["capabilities"]
+            binding, scope, lane_node, _lane = host.find_binding("codex", "stress-task", snapshot)
+            assert binding["bindingId"] == selected_id and scope == "scope:stress-lane"
+            assert lane_node == "stress-lane"
+            pinned_bindings = [key for key in store.file_fds if key[:2] == ("graph", "bindings")]
+            assert pinned_bindings == [("graph", "bindings", f"{selected_id}.json")], pinned_bindings
+            environment, descriptors = host.capability_environment("OPERATOR_HOST_ROOT", store)
+            leaf_caps = json.loads(environment["OPERATOR_HOST_ROOT_LEAF_CAPS"])
+            assert len(leaf_caps) < 16 and len(descriptors) < 20
+            manifest_fd = int(environment["OPERATOR_HOST_ROOT_BINDING_MANIFEST_FD"])
+            os.lseek(manifest_fd, 0, os.SEEK_SET)
+            manifest = json.loads(os.read(manifest_fd, host.MAX_JSON_BYTES))
+            assert len(manifest["entries"]) == 96
+            assert len(json.dumps(leaf_caps, separators=(",", ":"))) < 4096
+            info = os.fstat(store.root_fd)
+            child_environment = {"PATH": "/usr/bin:/bin:/usr/sbin:/sbin", "LC_ALL": "C", "LANG": "C",
+                                 "OPERATOR_DIR": str(root), "OPERATOR_HOST_ROOT_FD": str(store.root_fd),
+                                 "OPERATOR_HOST_ROOT_DEV": str(info.st_dev), "OPERATOR_HOST_ROOT_INO": str(info.st_ino),
+                                 "OPERATOR_HOST_ROOT_PATH": str(root),
+                                 "OPERATOR_HOST_ROOT_LOCK_MODE": "exclusive-held", **environment}
+            code = ("import sys;sys.path.insert(0,sys.argv[1]);import operator_graph as g;"
+                    "guard=g.DesignFlowRootGuard.open();assert guard is not None;"
+                    "assert len(guard.binding_manifest)==96;guard.close()")
+            child = subprocess.run(["/usr/bin/python3", "-E", "-s", "-c", code, str(graph_path.parent)],
+                                   stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                   env=child_environment, pass_fds=descriptors, timeout=30, check=False)
+            assert child.returncode == 0, child.stderr
+        finally:
+            host._ACTIVE_HOST_ROOT = previous
+            store.close()
+    host.graph_module = original_graph
+    host.parse_lanes = original_lanes
+
+
+def mutation_postcommit_tests(host: Any) -> None:
+    class Lock:
+        def __init__(self, _path: Path, **_kwargs: Any): pass
+        def __enter__(self) -> "Lock": return self
+        def __exit__(self, *_args: Any) -> None: return None
+
+    class PostGraph:
+        MAX_JOURNAL_BYTES = 4 * 1024 * 1024
+        MAX_GRAPH_BYTES = 4 * 1024 * 1024
+        DirectoryLock = Lock
+        @staticmethod
+        def parse_committed_events(raw: bytes) -> list[Mapping[str, Any]]:
+            assert raw and raw.endswith(b"\n")
+            return [json.loads(line) for line in raw.splitlines()]
+        @staticmethod
+        def parse_json_bytes(raw: bytes, _path: Path, _code: str) -> Mapping[str, Any]:
+            return json.loads(raw)
+        @staticmethod
+        def canonical_bytes(value: Any) -> bytes: return host.canonical(value)
+        @staticmethod
+        def validate_authority(value: Mapping[str, Any]) -> Mapping[str, Any]: return value
+        @staticmethod
+        def replay(events: list[Mapping[str, Any]], _authority: Mapping[str, Any]) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+            return events[-1]["definition"], events[-1]["projection"]
+
+    original_graph = host.graph_module
+    host.graph_module = lambda: PostGraph
+    record = {"actorBindingId": "host-a", "holderScope": "scope:lane-a"}
+    request = {"action": "transition", "graphId": "g", "nodeId": "task-a",
+               "tickId": "tick", "requestId": "host-post-2", "expectedRevision": 1,
+               "leaseId": "lease-1", "fence": 1, "targetState": "active", "ttlSeconds": None}
+    result = {"ok": True, "command": "transition", "requestId": "host-post-2", "revision": 2,
+              "data": {"nodeId": "task-a", "from": "ready", "to": "active"}}
+    intent = {"nodeId": "task-a", "targetState": "active", "leaseId": "lease-1", "fence": 1}
+    old_definition = {"schemaVersion": "fake", "revision": 1}
+    old_projection = {"schemaVersion": "fake", "revision": 1}
+    new_definition = {"schemaVersion": "fake", "revision": 2}
+    new_projection = {"schemaVersion": "fake", "revision": 2}
+    first = {"requestId": "host-post-1", "sequence": 1, "type": "graph.initialized",
+             "intent": {}, "expectedRevision": None, "actor": {"bindingId": "host-a"},
+             "result": {"ok": True}, "definition": old_definition, "projection": old_projection}
+    second = {"requestId": request["requestId"], "sequence": 2, "type": "node.transitioned",
+              "intent": intent, "expectedRevision": 1, "actor": {"bindingId": "host-a"},
+              "result": result, "definition": new_definition, "projection": new_projection}
+    before = host.canonical(first)
+    after = before + host.canonical(second)
+
+    def prepare() -> tuple[Path, Any, tempfile.TemporaryDirectory[str]]:
+        temporary = tempfile.TemporaryDirectory()
+        root = Path(temporary.name); root.chmod(0o700)
+        (root / "authority").mkdir(mode=0o700)
+        (root / "graph" / "bindings").mkdir(parents=True, mode=0o700)
+        for path, data in ((root / "authority" / "control-graph-public-key.json", host.canonical({})),
+                           (root / "graph" / "definition.json", host.canonical(old_definition)),
+                           (root / "graph" / "projection.json", host.canonical(old_projection)),
+                           (root / "graph" / "events.jsonl", before)):
+            path.write_bytes(data); os.chmod(path, 0o600)
+        store = host.AnchoredStore(root, acquire_exclusive=True, initialize_capability=True)
+        return root, store, temporary
+
+    def publish(root: Path) -> None:
+        (root / "graph" / "events.jsonl").write_bytes(after)
+        for name, value in (("definition.json", new_definition), ("projection.json", new_projection)):
+            candidate = root / "graph" / (name + ".new")
+            candidate.write_bytes(host.canonical(value)); os.chmod(candidate, 0o600)
+            os.replace(candidate, root / "graph" / name)
+
+    root, store, temporary = prepare(); prior = host._ACTIVE_HOST_ROOT; host._ACTIVE_HOST_ROOT = store
+    try:
+        publish(root)
+        accepted = host.validate_refresh_host_mutation(record, request, host.canonical(result), before)
+        assert accepted == result
+        assert store.read_bytes(("graph", "definition.json"), host.MAX_JSON_BYTES) == host.canonical(new_definition)
+    finally:
+        host._ACTIVE_HOST_ROOT = prior; store.close(); temporary.cleanup()
+
+    root, store, temporary = prepare(); prior = host._ACTIVE_HOST_ROOT; host._ACTIVE_HOST_ROOT = store
+    try:
+        old_definition_path = root / "graph" / "definition.old"
+        old_projection_path = root / "graph" / "projection.old"
+        (root / "graph" / "definition.json").rename(old_definition_path)
+        (root / "graph" / "projection.json").rename(old_projection_path)
+        publish(root)
+        (root / "graph" / "definition.json").unlink(); old_definition_path.rename(root / "graph" / "definition.json")
+        (root / "graph" / "projection.json").unlink(); old_projection_path.rename(root / "graph" / "projection.json")
+        expect_error(host, "REPLAY_DRIFT", lambda: host.validate_refresh_host_mutation(
+            record, request, host.canonical(result), before))
+    finally:
+        host._ACTIVE_HOST_ROOT = prior; store.close(); temporary.cleanup()
+
+    root, store, temporary = prepare(); prior = host._ACTIVE_HOST_ROOT; host._ACTIVE_HOST_ROOT = store
+    try:
+        publish(root)
+        journal_fd = store.file_fds[("graph", "events.jsonl")]
+        os.ftruncate(journal_fd, 0); os.pwrite(journal_fd, before, 0); os.fsync(journal_fd)
+        expect_error(host, "INTERFACE_PROTOCOL", lambda: host.validate_refresh_host_mutation(
+            record, request, host.canonical(result), before))
+    finally:
+        host._ACTIVE_HOST_ROOT = prior; store.close(); temporary.cleanup()
+    host.graph_module = original_graph
+
+
 def effect_and_runner_tests(host: Any, record: Mapping[str, Any]) -> None:
     original = {name: getattr(host, name) for name in
                 ("operator_dir", "load_session", "graph_snapshot", "locked_graph_snapshot",
@@ -432,6 +627,13 @@ def effect_and_runner_tests(host: Any, record: Mapping[str, Any]) -> None:
         root = Path(temporary)
         root.chmod(0o700)
         host.operator_dir = lambda: root
+        (root / "authority").mkdir(mode=0o700)
+        (root / "graph" / "bindings").mkdir(parents=True, mode=0o700)
+        (root / "authority" / "control-graph-public-key.json").write_bytes(b"{}\n")
+        os.chmod(root / "authority" / "control-graph-public-key.json", 0o600)
+        local_capability = host.command_root()
+        previous_capability = host._ACTIVE_HOST_ROOT
+        host._ACTIVE_HOST_ROOT = local_capability
         host.load_session = lambda *_args, **_kwargs: record
         host.graph_module = lambda: graph
         key = "sha256:" + hashlib.sha256((record["graphId"] + "\0" + record["nodeId"]).encode()).hexdigest()
@@ -573,6 +775,9 @@ def effect_and_runner_tests(host: Any, record: Mapping[str, Any]) -> None:
         result = host.production_runner(claude_record, request, worktree, run_dir, environment)
         assert result["status"] == "succeeded" and result["leaseId"] == "lease-1"
 
+        host._ACTIVE_HOST_ROOT = previous_capability
+        local_capability.close()
+
     for name, value in original.items():
         setattr(host, name, value)
 
@@ -589,14 +794,23 @@ def _commit_args(host: Any, arguments: argparse.Namespace, payload: bytes) -> Ma
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--host", type=Path, required=True)
+    parser.add_argument("--graph", type=Path, required=True)
     parser.add_argument("--record", type=Path, required=True)
     parser.add_argument("--binding", type=Path, required=True)
     args = parser.parse_args()
     host = load_host(args.host)
     record = json.loads(args.record.read_text())
     binding = json.loads(args.binding.read_text())
-    broker_tests(host, record, binding)
     path_tests(host)
+    root = host.command_root()
+    host._ACTIVE_HOST_ROOT = root
+    try:
+        broker_tests(host, record, binding)
+    finally:
+        host._ACTIVE_HOST_ROOT = None
+        root.close()
+    binding_manifest_stress_tests(host, args.graph, binding)
+    mutation_postcommit_tests(host)
     effect_and_runner_tests(host, record)
     print("v5 host hostile in-process checks ok")
     return 0

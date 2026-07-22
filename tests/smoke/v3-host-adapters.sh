@@ -7,6 +7,7 @@ unset TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES OPERATOR_KIT_VERSION
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PLUGIN_ROOT="$KIT_ROOT/plugins/operator-kit"
 BUNDLE="$PLUGIN_ROOT/v3-adapter-bundle.json"
+V5_COMPATIBILITY="$PLUGIN_ROOT/v5-compatibility.json"
 CURSOR="$PLUGIN_ROOT/adapters/cursor"
 CLAUDE="$PLUGIN_ROOT/adapters/claude-code"
 
@@ -22,10 +23,11 @@ fail() {
 
 test ! -e "$KIT_ROOT/operator.config.env" || fail "Source repo root must not contain operator.config.env."
 test -f "$BUNDLE" || fail "Missing V3 adapter bundle metadata."
+test -f "$V5_COMPATIBILITY" || fail "Missing V5 compatibility metadata."
 test -f "$CURSOR/adapter.json" || fail "Missing Cursor adapter metadata."
 test -f "$CLAUDE/adapter.json" || fail "Missing Claude Code adapter metadata."
 
-python3 - "$PLUGIN_ROOT" "$BUNDLE" "$CURSOR/adapter.json" "$CLAUDE/adapter.json" <<'PY'
+python3 - "$PLUGIN_ROOT" "$BUNDLE" "$V5_COMPATIBILITY" "$CURSOR/adapter.json" "$CLAUDE/adapter.json" <<'PY'
 import json
 import re
 import sys
@@ -33,7 +35,8 @@ from pathlib import Path
 
 plugin_root = Path(sys.argv[1])
 bundle_path = Path(sys.argv[2])
-adapter_paths = [Path(path) for path in sys.argv[3:]]
+compatibility_path = Path(sys.argv[3])
+adapter_paths = [Path(path) for path in sys.argv[4:]]
 semver = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:[-+][0-9A-Za-z.-]+)?$")
 
 def load(path):
@@ -41,6 +44,7 @@ def load(path):
         return json.load(handle)
 
 bundle = load(bundle_path)
+compatibility = load(compatibility_path)
 errors = []
 
 def require(condition, message):
@@ -53,6 +57,9 @@ require(isinstance(bundle_version, str) and semver.fullmatch(bundle_version), "b
 require(bundle.get("releaseTrack") == "v3", "bundle releaseTrack must be v3")
 require(bundle.get("projectScopedSetupRequired") is True, "bundle must require project-scoped setup")
 require("2" in bundle.get("compatibleProjectKitVersions", []), "bundle must target Operator Kit V2")
+require(compatibility.get("projectKitVersion") == "5", "V5 compatibility version mismatch")
+require(compatibility.get("historicalBundle") == "v3-adapter-bundle.json", "V5 metadata must preserve the V3 bundle")
+require(compatibility.get("releaseSemverChanged") is False, "V5 registration must not claim a semver change")
 
 sticky = bundle.get("stickyMode")
 require(isinstance(sticky, dict), "bundle must declare stickyMode")
@@ -83,6 +90,8 @@ for adapter_path in adapter_paths:
     require(adapter.get("writesUserGlobalStateDuringValidation") is False, f"{host} validation must not write user-global state")
     require(adapter.get("runtimeApiAssumptions") == [], f"{host} must not invent runtime API assumptions")
     require("2" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V2")
+    require("4" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V4")
+    require("5" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V5")
     adapter_sticky = adapter.get("stickyMode")
     require(isinstance(adapter_sticky, dict), f"{host} must declare stickyMode")
     if isinstance(adapter_sticky, dict):

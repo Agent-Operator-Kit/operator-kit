@@ -38,7 +38,7 @@ for both FB intake and forward graph work.
 ## Graph Shape And Lifecycle
 
 `start` makes one atomic definition replacement through the trusted host
-launcher. It appends exactly these sibling work nodes and one gate:
+launcher. It appends exactly three sibling proposal nodes and one gate:
 
 ```text
 feature
@@ -48,13 +48,18 @@ feature
 └── selection-gate ── gated-by ──┘
 ```
 
-All three proposal nodes are `task` work assigned to the requested lane. The
-selected implementation depends on all three completed proposals and has a
-`gated-by` edge protecting `active` and `completed`. The implementation node
-may exist while the gate is pending, but RM-0004 excludes it from the runnable
-frontier. Only a successful RM-0007 `gate decide ... approved` event makes the
-node eligible for RM-0003 loop execution. The design-flow process never leases,
-activates, completes, or runs graph work itself.
+All three proposal nodes are `task` work assigned to the requested lane.
+`select` first commits the explicit RM-0007 human approval and only then
+appends the selected implementation definition. The implementation depends on
+all three completed proposals and has a `gated-by` edge protecting `active`
+and `completed`. If the process stops after approval, status reports a durable
+approved gate with `implementation:null` and `materializationPending:true`;
+this is a coherent retry state, not graph corruption. A later `select` with
+the same proposal resumes materialization even if unrelated valid graph events
+advanced the journal in between. The matching terminal gate event and current
+approved state must remain replay-valid, but the gate event need not remain
+the journal tail. The design-flow process never leases, activates, completes,
+or runs graph work itself.
 
 `reject` records `rejected` through the same human-gate API and does not create
 implementation work. Gate decisions are terminal. A changed direction is new
@@ -100,13 +105,35 @@ closed.
 
 ## Trusted Interfaces
 
-The host supplies three absolute executable paths:
+The installed entrypoint hardwires its trusted sibling providers: `operator-graph.sh`
+for snapshots and graph mutations, and `operator-feedback.sh` for feedback intake.
+Callers cannot select provider executables. `OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND`,
+`OPERATOR_DESIGN_FLOW_MUTATION_COMMAND`, and
+`OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND` are rejected when present; the obsolete
+`OPERATOR_DESIGN_FLOW_GRAPH_MUTATION_HOST_COMMAND` override is rejected as well.
+The graph sibling returns the exact RM-0007 snapshot envelope and accepts only a
+bounded `operator.design-flow-graph-mutation-request/v1`; the feedback sibling
+accepts only a bounded `operator.design-flow-feedback-request/v1` and returns one
+`operator.design-flow-feedback-result/v1`.
 
-| Variable | Contract |
-| --- | --- |
-| `OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND` | No input; returns the exact successful RM-0007 `snapshot`/`status` envelope or raw `operator.control-snapshot/v1`. |
-| `OPERATOR_DESIGN_FLOW_MUTATION_COMMAND` | Receives one bounded `operator.design-flow-graph-mutation-request/v1`; performs the requested RM-0007 `replace-definition` or `gate decide`; returns the exact public RM-0007 mutation result. |
-| `OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND` | Receives one bounded `operator.design-flow-feedback-request/v1`; uses the feedback/planner-owned intake path; returns one `operator.design-flow-feedback-result/v1`. |
+Every trusted interface inherits the design command's already-open
+`OPERATOR_DIR` descriptor. The child receives that descriptor as
+`OPERATOR_DESIGN_FLOW_ROOT_FD`, its exact device/inode tuple in
+`OPERATOR_DESIGN_FLOW_ROOT_DEV` and `OPERATOR_DESIGN_FLOW_ROOT_INO`, and the
+original configured pathname in `OPERATOR_DESIGN_FLOW_ROOT_PATH`.
+`OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE=exclusive-held` states that the design
+entrypoint retains the one migration-wide root `LOCK_EX`. Nested providers and
+brokers must validate and duplicate that capability; they must never call
+`flock` or `LOCK_UN` on a duplicate because duplicates share the parent's open
+file description and could convert or release its lock.
+The textual `OPERATOR_DIR` remains available for compatibility, but trusted
+providers must use the inherited descriptor for anchored traversal, compare
+its `fstat` identity to the supplied tuple, and reverify the original pathname
+immediately before an effect. They must retain and honor this contract through
+any nested launcher. The design command also reverifies the original pathname
+immediately before and after each interface and again before returning. A
+same-owner rename/replacement therefore fails with `IO_ERROR` and cannot split
+artifact, graph, or feedback effects across two roots.
 
 The graph launcher request supplies only canonical intent, graph identity, CAS
 revision, request ID, and either the append-only replacement definition or the
@@ -116,6 +143,17 @@ selects an operator/system identity for definition replacement and a real human
 identity for `gate decide`, then performs RM-0007's one-shot authorization and
 event-proof protocol. A launcher must not infer human authority from the CLI
 caller or request payload.
+
+Fresh V5 installs wire these interfaces to the installed production graph and
+feedback adapters. Definition replacement and gate decisions use the real
+one-shot design broker. That broker accepts only the exact canonical
+start/select/improve delta or explicit select/reject gate intent, reloads and
+replays current graph state through the held Operator root, and refuses proof
+signing when action preconditions, feature/brief bindings, proposal completion,
+gate history, feedback content, or evidence hashes do not match. Its proof may
+come from the OS keychain provider or the supported external
+`operator.design-proof-signer/v1` provider documented in
+`operator-v5-host-runners.md`; neither provider changes the graph policy.
 
 Successful mutation replies are checked for exact command, request ID,
 `expectedRevision + 1`, definition revision/counts, and gate transition data.
@@ -139,6 +177,12 @@ approval from files, task text, prompts, or host metadata.
 
 ## Security Boundary
 
+- Bootstrap and update restore the installed proposal prompt only through a
+  held, no-follow `OPERATOR_DIR` descriptor. `prompts` must be an owned real
+  directory and an existing `design-proposal.md` must be an owned single-link
+  regular file. Dangling, final-leaf, and intermediate-directory symlinks are
+  refused without writing their targets; only a genuinely absent leaf is
+  installed at mode `0644` beneath a mode-`0700` prompts directory.
 - Never read or write `OPERATOR_DIR/graph`, graph locks, bindings, authority
   anchors, proof sockets, or private keys directly.
 - Never expose graph or feedback state directories to a proposal worker.

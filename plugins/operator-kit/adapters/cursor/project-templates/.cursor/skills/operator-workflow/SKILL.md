@@ -3,15 +3,24 @@ name: operator-workflow
 description: Use when setting up or operating Agent Operator Kit, tmux lanes, git worktrees, external task packets, handoffs, Cursor Cloud Agents, or status summaries.
 ---
 
-# Operator Workflow
+# Cursor Operator Workflow Skill
 
-Use this skill to install, maintain, or operate Agent Operator Kit from Cursor.
+Use this skill when setting up or operating Agent Operator Kit from Cursor IDE, Cursor CLI, or Cursor Cloud Agents.
+
+Cursor integration has three layers:
+
+- `.cursor/rules/operator-workflow.mdc` for persistent project guidance.
+- `.cursor/skills/operator-workflow/SKILL.md` for procedural setup and operations.
+- `.cursor/environment.json.example` as a starting point for Cloud Agent environments.
 
 Operator Kit integrates with whichever coding agents are available. When Cursor
 is available, Cursor IDE makes a natural operator cockpit; when Codex Desktop
 is available, Codex `$operator-*` skills can be the cockpit instead; Claude
 Code can fill UI or scoped lanes regardless. Pick the cockpit per project and
 fill remaining lanes from the agents you have.
+
+In environments without Codex, prefer a Cursor IDE operator lane, a Cursor CLI
+worker lane, and Claude Code lanes only where Claude is available.
 
 ## Cursor Primitives
 
@@ -23,13 +32,17 @@ fill remaining lanes from the agents you have.
   `user-journey` for journey artifacts, `incubation` for lightweight idea work,
   and `operator-workflow` for setup, repair, and upgrade workflows.
 - Prompt templates are copy/paste entry points for bootstrapping or Background
-  Agent tasks. Operator Kit keeps these under `templates/prompts/`.
+  Agent tasks. They live under `templates/prompts/` in the kit source.
 - Cursor CLI is a local terminal agent surface. Some installs expose it as
   `cursor agent`; others provide `cursor-agent`.
 - Cursor Cloud Agents, formerly Background Agents, are remote branch workers. They cannot rely on local
   tmux sessions, simulators, or `OPERATOR_DIR`.
 
-## Local Cursor Operator Flow
+## Local Cursor Operator
+
+Use Cursor IDE Agent or Cursor CLI when Cursor should operate the local worktrees and tmux lanes.
+
+For first-time or repeat setup, prefer install-or-initialize behavior:
 
 1. Inspect the repo and git status.
 2. Detect install state:
@@ -50,24 +63,38 @@ fill remaining lanes from the agents you have.
    - `bash scripts/operator-catalog.sh list roles`
 7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
-   For an empty scoped project folder, first suggest this top-level layout:
-   `<project-root>/code/app` for the canonical repo worktree,
-   `<project-root>/code/<lane-worktree>` for permanent agent lanes, and
-   `<project-root>/operator` for generated operator state.
-8. Read `AGENTS.md`, `operator.config.env`, and `.cursor/rules/operator-workflow.mdc`.
-9. Confirm the stable branch and lane map.
-10. Ensure `OPERATOR_DIR` is outside the repo.
-11. Create or verify lane worktrees.
-12. Start or inspect tmux.
-13. Create a smoke task under `OPERATOR_DIR`.
-14. Run:
-   - `bash -n scripts/*.sh`
-   - `bash scripts/operator-status.sh`
-   - `bash scripts/operator-summary.sh`
-   - `bash scripts/operator-memory.sh status`
-   - `bash scripts/operator-roadmap.sh status`
-   - `bash scripts/operator-plan-batch.sh`
-15. Report installed files, lane map, V2 catalog/system-map status, smoke results, memory/roadmap status, dirty files, and whether the repo is ready to commit.
+
+For fresh `latest` setup, install V5 with the complete runtime and eleven
+schemas, initialize catalog before deriving the role map from `OPERATOR_LANES`,
+and create only private empty external runtime directories. Do not initialize
+graph history, bindings, authority/proof keys, or host sessions. A plain V4
+update preserves its `4` marker and artifacts and reports explicit migration
+required; use a reviewed `operator-v5-migrate.sh plan` before apply.
+
+For an empty scoped project folder, first suggest this top-level layout:
+
+```text
+<project-root>/
+  code/
+    app/             canonical repo worktree
+    app-backend/     optional permanent backend lane
+    app-ui/          optional permanent UI lane
+  operator/          tasks, handoffs, memory, roadmap, catalog
+```
+
+Use `<project-root>/code/<lane-worktree>` for permanent agent lanes and
+`<project-root>/operator` for generated operator state. The operator should
+also work when the chat is opened at `<project-root>` by resolving
+`code/*/operator.config.env`.
+
+The local flow:
+
+1. Inspect the repo and git status.
+2. Read `operator.config.env`.
+3. Confirm lane map and expected branches.
+4. Keep generated state under `OPERATOR_DIR`.
+5. Use `scripts/operator-task.sh`, `scripts/operator-dispatch.sh`, `scripts/operator-collect.sh`, `scripts/operator-summary.sh`, `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-catalog.sh`, `scripts/operator-system-map.sh`, `scripts/operator-recommend-lanes.sh`, and `scripts/operator-plan-batch.sh`.
+6. Commit only evergreen repo changes.
 
 For first-time setup without Codex, use the Cursor bootstrap profile:
 
@@ -91,29 +118,49 @@ tasks to the appropriate lanes until the feature is completed, integrated,
 validated, or blocked. Do not ask the user to approve every obvious
 handoff-to-handoff transition.
 
-## Cursor Cloud Agent Flow
+## Cursor CLI
 
-Cursor Cloud Agents run remotely and push a separate branch to GitHub. Do not assume they can access the local `OPERATOR_DIR` or local Operator Memory.
+Cursor CLI uses `cursor agent` or `cursor-agent`, depending on how the CLI is
+installed.
 
-For Cloud Agent tasks:
+Useful commands:
 
-1. Put the full task packet in the prompt.
-2. Include branch name, scope, read-only areas, validation commands, and handoff requirements.
-3. Require a final handoff that names changed files, commands run, tests, blockers, and follow-up needs.
-4. Do not use Cloud Agents for provider-console changes, production deploys, or tasks that require local device/simulator state unless the environment is explicitly configured.
-5. Include relevant operator memory explicitly in the prompt when a Cloud Agent needs it.
+```bash
+cursor agent
+cursor agent "Set up Agent Operator Kit for this repo"
+cursor-agent "Set up Agent Operator Kit for this repo"
+```
+
+Use non-interactive mode carefully because it can have write access depending on flags and configuration.
+
+## Cursor Cloud Agents
+
+Cloud Agents run remotely, clone from GitHub, work on a separate branch, and push back to the repo.
+
+Use them for isolated branch work. Do not assume access to local tmux sessions, local simulators, or local `OPERATOR_DIR`.
+
+For every Cloud Agent prompt, include:
+
+- branch name
+- task scope
+- read-only areas
+- validation commands
+- handoff requirements
+
+Do not assume Cloud Agents can access local Operator Memory. Include the
+relevant context explicitly in the prompt or task packet.
 
 ## Memory
 
-Use `scripts/operator-memory.sh` for local cross-lane context. Dispatch with
-`--with-memory` when a lane needs retrieved context. Promote concise project or
-task facts; do not commit generated memory files.
+Local Cursor operator work can use `operator-dispatch.sh --with-memory` to add
+a compact context pack. Use project memory for durable facts and task memory for
+feature-track facts. Do not commit generated memory files.
 
 ## Roadmap And Feedback
 
-Use `scripts/operator-roadmap.sh` and `scripts/operator-feedback.sh` for local
-roadmap, backlog, feedback intake, and screenshot/video annotation workflows.
-Keep this state under `OPERATOR_DIR`, not in the app repo.
+Keep local roadmap, backlog, feedback intake, and planning views under
+`OPERATOR_DIR/roadmap/`. Do not commit raw feedback annotations or local planning
+views into the app repo; use PR/commit trace references instead.
 
 For Codex Desktop projects, use `$operator-feedback` for intake,
 `$operator-planner` for planning, and `$operator` for execution.
@@ -125,8 +172,13 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Do not commit secrets.
 - Do not commit raw handoffs, task packets, pane captures, task working files, or transient notes.
 - Do not commit memory packs or generated operator memory.
-- Do not start production builds, deployments, or provider-console changes during setup.
-- Ask before destructive commands.
-- Ask before credential/provider-console changes, release submissions,
-  regulated or safety-critical behavior, or product decisions that cannot be
-  safely inferred.
+- Do not start deployments or production builds during setup.
+- Ask before destructive cleanup, credential/provider-console changes,
+  production deploys, release submissions, regulated or safety-critical
+  behavior, or product decisions that cannot be safely inferred.
+- V5 production work enters through the signed `operator-host.sh` boundary;
+  never use permission-bypass launches or direct graph-file writes.
+- Keep private authority/proof keys out of the repo, `OPERATOR_DIR`,
+  environment, CLI, task packets, logs, and handoffs.
+- Treat graph history, fences, bindings, host effects, evidence, and migration
+  manifests as durable backup/recovery state, not disposable workspace data.

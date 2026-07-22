@@ -24,9 +24,10 @@ Private proof keys never belong in this directory, the repository, environment,
 or graph process. Unix mode alone does not confer authority. There are no
 production actor/time/proof/fault injection shortcuts.
 
-Production mutations are disabled until RM-0003/RM-0005 provide that isolated
-broker and launch lanes without permission bypass, with graph state, bindings,
-the anchor, and runtime outside the lane's writable sandbox.
+Production mutations are available only through the shipped trusted host and
+isolated keychain-backed broker, with no permission bypass and with graph state,
+bindings, the anchor, and runtime outside the lane's writable sandbox. Missing
+session, binding, keychain, broker, containment, or sandbox readiness fails closed.
 
 Signed payload bytes use `Operator Canonical JSON v1`: recursively code-point-
 sorted object keys, array order preserved, integer-only numbers, compact JSON,

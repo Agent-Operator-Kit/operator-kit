@@ -68,12 +68,36 @@ and gives their absolute paths to `operator-loop.sh`:
 | `OPERATOR_LOOP_MUTATION_COMMAND` | session-fixed mutation launcher and proof broker | exact graph mutation result or error |
 | `OPERATOR_LOOP_RUNNER_COMMAND` | Codex or Claude restricted runner | one `operator.runner-result/v1` record |
 
-The wrappers contain tool, session, node, and a random credential tied to the
-kernel-authenticated host session. They contain no proof key. They execute with
-an empty inherited environment plus a pinned system path and are deleted after
-the supervised tick. Inputs and outputs are bounded. The runner receives only
-`PATH`, `HOME`, `TMPDIR`, and fixed locale variables; it reconstructs policy
-from the private host record, never from lane-controlled environment values.
+Each wrapper contains only its interface name and a random per-tick relay
+credential. It contains no proof key, host session credential, or root
+descriptor. The persistent trusted relay is bound to the tool, session, node,
+invocation, and exact held root capabilities before launchd submission. The
+wrappers execute with an empty inherited environment plus a pinned system path
+and are deleted after the supervised tick. Inputs and outputs are bounded. The
+runner receives only `PATH`, `HOME`, `TMPDIR`, and fixed locale variables; it
+reconstructs policy from the private host record, never from lane-controlled
+environment values.
+
+On macOS, launchd does not carry the caller's arbitrary file descriptors into
+the submitted job. Before submission the parent therefore starts one private
+per-tick interface relay with the already-held root, authority, graph,
+bindings, host, fixed-leaf, selected-binding, and binding-manifest
+capabilities. The relay requires `exclusive-held` mode and never calls
+`flock` or unlocks that shared open-file description. Launchd descendants send
+canonical bounded requests through a random-token relay directory whose exact
+device/inode is embedded in each private wrapper; clients open and retain that
+directory no-follow and perform descriptor-relative atomic request/response
+I/O. The relay persists across snapshot, clock, mutation, and runner calls, so
+an authorized mutation can validate and refresh its mutable graph leaves for a
+later interface call without a pathname reattach. Parent teardown terminates
+the relay before releasing the root transaction lock. A dedicated monitor
+blocks on the inherited parent-lifetime pipe even while an interface request is
+running. Parent EOF atomically revokes new child launches, kills every tracked
+separate child group plus the relay group, and thereby closes all duplicated
+root, graph, binding, and proof capabilities. Each client also retains the
+exact single-link liveness leaf and requires the relay's exclusive lock while
+polling, reading, and accepting a response; relay death therefore refuses
+promptly instead of waiting for the runner timeout or accepting late output.
 
 Snapshot delivery is trusted because lanes cannot invoke graph maintenance
 through a writable graph path. Although `snapshot` is semantically read-only,
@@ -113,27 +137,87 @@ waits for EOF before signing the event, so a delayed third record is rejected
 without returning an event proof. Authorize-only EOF remains valid for exact
 retries and other no-append graph outcomes.
 
-Production signing reads one RSA private exponent from the operating-system
-keychain into the isolated broker process. On macOS the generic-password
-service is `agent-operator-kit.proof-key` with the proof-key ID as account. On
-Linux the Secret Service lookup attributes are `service` =
-`agent-operator-kit.proof-key` and `key-id` = the proof-key ID. The secret is a
-canonical JSON record (or base64url encoding of that record):
+The host does not trust a successful graph child response by itself. Before
+launch it retains the exact committed journal and fixed authority capability.
+After a zero-status mutation it acquires the descriptor-anchored production
+graph lock, parses the exact result envelope, and requires the request's one
+matching event to be the journal tail with the expected action, intent, CAS,
+actor binding, revision, and result. It then replays the full journal under the
+held authority, opens the newly published definition and projection as
+unadopted candidates, and requires their canonical bytes to equal that replay.
+The journal inode, bytes, and digest must remain stable through this check.
+Only then may the host replace its retained definition/projection capabilities.
+Restoring an old pathname after commit, substituting a shadow materialization,
+or rewriting the same journal inode fails closed. A nonzero graph outcome must
+leave the original definition, projection, journal identities, and bytes
+unchanged.
+
+Production proof brokerage supports two proof providers. The ordinary host
+loop reads one RSA private exponent from the operating-system keychain into
+the isolated broker process. The installed design-flow broker may use that
+same provider, or it may delegate signing to the supported external provider
+described below. On macOS the generic-password service is
+`agent-operator-kit.proof-key` with the proof-key ID as account. On Linux the
+Secret Service lookup attributes are `service` =
+`agent-operator-kit.proof-key` and `key-id` = the proof-key ID. The keychain
+secret is a canonical JSON record (or base64url encoding of that record):
 
 ```json
 {"d":"<hex>","keyId":"proof-key-id","n":"<hex>","schemaVersion":"operator.proof-key/v1"}
 ```
 
-The modulus must equal the signed binding's public modulus. Missing keychain,
-missing key, mismatch, malformed secret, unavailable broker, timeout, or
+The modulus must equal the signed binding's public modulus. Missing provider,
+missing key, mismatch, malformed response, unavailable broker, timeout, or
 signing failure returns `BROKER_UNAVAILABLE` without graph mutation. RM-0005
-does not provision this credential and never writes user-global files. Trust
-anchor, signed-binding, and key provisioning remain an integration/control
-plane responsibility.
+does not provision a credential or provider and never writes user-global
+files. Trust anchor, signed-binding, and proof-provider provisioning remain an
+integration/control-plane responsibility.
 
-Private keys never enter a repository, worktree, task packet, `OPERATOR_DIR`,
-environment variable, command-line argument, graph process, log, result, or
-handoff. Installed entrypoints reject test mode, fake signer/runner,
+### Supported external design proof provider
+
+An installation may configure an external signer for design-flow mutations by
+placing this exact canonical record at
+`OPERATOR_DIR/host/design-proof-signer.json`:
+
+```json
+{"command":"/absolute/path/to/operator-design-proof-provider","schemaVersion":"operator.design-proof-signer/v1"}
+```
+
+The command is a production proof-provider boundary, not a test hook. It must
+be an owned, single-link, non-group/world-writable executable physically
+outside the installed repository/worktree and `OPERATOR_DIR`; the provider is
+responsible for protecting its private key,
+for example behind an HSM, agent, or separately reviewed key service. It reads
+one canonical `operator.proof-sign-request/v1` record from standard input and
+must return exactly one canonical `operator.proof-sign-response/v1` record.
+The response proof-key ID and RSA signature must match the signed actor
+binding and exact broker payload.
+
+The broker traverses the configured absolute command with descriptor-relative
+no-follow opens; every intermediate component must be a real directory. It
+holds the installed repository root and Operator root identities and rejects
+the signer as `BROKER_UNAVAILABLE` if any traversed ancestor matches either
+`(st_dev, st_ino)`. The executable must retain `st_nlink == 1` at initial open,
+each descriptor read, and every reopen/rebind check, preventing an apparently
+external pathname from aliasing a hard-linked inode inside either forbidden
+root. These checks occur before provider execution or an authorization proof
+can enable graph mutation.
+
+After placement validation, the broker pins the leaf device/inode and content
+hash and executes an exact private snapshot of the held descriptor. The
+snapshot is the portable immutable wrapper used on macOS, where a script
+cannot reliably execute via `/dev/fd/N`. The broker live-bounds stdout and
+stderr to 4096 bytes, kills a provider that exceeds the bound or ten-second
+deadline, rejects additional or noncanonical output, verifies the returned
+signature itself, and then reopens/re-hashes the configured command before
+accepting it. Forbidden containment, hard-link aliases, pathname replacement,
+in-place content replacement, timeout, over-output, and invalid signature all
+fail closed before graph append.
+
+Private keys never cross the Operator Kit boundary into a repository,
+worktree, task packet, `OPERATOR_DIR`, environment variable, command-line
+argument, graph process, log, result, or handoff. Installed entrypoints reject
+test mode, fake signer/runner,
 scheduler, script-directory, interface-command, configuration, and runtime
 overrides. Hostile tests inject fakes only into an in-process module instance.
 
@@ -205,6 +289,13 @@ therefore cannot race the commit. An identical name/payload is an exact retry;
 a changed payload is `EFFECT_CONFLICT`. Once fence 2 exists, fence 1 cannot
 commit even if its sandbox-contained process survived.
 
+Host mutation and effect commits also hold an exclusive flock on the pinned
+`OPERATOR_DIR` descriptor before opening their existing leaf lock. This is the
+shared stopped-writer boundary used by V4-to-V5 migration: migration holds the
+same root transaction lock plus descriptor-bound parent/leaf locks, so a
+renamed replacement lock file cannot create a second host commit domain while
+migration owns the workspace.
+
 ## Filesystem and configuration trust
 
 Host session, binding, broker, handoff, invocation, and effect paths are opened
@@ -214,15 +305,40 @@ the expected type and 0700/0600 modes, and must have one link where applicable.
 The root inode is checked again after operations. Symlink, hard-link, directory
 swap, leaf replacement, and rename-race attempts fail closed.
 
+Binding discovery is bounded and does not export one descriptor or environment
+record per installed binding. At the serialized command-root boundary the host
+records at most 10,000 binding names, identities, sizes, and SHA-256 digests in
+one canonical `operator.binding-capability-manifest/v1` temporary-file
+capability. Each binding is limited to 64 KiB and the aggregate inventory to
+8 MiB. A child receives that one held manifest plus the fixed
+authority/graph/bindings directory capabilities and only the exact selected
+actor-binding leaf descriptor. It validates the manifest before opening a
+requested leaf descriptor-relatively and requires its identity, size, content
+hash, and stable read to match; there is no first-discovery pathname reopen.
+Unrelated binding credentials and historical host files are neither inherited
+nor serialized into the environment.
+
 The installed helper finds its sibling `operator.config.env`, requires safe
 ownership and mode, and reconstructs Operator/code/lane policy under an empty
 environment. Executables resolve through a pinned system path and are checked
 for ownership, writability, and executable type. Caller `PATH`, Operator/code
 roots, lane configuration, script paths, commands, runtime policy, signer,
 runner, scheduler, and test variables are rejected rather than inherited.
-The installed shell entrypoints invoke `/usr/bin/python3` directly, and host
-worktree verification invokes `/usr/bin/git` directly; executable resolution
-does not consult the caller's `PATH`.
+The host, one-shot proof broker, V4-to-V5 migration, design-flow, graph, and
+feedback Python shell entrypoints remove `PYTHONPATH` and `PYTHONHOME`, replace
+caller `PATH` with the fixed system tool path, and invoke pinned
+`/usr/bin/python3` with `-E -s` before the first application import. This
+blocks Python startup hooks and PATH shims while preserving sibling-module
+loading. Host worktree verification
+invokes `/usr/bin/git` directly; trusted executable resolution does not consult
+the caller's `PATH`.
+
+The installed production design smoke is intentionally a real graph plus real
+one-shot design broker plus an external `operator.design-proof-signer/v1`
+provider. It is not described as a macOS Keychain end-to-end test. The same
+smoke exercises start, human selection, feedback, root replacement refusal,
+signer pathname/content replacement, live over-output, extra output, and
+timeout without provider-command fixture overrides.
 
 ## Goal context
 

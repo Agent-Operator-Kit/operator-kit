@@ -4,7 +4,7 @@ set -euo pipefail
 unset OPERATOR_CONFIG OPERATOR_DIR PROJECT_NAME PROJECT_ROOT CODE_DIR
 unset TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES OPERATOR_KIT_VERSION
 
-KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KIT_ROOT="${OPERATOR_KIT_TEST_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 REAL_GRAPH_SCRIPT="$KIT_ROOT/scripts/operator-graph.sh"
 TMP_ROOT="$(mktemp -d /tmp/aok-v5-control-graph.XXXXXX)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
@@ -1237,11 +1237,12 @@ clock = {"hostId": graph.HOST_ID, "bootId": graph.BOOT_ID,
 assert graph.lease_clock_expired(lease, clock) is False
 
 if sys.platform == "darwin":
-    code = "import operator_graph as g; print(g.host_monotonic_sample()[0], g.host_monotonic_sample()[1])"
+    code = "import operator_graph as g; print(g.BOOT_ID, g.host_monotonic_sample()[0], g.host_monotonic_sample()[1])"
     first = subprocess.check_output([sys.executable, "-c", code], text=True).split()
     second = subprocess.check_output([sys.executable, "-c", code], text=True).split()
-    assert first[0] == second[0] == "macos-mach-continuous"
-    assert int(second[1]) >= int(first[1]) > 1_000_000_000
+    assert first[0] == second[0]
+    assert first[1] == second[1] == "macos-mach-continuous"
+    assert int(second[2]) >= int(first[2]) > 1_000_000_000
 original_platform = sys.platform
 try:
     sys.platform = "unsupported-test-platform"

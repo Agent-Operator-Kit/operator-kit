@@ -7,7 +7,9 @@
   "kind": "host-adapter-package",
   "description": "Cursor adapter package for Agent Operator Kit rules, skills, project templates, and Cursor Agent setup prompts.",
   "compatibleProjectKitVersions": [
-    "2"
+    "2",
+    "4",
+    "5"
   ],
   "requiresProjectScopedSetup": true,
   "requiresSourceRootOperatorConfig": false,

@@ -4,7 +4,7 @@ set -euo pipefail
 unset OPERATOR_CONFIG OPERATOR_DIR PROJECT_NAME PROJECT_ROOT CODE_DIR
 unset TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES OPERATOR_KIT_VERSION
 
-KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KIT_ROOT="${OPERATOR_KIT_TEST_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 LOOP="$KIT_ROOT/scripts/operator-loop.sh"
 TMP_ROOT="$(mktemp -d /tmp/aok-v5-loop.XXXXXX)"
 SURVIVOR_PID=""

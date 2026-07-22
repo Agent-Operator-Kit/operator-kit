@@ -61,6 +61,9 @@ changes still require explicit intent, a clear target, preflight, and review.
    V4 installs may also provide `scripts/operator-feature.sh` and
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
+   V5 installs additionally require role-map, graph, scheduler, loop, host,
+   proof-broker, design-flow, and migration scripts, their plain Python
+   helpers, and all eleven `schemas/operator-v5/*.json` files.
 4. Run:
 
 ```bash
@@ -92,7 +95,34 @@ bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
+bash scripts/operator-role-map.sh init|show|validate
+bash scripts/operator-graph.sh status|snapshot|replay check
+bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
+bash scripts/operator-loop.sh status|pause|resume
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-v5-migrate.sh plan
 ```
+
+## V5 Control Runtime
+
+The signed append-only control graph, current lease, and fence are runtime
+authority. Cursor chat metadata, feature folders, roadmap items, prompts, and
+runner results are indexes or evidence, not mutation authority. Production
+execution enters through a bound `operator-host.sh` session and isolated proof
+broker; do not launch bypass agents or write graph files directly.
+
+Human gates remain explicit for subjective proposal selection, integration,
+push/publish/release, credentials, destructive or production changes, and
+irreversible high-risk work. Private authority/proof keys never belong in the
+repo, `OPERATOR_DIR`, environment, CLI, task packet, log, or handoff. Back up
+graph history, fences, bindings, host effect ledgers, evidence, and migration
+manifests as durable external state.
+
+A plain latest update of V4 preserves `OPERATOR_KIT_VERSION="4"`. Report
+migration required, run the read-only plan, and apply only from a reviewed
+mapping with stopped writers, compatible graph state, broker/keychain
+readiness, and explicit `MIGRATE_V4_TO_V5` authorization. Never reinterpret V4
+files as graph truth or initialize production graph/key state during migration.
 
 ## V4 Feature Sessions
 

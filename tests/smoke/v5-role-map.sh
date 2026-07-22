@@ -4,13 +4,14 @@ set -euo pipefail
 unset OPERATOR_CONFIG OPERATOR_DIR PROJECT_NAME PROJECT_ROOT CODE_DIR
 unset TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES OPERATOR_KIT_VERSION
 
-KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+TEST_SOURCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KIT_ROOT="${OPERATOR_KIT_TEST_ROOT:-$TEST_SOURCE_ROOT}"
 smoke_root="$(mktemp -d /tmp/aok-v5-role-map.XXXXXX)"
 smoke_root="$(cd "$smoke_root" && pwd -P)"
 trap 'rm -rf "$smoke_root"' EXIT
 
 mkdir -p "$smoke_root/operator/catalog/roles" "$smoke_root/code"
-cp "$KIT_ROOT"/templates/operator-workspace/catalog/roles/*.md \
+cp "$TEST_SOURCE_ROOT"/templates/operator-workspace/catalog/roles/*.md \
   "$smoke_root/operator/catalog/roles/"
 
 write_config() {
@@ -47,7 +48,7 @@ OPERATOR_CONFIG="$config" bash "$KIT_ROOT/scripts/operator-role-map.sh" init --j
   > "$smoke_root/init.json"
 test -f "$role_map"
 cmp -s "$smoke_root/init.json" "$role_map"
-cmp -s "$KIT_ROOT/templates/operator-workspace/catalog/role-map.json" "$role_map"
+cmp -s "$TEST_SOURCE_ROOT/templates/operator-workspace/catalog/role-map.json" "$role_map"
 OPERATOR_CONFIG="$config" bash "$KIT_ROOT/scripts/operator-role-map.sh" validate >/dev/null
 
 python3 - "$role_map" <<'PY'

@@ -10,6 +10,7 @@ plugins/operator-kit/
   .codex-plugin/plugin.json
   marketplace-entry.json
   v3-adapter-bundle.json
+  v5-compatibility.json
   adapters/
     cursor/
     claude-code/
@@ -44,9 +45,15 @@ The global Codex plugin owns:
 - plugin-facing install/update documentation
 - future Codex MCP/tools for status, dispatch, collect, upgrade, or diagnostics
 
-The V3 adapter bundle adds host packages for Cursor and Claude Code under
+The preserved V3 adapter bundle adds host packages for Cursor and Claude Code under
 `adapters/`. Those packages are metadata and asset bundles, not hidden runtime
 APIs.
+
+`v5-compatibility.json` registers the final V5 project runtime and migration
+contract against the same plugin (`0.4.6`) and adapter (`0.1.0`) package
+versions. It sits alongside, and does not relabel, `v3-adapter-bundle.json`.
+V5 execution remains project-local and enters through the signed host/broker
+boundary; installing the plugin never initializes graph or key state.
 
 The project-local layer owns:
 
@@ -114,6 +121,9 @@ Compatibility rule:
   using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
+- V5 compatibility does not itself require a plugin semver bump: the project
+  runtime marker, explicit V4 migration, and `v5-compatibility.json` carry the
+  compatibility boundary while historical V2/V3 adapter behavior stays intact.
 
 Cursor and Claude adapters remain separate follow-on milestones. They should
 consume the same Operator Kit project-local substrate, not fork the execution

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import os
@@ -60,6 +61,12 @@ MAX_EVIDENCE_FILE_BYTES = 64 * 1024 * 1024
 MAX_EVIDENCE_TOTAL_BYTES = 256 * 1024 * 1024
 MAX_JSON_DEPTH = 40
 MAX_JSON_ITEMS = 200000
+PROVIDER_OVERRIDE_VARIABLES = {
+    "OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND",
+    "OPERATOR_DESIGN_FLOW_MUTATION_COMMAND",
+    "OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND",
+    "OPERATOR_DESIGN_FLOW_GRAPH_MUTATION_HOST_COMMAND",
+}
 
 
 class FlowError(Exception):
@@ -185,12 +192,19 @@ def interface_timeout() -> int:
     return value
 
 
-def command_path(variable: str) -> str:
-    raw = os.environ.get(variable, "")
-    fail(bool(raw), "TRUSTED_INTERFACE_UNAVAILABLE", f"{variable} is not configured", exit_code=3)
-    path = Path(raw)
-    fail(path.is_absolute() and path.is_file() and os.access(path, os.X_OK),
-         "TRUSTED_INTERFACE_UNAVAILABLE", f"{variable} must be an absolute executable file", str(path), 3)
+def command_path(variable: str, default_name: str) -> str:
+    fail(variable not in os.environ, "AUTHORITY_DENIED",
+         "installed design flow rejects trusted-provider command overrides", variable, 4)
+    path = Path(os.environ["OPERATOR_DESIGN_FLOW_SCRIPT_DIR"]) / default_name
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise FlowError("TRUSTED_INTERFACE_UNAVAILABLE",
+                        f"trusted sibling provider is unavailable: {default_name}", str(exc), 3) from exc
+    fail(path.is_absolute() and stat.S_ISREG(info.st_mode) and not stat.S_ISLNK(info.st_mode)
+         and info.st_uid == os.geteuid() and stat.S_IMODE(info.st_mode) & 0o022 == 0
+         and os.access(path, os.X_OK),
+         "TRUSTED_INTERFACE_UNAVAILABLE", f"trusted sibling provider is unsafe: {default_name}", str(path), 3)
     return str(path)
 
 
@@ -233,41 +247,85 @@ def terminate_process_group(process: subprocess.Popen[Any]) -> None:
             pass
 
 
-def bounded_command(path: str, payload: Optional[Mapping[str, Any]], label: str) -> bytes:
-    with tempfile.TemporaryFile() as input_file, tempfile.TemporaryFile() as output_file, tempfile.TemporaryFile() as error_file:
-        if payload is not None:
-            input_file.write(canonical(payload))
-        input_file.seek(0)
-        try:
-            process = subprocess.Popen([path], stdin=input_file, stdout=output_file, stderr=error_file, start_new_session=True)
-        except OSError as exc:
-            raise FlowError("TRUSTED_INTERFACE_UNAVAILABLE", f"{label} could not be invoked", str(exc), 3) from exc
-        deadline = time.monotonic() + interface_timeout()
-        while process.poll() is None:
-            if os.fstat(output_file.fileno()).st_size > MAX_INTERFACE_BYTES or os.fstat(error_file.fileno()).st_size > MAX_INTERFACE_BYTES:
-                terminate_process_group(process)
+def bounded_command(root: "OperatorRoot", path: str, payload: Optional[Mapping[str, Any]], label: str,
+                    provider_mode: str) -> bytes:
+    root.verify_children()
+    successful_mutation = False
+    environment = dict(os.environ)
+    environment.update({
+        "OPERATOR_DIR": str(root.path),
+        "OPERATOR_DESIGN_FLOW_ROOT_FD": str(root.fd),
+        "OPERATOR_DESIGN_FLOW_ROOT_DEV": str(root.identity[0]),
+        "OPERATOR_DESIGN_FLOW_ROOT_INO": str(root.identity[1]),
+        "OPERATOR_DESIGN_FLOW_ROOT_PATH": str(root.path),
+        "OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE": "exclusive-held",
+        "OPERATOR_DESIGN_FLOW_PROVIDER_MODE": provider_mode,
+    })
+    for name, descriptor in root.children.items():
+        info = os.fstat(descriptor)
+        prefix = f"OPERATOR_DESIGN_FLOW_ROOT_{name.upper()}"
+        environment[f"{prefix}_FD"] = str(descriptor)
+        environment[f"{prefix}_DEV"] = str(info.st_dev)
+        environment[f"{prefix}_INO"] = str(info.st_ino)
+    leaf_caps: Dict[str, Any] = {}
+    leaf_descriptors: List[int] = []
+    for name, descriptor in sorted(root.leaves.items()):
+        if descriptor is None:
+            leaf_caps[name] = None
+        else:
+            info = os.fstat(descriptor)
+            leaf_caps[name] = [descriptor, info.st_dev, info.st_ino]
+            leaf_descriptors.append(descriptor)
+    environment["OPERATOR_DESIGN_FLOW_ROOT_LEAF_CAPS"] = json.dumps(
+        leaf_caps, sort_keys=True, separators=(",", ":"))
+    environment["OPERATOR_DESIGN_FLOW_ROOT_BINDING_MANIFEST_FD"] = str(
+        root.binding_manifest.fileno())
+    try:
+        with tempfile.TemporaryFile() as input_file, tempfile.TemporaryFile() as output_file, tempfile.TemporaryFile() as error_file:
+            if payload is not None:
+                input_file.write(canonical(payload))
+            input_file.seek(0)
+            try:
+                process = subprocess.Popen([path], stdin=input_file, stdout=output_file, stderr=error_file,
+                                           start_new_session=True, env=environment,
+                                           pass_fds=(root.fd, *root.children.values(), *leaf_descriptors,
+                                                     root.binding_manifest.fileno()))
+            except OSError as exc:
+                raise FlowError("TRUSTED_INTERFACE_UNAVAILABLE", f"{label} could not be invoked", str(exc), 3) from exc
+            deadline = time.monotonic() + interface_timeout()
+            while process.poll() is None:
+                if os.fstat(output_file.fileno()).st_size > MAX_INTERFACE_BYTES or os.fstat(error_file.fileno()).st_size > MAX_INTERFACE_BYTES:
+                    terminate_process_group(process)
+                    raise FlowError("INTERFACE_LIMIT", f"{label} exceeded its output bound", exit_code=4)
+                if time.monotonic() >= deadline:
+                    terminate_process_group(process)
+                    raise FlowError("INTERFACE_TIMEOUT", f"{label} exceeded its time bound", exit_code=4)
+                time.sleep(0.02)
+            output_file.seek(0)
+            error_file.seek(0)
+            output = output_file.read(MAX_INTERFACE_BYTES + 1)
+            error = error_file.read(MAX_INTERFACE_BYTES + 1)
+            if len(output) > MAX_INTERFACE_BYTES or len(error) > MAX_INTERFACE_BYTES:
                 raise FlowError("INTERFACE_LIMIT", f"{label} exceeded its output bound", exit_code=4)
-            if time.monotonic() >= deadline:
-                terminate_process_group(process)
-                raise FlowError("INTERFACE_TIMEOUT", f"{label} exceeded its time bound", exit_code=4)
-            time.sleep(0.02)
-        output_file.seek(0)
-        error_file.seek(0)
-        output = output_file.read(MAX_INTERFACE_BYTES + 1)
-        error = error_file.read(MAX_INTERFACE_BYTES + 1)
-        if len(output) > MAX_INTERFACE_BYTES or len(error) > MAX_INTERFACE_BYTES:
-            raise FlowError("INTERFACE_LIMIT", f"{label} exceeded its output bound", exit_code=4)
-        if process.returncode != 0:
-            diagnostic: Any = error.decode("utf-8", errors="replace")[:4096]
-            for candidate in (error, output):
-                if candidate.strip():
-                    try:
-                        diagnostic = loads(candidate, f"{label} error")
-                    except FlowError:
-                        pass
-                    break
-            raise FlowError("TRUSTED_INTERFACE_FAILED", f"{label} exited with status {process.returncode}", diagnostic, 4)
-        return output
+            if process.returncode != 0:
+                diagnostic: Any = {"stderr": re.sub(r"[\x00-\x1f\x7f]", " ",
+                                                     error.decode("utf-8", errors="replace"))[:4096]}
+                for candidate in (error, output):
+                    if candidate.strip():
+                        try:
+                            diagnostic = loads(candidate, f"{label} error")
+                        except FlowError:
+                            pass
+                        break
+                raise FlowError("TRUSTED_INTERFACE_FAILED", f"{label} exited with status {process.returncode}", diagnostic, 4)
+            successful_mutation = provider_mode == "mutation"
+            return output
+    finally:
+        # A successful trusted mutation is allowed to replace only the two
+        # materialized graph leaves.  Their new identities are not adopted
+        # here: graph_mutate first validates the result envelope and then
+        # refresh_mutable_graph_leaves proves the journal/replay post-state.
+        root.verify_children(skip_mutable=successful_mutation)
 
 
 def owned_real_directory(path: Path, label: str) -> Path:
@@ -280,10 +338,291 @@ def owned_real_directory(path: Path, label: str) -> Path:
     return path.resolve()
 
 
-def operator_dir() -> Path:
-    raw = os.environ.get("OPERATOR_DIR", "")
-    fail(bool(raw), "USAGE", "OPERATOR_DIR is required", exit_code=2)
-    return owned_real_directory(Path(os.path.abspath(raw)), "OPERATOR_DIR")
+class OperatorRoot:
+    """One held OPERATOR_DIR identity shared by every operation in a command."""
+
+    def __init__(self, path: Path, descriptor: int, identity: Tuple[int, int],
+                 children: Mapping[str, int], leaves: Mapping[str, Optional[int]],
+                 binding_manifest: Any):
+        self.path = path
+        self.fd = descriptor
+        self.identity = identity
+        self.children = dict(children)
+        self.leaves = dict(leaves)
+        self.binding_manifest = binding_manifest
+
+    @classmethod
+    def open(cls) -> "OperatorRoot":
+        raw = os.environ.get("OPERATOR_DIR", "")
+        fail(bool(raw), "USAGE", "OPERATOR_DIR is required", exit_code=2)
+        path = Path(os.path.abspath(raw))
+        descriptor: Optional[int] = None
+        children: Dict[str, int] = {}
+        leaves: Dict[str, Optional[int]] = {}
+        try:
+            expected = os.lstat(path)
+            fail(stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+                 and expected.st_uid == os.geteuid(), "IO_ERROR",
+                 "OPERATOR_DIR must be an owned real directory", str(path), 3)
+            descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            actual = os.fstat(descriptor)
+            fail(stat.S_ISDIR(actual.st_mode) and actual.st_uid == os.geteuid()
+                 and (actual.st_dev, actual.st_ino) == (expected.st_dev, expected.st_ino),
+                 "IO_ERROR", "OPERATOR_DIR changed during descriptor open", str(path), 3)
+            fcntl.flock(descriptor, fcntl.LOCK_EX)
+            authority = os.open("authority", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                                dir_fd=descriptor)
+            children["authority"] = authority
+            graph = os.open("graph", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                            dir_fd=descriptor)
+            children["graph"] = graph
+            bindings = os.open("bindings", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                               dir_fd=graph)
+            children["bindings"] = bindings
+            host = os.open("host", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                           dir_fd=descriptor)
+            children["host"] = host
+            for name, child in children.items():
+                info = os.fstat(child)
+                fail(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid(), "IO_ERROR",
+                     f"trusted {name} directory is unsafe", exit_code=3)
+            def pin_leaf(label: str, parent: int, name: str, required: bool,
+                         writable: bool = False) -> None:
+                try:
+                    leaf = os.open(name, (os.O_RDWR if writable else os.O_RDONLY)
+                                   | os.O_NOFOLLOW, dir_fd=parent)
+                except FileNotFoundError:
+                    fail(not required, "IO_ERROR", f"trusted leaf is missing: {label}", exit_code=3)
+                    leaves[label] = None
+                    return
+                info = os.fstat(leaf)
+                fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                     and info.st_nlink == 1, "IO_ERROR", f"trusted leaf is unsafe: {label}", exit_code=3)
+                leaves[label] = leaf
+            pin_leaf("authority/control-graph-public-key.json", authority,
+                     "control-graph-public-key.json", True)
+            for name in ("definition.json", "projection.json", "events.jsonl"):
+                pin_leaf(f"graph/{name}", graph, name, False, name == "events.jsonl")
+            for name in ("design-proof-signer.json", "design-proof-keychain.json"):
+                pin_leaf(f"host/{name}", host, name, False)
+            binding_entries: List[Dict[str, Any]] = []
+            binding_total = 0
+            for name in sorted(os.listdir(bindings)):
+                fail(name.endswith(".json") and "/" not in name, "IO_ERROR",
+                     "trusted bindings inventory is unsafe", name, 3)
+                binding_fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=bindings)
+                try:
+                    info = os.fstat(binding_fd)
+                    fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                         and info.st_nlink == 1 and info.st_size <= MAX_INTERFACE_BYTES,
+                         "IO_ERROR", "trusted binding is unsafe", name, 3)
+                    data = bytearray()
+                    while len(data) <= MAX_INTERFACE_BYTES:
+                        chunk = os.read(binding_fd, min(65536, MAX_INTERFACE_BYTES + 1 - len(data)))
+                        if not chunk:
+                            break
+                        data.extend(chunk)
+                    fail(len(data) == info.st_size and len(data) <= MAX_INTERFACE_BYTES,
+                         "IO_ERROR", "trusted binding changed during inventory", name, 3)
+                    binding_total += len(data)
+                    fail(binding_total <= MAX_INTERFACE_BYTES, "IO_ERROR",
+                         "trusted binding inventory exceeds its aggregate byte bound", exit_code=3)
+                    binding_entries.append({"name": name, "dev": info.st_dev, "ino": info.st_ino,
+                                            "size": info.st_size,
+                                            "sha256": hashlib.sha256(data).hexdigest()})
+                finally:
+                    os.close(binding_fd)
+            fail(len(binding_entries) <= 10000, "IO_ERROR", "trusted binding inventory exceeds its bound", exit_code=3)
+            binding_manifest = tempfile.TemporaryFile()
+            encoded_manifest = canonical({"schemaVersion": "operator.binding-capability-manifest/v1",
+                                          "entries": binding_entries})
+            fail(len(encoded_manifest) <= MAX_INTERFACE_BYTES, "IO_ERROR",
+                 "trusted binding manifest exceeds its bound", exit_code=3)
+            binding_manifest.write(encoded_manifest); binding_manifest.flush(); binding_manifest.seek(0)
+            root = cls(path, descriptor, (actual.st_dev, actual.st_ino), children, leaves,
+                       binding_manifest)
+            root.verify_children()
+            return root
+        except FlowError:
+            if "binding_manifest" in locals():
+                binding_manifest.close()
+            for leaf in leaves.values():
+                if leaf is not None:
+                    os.close(leaf)
+            for child in children.values():
+                os.close(child)
+            if descriptor is not None:
+                os.close(descriptor)
+            raise
+        except OSError as exc:
+            if "binding_manifest" in locals():
+                binding_manifest.close()
+            for leaf in leaves.values():
+                if leaf is not None:
+                    os.close(leaf)
+            for child in children.values():
+                os.close(child)
+            if descriptor is not None:
+                os.close(descriptor)
+            raise FlowError("IO_ERROR", "cannot open OPERATOR_DIR", str(path), 3) from exc
+
+    def verify_path(self) -> None:
+        """Refuse a rename/replacement even though the original FD remains safe."""
+        descriptor: Optional[int] = None
+        try:
+            expected = os.lstat(self.path)
+            fail(stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+                 and expected.st_uid == os.geteuid(), "IO_ERROR",
+                 "OPERATOR_DIR pathname no longer names an owned real directory", str(self.path), 3)
+            descriptor = os.open(self.path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+            actual = os.fstat(descriptor)
+            fail((expected.st_dev, expected.st_ino) == (actual.st_dev, actual.st_ino)
+                 and (actual.st_dev, actual.st_ino) == self.identity,
+                 "IO_ERROR", "OPERATOR_DIR identity changed during the design command", str(self.path), 3)
+        except FlowError:
+            raise
+        except OSError as exc:
+            raise FlowError("IO_ERROR", "cannot reverify OPERATOR_DIR identity", str(self.path), 3) from exc
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+
+    def verify_children(self, skip_mutable: bool = False) -> None:
+        self.verify_path()
+        relationships = ((self.fd, "authority", "authority"),
+                         (self.fd, "graph", "graph"),
+                         (self.children["graph"], "bindings", "bindings"),
+                         (self.fd, "host", "host"))
+        for parent, entry, key in relationships:
+            current = os.stat(entry, dir_fd=parent, follow_symlinks=False)
+            held = os.fstat(self.children[key])
+            fail(stat.S_ISDIR(current.st_mode) and not stat.S_ISLNK(current.st_mode)
+                 and current.st_uid == os.geteuid()
+                 and (current.st_dev, current.st_ino) == (held.st_dev, held.st_ino),
+                 "IO_ERROR", f"trusted {key} directory identity changed", exit_code=3)
+        for label, descriptor in self.leaves.items():
+            if skip_mutable and label in {"graph/definition.json", "graph/projection.json"}:
+                continue
+            parts = label.split("/")
+            parent = (self.children["authority"] if parts[0] == "authority" else
+                      self.children["host"] if parts[0] == "host" else
+                      self.children["bindings"] if parts[:2] == ["graph", "bindings"] else
+                      self.children["graph"])
+            name = parts[-1]
+            try:
+                published = os.stat(name, dir_fd=parent, follow_symlinks=False)
+                identity: Optional[Tuple[int, int]] = ((published.st_dev, published.st_ino)
+                                                       if stat.S_ISREG(published.st_mode)
+                                                       and not stat.S_ISLNK(published.st_mode)
+                                                       and published.st_uid == os.geteuid()
+                                                       and published.st_nlink == 1 else (-1, -1))
+            except FileNotFoundError:
+                identity = None
+            held_identity = None if descriptor is None else (
+                os.fstat(descriptor).st_dev, os.fstat(descriptor).st_ino)
+            fail(identity == held_identity, "IO_ERROR", f"trusted leaf identity changed: {label}", exit_code=3)
+
+    def refresh_mutable_graph_leaves(self, request_id: str, expected_revision: int) -> None:
+        self.verify_children(skip_mutable=True)
+        graph = self.children["graph"]
+        replacements: Dict[str, int] = {}
+        def journal_state() -> Tuple[int, str, Mapping[str, Any]]:
+            descriptor = self.leaves.get("graph/events.jsonl")
+            fail(descriptor is not None, "IO_ERROR", "event journal capability is unavailable", exit_code=3)
+            assert descriptor is not None
+            info = os.fstat(descriptor)
+            fail(info.st_size <= 256 * 1024 * 1024, "IO_ERROR", "event journal exceeds its bound", exit_code=3)
+            digest = hashlib.sha256(); offset = 0; tail = b""
+            while offset < info.st_size:
+                chunk = os.pread(descriptor, min(65536, info.st_size - offset), offset)
+                fail(bool(chunk), "IO_ERROR", "event journal changed during post-mutation review", exit_code=3)
+                digest.update(chunk); offset += len(chunk); tail = (tail + chunk)[-MAX_INTERFACE_BYTES:]
+            fail(offset == info.st_size and tail.endswith(b"\n"), "IO_ERROR",
+                 "event journal is incomplete after mutation", exit_code=3)
+            line = tail.rstrip(b"\n").split(b"\n")[-1]
+            event = loads(line + b"\n", "post-mutation event")
+            fail(isinstance(event, dict) and event.get("sequence") == expected_revision
+                 and event.get("requestId") == request_id, "INTERFACE_PROTOCOL",
+                 "event journal does not contain the validated mutation result", exit_code=4)
+            return info.st_size, digest.hexdigest(), event
+        try:
+            before_journal = journal_state()
+            for name in ("definition.json", "projection.json"):
+                descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=graph)
+                info = os.fstat(descriptor)
+                fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                     and info.st_nlink == 1, "IO_ERROR",
+                     f"mutable graph leaf is unsafe after commit: {name}", exit_code=3)
+                replacements[f"graph/{name}"] = descriptor
+            candidate_leaves = dict(self.leaves); candidate_leaves.update(replacements)
+            environment = dict(os.environ)
+            environment.update({"OPERATOR_DIR": str(self.path),
+                                "OPERATOR_DESIGN_FLOW_ROOT_FD": str(self.fd),
+                                "OPERATOR_DESIGN_FLOW_ROOT_DEV": str(self.identity[0]),
+                                "OPERATOR_DESIGN_FLOW_ROOT_INO": str(self.identity[1]),
+                                "OPERATOR_DESIGN_FLOW_ROOT_PATH": str(self.path),
+                                "OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE": "exclusive-held",
+                                "OPERATOR_DESIGN_FLOW_PROVIDER_MODE": ""})
+            for name, child in self.children.items():
+                info = os.fstat(child); prefix = f"OPERATOR_DESIGN_FLOW_ROOT_{name.upper()}"
+                environment[f"{prefix}_FD"] = str(child); environment[f"{prefix}_DEV"] = str(info.st_dev)
+                environment[f"{prefix}_INO"] = str(info.st_ino)
+            caps: Dict[str, Any] = {}; passed: List[int] = [self.fd, *self.children.values()]
+            for label, descriptor in candidate_leaves.items():
+                if descriptor is None:
+                    caps[label] = None
+                else:
+                    info = os.fstat(descriptor); caps[label] = [descriptor, info.st_dev, info.st_ino]
+                    passed.append(descriptor)
+            environment["OPERATOR_DESIGN_FLOW_ROOT_LEAF_CAPS"] = json.dumps(caps, sort_keys=True,
+                                                                               separators=(",", ":"))
+            environment["OPERATOR_DESIGN_FLOW_ROOT_BINDING_MANIFEST_FD"] = str(self.binding_manifest.fileno())
+            passed.append(self.binding_manifest.fileno())
+            code, output, error = (None, b"", b"")
+            with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
+                process = subprocess.run([command_path("OPERATOR_DESIGN_FLOW_MUTATION_COMMAND", "operator-graph.sh"),
+                                          "replay", "check"], stdin=subprocess.DEVNULL,
+                                         stdout=out, stderr=err, env=environment,
+                                         pass_fds=tuple(dict.fromkeys(passed)), timeout=30, check=False)
+                out.seek(0); err.seek(0); output = out.read(MAX_INTERFACE_BYTES + 1); error = err.read(MAX_INTERFACE_BYTES + 1)
+                code = process.returncode
+            fail(code == 0 and len(output) <= MAX_INTERFACE_BYTES and len(error) <= MAX_INTERFACE_BYTES,
+                 "INTERFACE_PROTOCOL", "post-mutation replay check failed", exit_code=4)
+            replay_result = load_interface(output, "post-mutation replay result")
+            fail(replay_result.get("ok") is True and replay_result.get("command") == "replay check"
+                 and replay_result.get("data", {}).get("inSync") is True
+                 and replay_result.get("data", {}).get("revision") == expected_revision,
+                 "INTERFACE_PROTOCOL", "post-mutation replay state does not match the validated result", exit_code=4)
+            fail(journal_state()[:2] == before_journal[:2], "IO_ERROR",
+                 "event journal changed during post-mutation review", exit_code=3)
+            self.verify_children(skip_mutable=True)
+            for label, descriptor in replacements.items():
+                info = os.fstat(descriptor); published = os.stat(label.split("/")[-1], dir_fd=graph,
+                                                                 follow_symlinks=False)
+                fail((info.st_dev, info.st_ino) == (published.st_dev, published.st_ino), "IO_ERROR",
+                     "mutable graph leaf changed before capability adoption", label, 3)
+            for label, descriptor in replacements.items():
+                prior = self.leaves.get(label)
+                self.leaves[label] = descriptor
+                if prior is not None:
+                    os.close(prior)
+            replacements.clear()
+            self.verify_children()
+        finally:
+            for descriptor in replacements.values():
+                os.close(descriptor)
+
+    def __enter__(self) -> "OperatorRoot":
+        return self
+
+    def __exit__(self, _kind: Any, _value: Any, _traceback: Any) -> None:
+        for descriptor in self.children.values():
+            os.close(descriptor)
+        for descriptor in self.leaves.values():
+            if descriptor is not None:
+                os.close(descriptor)
+        self.binding_manifest.close()
+        os.close(self.fd)
 
 
 def read_regular(path: Path, label: str, maximum: int) -> bytes:
@@ -320,6 +659,106 @@ def read_regular(path: Path, label: str, maximum: int) -> bytes:
     return value
 
 
+def read_anchored_regular_fd(root_fd: int, root_label: str, parts: Sequence[str],
+                             label: str, maximum: int) -> bytes:
+    fail(bool(parts) and all(part not in {"", ".", ".."} and "/" not in part for part in parts),
+         "IO_ERROR", f"{label} path is invalid", list(parts), 3)
+    descriptors: List[int] = []
+    try:
+        current = os.dup(root_fd)
+        descriptors.append(current)
+        root_info = os.fstat(current)
+        fail(stat.S_ISDIR(root_info.st_mode) and root_info.st_uid == os.geteuid(),
+             "IO_ERROR", f"{label} root must be an owned real directory", root_label, 3)
+        for part in parts[:-1]:
+            current = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=current)
+            descriptors.append(current)
+            info = os.fstat(current)
+            fail(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid(),
+                 "IO_ERROR", f"{label} parent must be an owned real directory", part, 3)
+        descriptor = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW, dir_fd=current)
+        descriptors.append(descriptor)
+        info = os.fstat(descriptor)
+        fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid() and info.st_nlink == 1,
+             "IO_ERROR", f"{label} must be an owned, singly linked regular file", parts[-1], 3)
+        fail(info.st_size <= maximum, "IO_ERROR", f"{label} exceeds {maximum} bytes", parts[-1], 3)
+        chunks: List[bytes] = []
+        total = 0
+        while True:
+            chunk = os.read(descriptor, min(65536, maximum + 1 - total))
+            if not chunk:
+                break
+            chunks.append(chunk)
+            total += len(chunk)
+            fail(total <= maximum, "IO_ERROR", f"{label} exceeds {maximum} bytes", parts[-1], 3)
+        return b"".join(chunks)
+    except FlowError:
+        raise
+    except OSError as exc:
+        raise FlowError("IO_ERROR", f"cannot read {label} through its trusted root", {
+            "root": root_label, "path": "/".join(parts), "error": str(exc),
+        }, 3) from exc
+    finally:
+        for descriptor in reversed(descriptors):
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
+
+
+def read_anchored_regular(root: Path, parts: Sequence[str], label: str, maximum: int) -> bytes:
+    descriptor: Optional[int] = None
+    try:
+        descriptor = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        return read_anchored_regular_fd(descriptor, str(root), parts, label, maximum)
+    except FlowError:
+        raise
+    except OSError as exc:
+        raise FlowError("IO_ERROR", f"cannot open trusted root for {label}", str(root), 3) from exc
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
+def trusted_source_root() -> Optional[Path]:
+    raw = os.environ.get("OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT", "")
+    if not raw:
+        return None
+    requested = owned_real_directory(Path(os.path.abspath(raw)), "trusted design-flow source root")
+    script_dir = owned_real_directory(
+        Path(os.path.abspath(os.environ["OPERATOR_DESIGN_FLOW_SCRIPT_DIR"])), "design-flow script directory",
+    )
+    expected = script_dir.parent
+    fail(requested == expected, "IO_ERROR",
+         "trusted design-flow source root must own the executing runtime", {
+             "requested": str(requested), "expected": str(expected),
+         }, 3)
+    try:
+        os.lstat(requested / "operator.config.env")
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        raise FlowError("IO_ERROR", "cannot classify trusted design-flow source root", str(exc), 3) from exc
+    else:
+        raise FlowError("IO_ERROR", "installed design-flow runtime cannot enable source-template mode",
+                        str(requested), 3)
+    read_anchored_regular(requested, ("scripts", "operator-bootstrap.sh"),
+                          "trusted source bootstrap marker", MAX_INTERFACE_BYTES)
+    read_anchored_regular(requested, ("plugins", "operator-kit", ".codex-plugin", "plugin.json"),
+                          "trusted source plugin marker", MAX_INTERFACE_BYTES)
+    return requested
+
+
+def read_proposal_prompt(root: OperatorRoot) -> bytes:
+    root.verify_path()
+    source_root = trusted_source_root()
+    if source_root is not None:
+        return read_anchored_regular(source_root, ("templates", "prompts", "design-proposal.md"),
+                                     "canonical source design proposal prompt template", MAX_BRIEF_BYTES)
+    return read_anchored_regular_fd(root.fd, str(root.path), ("prompts", "design-proposal.md"),
+                                    "installed design proposal prompt template", MAX_BRIEF_BYTES)
+
+
 class FeatureWorkspace:
     def __init__(self, path: Path, identity: Tuple[int, int]):
         self.path = path
@@ -332,12 +771,20 @@ class FeatureWorkspace:
         return str(self.path)
 
 
-def feature_workspace(root: Path, feature_id: str) -> FeatureWorkspace:
+def feature_workspace(root: OperatorRoot, feature_id: str) -> FeatureWorkspace:
     require_identifier(feature_id, "feature ID")
-    features = owned_real_directory(root / "features", "feature workspace root")
+    features = root.path / "features"
     matches: List[FeatureWorkspace] = []
     try:
-        features_fd = os.open(features, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        expected = os.stat("features", dir_fd=root.fd, follow_symlinks=False)
+        fail(stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+             and expected.st_uid == os.geteuid(), "IO_ERROR",
+             "feature workspace root must be an owned real directory", str(features), 3)
+        features_fd = os.open("features", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=root.fd)
+        actual = os.fstat(features_fd)
+        fail((actual.st_dev, actual.st_ino) == (expected.st_dev, expected.st_ino)
+             and stat.S_ISDIR(actual.st_mode) and actual.st_uid == os.geteuid(),
+             "IO_ERROR", "feature workspace root changed during descriptor open", str(features), 3)
         names = sorted(os.listdir(features_fd))
     except OSError as exc:
         raise FlowError("IO_ERROR", "cannot open feature workspace root", str(features), 3) from exc
@@ -795,8 +1242,9 @@ def validate_snapshot(value: Any) -> Mapping[str, Any]:
     return snapshot
 
 
-def snapshot() -> Mapping[str, Any]:
-    raw = bounded_command(command_path("OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND"), None, "trusted graph snapshot provider")
+def snapshot(root: OperatorRoot) -> Mapping[str, Any]:
+    raw = bounded_command(root, command_path("OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND", "operator-graph.sh"), None,
+                          "trusted graph snapshot provider", "snapshot")
     return validate_snapshot(load_interface(raw, "trusted graph snapshot"))
 
 
@@ -834,17 +1282,25 @@ def validate_context(value: Mapping[str, Any], feature_id: str, feature_node: st
     fail(session in {None, feature_id}, "GRAPH_PRECONDITION", "feature session identity conflicts with graph node", exit_code=6)
 
 
-def graph_mutate(command: str, request_id: str, value: Mapping[str, Any],
+def graph_mutate(root: OperatorRoot, command: str, request_id: str, value: Mapping[str, Any],
+                 cli_intent: Mapping[str, Any],
                  definition: Optional[Mapping[str, Any]] = None,
                  gate_node_id: Optional[str] = None, decision: Optional[str] = None) -> Mapping[str, Any]:
     expected_revision = int(value["revision"])
+    normalized_definition = None
+    if definition is not None:
+        normalized_definition = dict(definition)
+        normalized_definition["nodes"] = sorted(definition["nodes"], key=lambda item: item["id"])
+        normalized_definition["edges"] = sorted(definition["edges"], key=lambda item: item["id"])
     request = {
         "schemaVersion": GRAPH_REQUEST_VERSION, "command": command, "requestId": request_id,
         "graphId": value["graphId"], "expectedRevision": expected_revision,
-        "definition": dict(definition) if definition is not None else None,
+        "cliIntent": dict(cli_intent),
+        "definition": normalized_definition,
         "gateNodeId": gate_node_id, "decision": decision,
     }
-    raw = bounded_command(command_path("OPERATOR_DESIGN_FLOW_MUTATION_COMMAND"), request, "trusted graph mutation launcher")
+    raw = bounded_command(root, command_path("OPERATOR_DESIGN_FLOW_MUTATION_COMMAND", "operator-graph.sh"), request,
+                          "trusted graph mutation launcher", "mutation")
     result = load_interface(raw, "trusted graph mutation result")
     exact(result, {"ok", "command", "requestId", "revision", "data"}, "graph mutation result")
     expected_command = "replace-definition" if command == "replace-definition" else "gate decide"
@@ -863,6 +1319,7 @@ def graph_mutate(command: str, request_id: str, value: Mapping[str, Any],
         exact(data, {"nodeId", "from", "to"}, "gate decision result")
         fail(data == {"nodeId": gate_node_id, "from": "pending", "to": decision},
              "INTERFACE_PROTOCOL", "gate decision result is invalid", data, 4)
+    root.refresh_mutable_graph_leaves(request_id, expected_revision + 1)
     return result
 
 
@@ -889,7 +1346,8 @@ def assert_node_shape(node: Mapping[str, Any], expected: Mapping[str, Any], labe
 
 
 def validate_flow_topology(value: Mapping[str, Any], feature_id: str, flow_id: str,
-                           allow_missing: bool = False) -> Optional[Dict[str, Any]]:
+                           allow_missing: bool = False,
+                           allow_approved_without_implementation: bool = True) -> Optional[Dict[str, Any]]:
     nodes = node_index(value)
     prefix = flow_prefix(feature_id, flow_id)
     proposal_ids = {proposal: f"{prefix}-{proposal}" for proposal in PROPOSALS}
@@ -973,7 +1431,7 @@ def validate_flow_topology(value: Mapping[str, Any], feature_id: str, flow_id: s
                                     {"protectedTransitions": ["active", "completed"]})))
         expected_edges.extend(edge("depends-on", implementation_id, proposal_ids[proposal]) for proposal in PROPOSALS)
     else:
-        fail(gate["state"] != "approved", "FLOW_CORRUPT",
+        fail(gate["state"] != "approved" or allow_approved_without_implementation, "FLOW_CORRUPT",
              "approved selection gate has no canonical implementation", gate_id, 6)
 
     improvements = []
@@ -1047,9 +1505,12 @@ def read_brief(path: Path) -> Tuple[bytes, str]:
     return brief, file_digest(brief)
 
 
-def prepare_proposal_artifacts(store: ArtifactStore, feature_id: str, flow_id: str, brief: bytes) -> None:
-    prompt_path = Path(os.environ["OPERATOR_DESIGN_FLOW_SCRIPT_DIR"]).parent / "templates" / "prompts" / "design-proposal.md"
-    prompt = read_regular(prompt_path, "design proposal prompt template", MAX_BRIEF_BYTES).decode("utf-8")
+def prepare_proposal_artifacts(root: OperatorRoot, store: ArtifactStore,
+                               feature_id: str, flow_id: str, brief: bytes) -> None:
+    try:
+        prompt = read_proposal_prompt(root).decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise FlowError("IO_ERROR", "design proposal prompt template must be UTF-8 text", exit_code=3) from exc
     store.ensure_dir("work/design-options")
     store.write_once("work/design-options/brief.md", brief)
     for proposal in PROPOSALS:
@@ -1081,19 +1542,19 @@ def selection_preconditions(model: Mapping[str, Any]) -> None:
          {proposal: proposals[proposal]["state"] for proposal in PROPOSALS}, 6)
 
 
-def start_flow(args: argparse.Namespace) -> Mapping[str, Any]:
-    workspace = feature_workspace(operator_dir(), args.feature)
+def start_flow(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
+    workspace = feature_workspace(root, args.feature)
     brief, brief_hash = read_brief(Path(args.brief))
     with ArtifactStore(workspace) as store:
-        value = snapshot()
+        value = snapshot(root)
         model = validate_flow_topology(value, args.feature, args.flow_id, allow_missing=True)
         if model is not None:
             require_start_intent(model, args, brief_hash, bind_start_fields=True)
             validate_context(value, args.feature, args.feature_node, args.lane)
-            prepare_proposal_artifacts(store, args.feature, args.flow_id, brief)
-            return status_flow(args, value=value, workspace=workspace, store=store, model=model)
+            prepare_proposal_artifacts(root, store, args.feature, args.flow_id, brief)
+            return status_flow(root, args, value=value, workspace=workspace, store=store, model=model)
         validate_context(value, args.feature, args.feature_node, args.lane)
-        prepare_proposal_artifacts(store, args.feature, args.flow_id, brief)
+        prepare_proposal_artifacts(root, store, args.feature, args.flow_id, brief)
         definition = definition_from_snapshot(value)
         prefix = flow_prefix(args.feature, args.flow_id)
         intent = {"featureNodeId": args.feature_node, "proposalLaneNodeId": args.lane, "flowTitle": args.title,
@@ -1112,18 +1573,21 @@ def start_flow(args: argparse.Namespace) -> Mapping[str, Any]:
             "metadata": node_metadata(args.feature, args.flow_id, "selection-gate", "work/design-options",
                                       extra={**intent, "options": list(PROPOSALS)}, reclaimable=False)})
         definition["edges"].append(edge("contains", args.feature_node, gate_id))
-        graph_mutate("replace-definition", f"design-start-{args.feature}-{args.flow_id}", value, definition=definition)
-        current = snapshot()
+        graph_mutate(root, "replace-definition", f"design-start-{args.feature}-{args.flow_id}", value,
+                     {"action": "start", "featureId": args.feature, "flowId": args.flow_id},
+                     definition=definition)
+        current = snapshot(root)
         current_model = validate_flow_topology(current, args.feature, args.flow_id)
         assert current_model is not None
-        return status_flow(args, value=current, workspace=workspace, store=store, model=current_model)
+        return status_flow(root, args, value=current, workspace=workspace, store=store, model=current_model)
 
 
-def select_flow(args: argparse.Namespace) -> Mapping[str, Any]:
-    workspace = feature_workspace(operator_dir(), args.feature)
+def select_flow(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
+    workspace = feature_workspace(root, args.feature)
     with ArtifactStore(workspace) as store:
-        value = snapshot()
-        model = validate_flow_topology(value, args.feature, args.flow_id)
+        value = snapshot(root)
+        model = validate_flow_topology(value, args.feature, args.flow_id,
+                                       allow_approved_without_implementation=True)
         assert model is not None
         require_start_intent(model, args)
         validate_context(value, args.feature, args.feature_node, args.lane)
@@ -1135,9 +1599,21 @@ def select_flow(args: argparse.Namespace) -> Mapping[str, Any]:
                  f"flow already selected {design['selectedProposal']}", exit_code=6)
             fail(design["implementationLaneNodeId"] == args.lane and design["implementationPriority"] == args.priority,
                  "INTENT_CONFLICT", "selection retry lane or priority differs from immutable intent", exit_code=6)
+            fail(model["gate"]["state"] == "approved", "GATE_REJECTED",
+                 "selected implementation is not backed by an approved human gate", exit_code=6)
         else:
-            fail(model["gate"]["state"] == "pending", "GATE_ALREADY_DECIDED",
-                 "selection gate is already terminal", model["gate"]["state"], 6)
+            gate = model["gate"]
+            if gate["state"] == "pending":
+                graph_mutate(root, "gate decide", f"design-select-gate-{args.feature}-{args.flow_id}-{args.proposal}",
+                             value, {"action": "select", "featureId": args.feature, "flowId": args.flow_id,
+                                     "proposal": args.proposal}, gate_node_id=gate["id"], decision="approved")
+                value = snapshot(root)
+                model = validate_flow_topology(value, args.feature, args.flow_id,
+                                               allow_approved_without_implementation=True)
+                assert model is not None
+            elif gate["state"] != "approved":
+                raise FlowError("GATE_REJECTED", "selection gate was not approved; completed history cannot be reopened",
+                                exit_code=6)
             definition = definition_from_snapshot(value)
             node_id = f"{model['prefix']}-implementation"
             definition["nodes"].append({"id": node_id, "kind": "task", "title": f"Implement {args.proposal}",
@@ -1150,30 +1626,25 @@ def select_flow(args: argparse.Namespace) -> Mapping[str, Any]:
             definition["edges"].extend(edge("depends-on", node_id, model["proposals"][proposal]["id"]) for proposal in PROPOSALS)
             definition["edges"].append(edge("gated-by", node_id, model["gate"]["id"],
                                             {"protectedTransitions": ["active", "completed"]}))
-            graph_mutate("replace-definition", f"design-select-node-{args.feature}-{args.flow_id}-{args.proposal}",
-                         value, definition=definition)
-            value = snapshot()
+            graph_mutate(root, "replace-definition", f"design-select-node-{args.feature}-{args.flow_id}-{args.proposal}",
+                         value, {"action": "select", "featureId": args.feature, "flowId": args.flow_id,
+                                 "proposal": args.proposal}, definition=definition)
+            value = snapshot(root)
             model = validate_flow_topology(value, args.feature, args.flow_id)
             assert model is not None
             implementation = model["implementation"]
             fail(implementation is not None and implementation["metadata"]["designFlow"]["selectedProposal"] == args.proposal,
                  "FLOW_CORRUPT", "canonical implementation did not materialize", exit_code=6)
-        gate = model["gate"]
-        if gate["state"] == "pending":
-            graph_mutate("gate decide", f"design-select-gate-{args.feature}-{args.flow_id}-{args.proposal}",
-                         value, gate_node_id=gate["id"], decision="approved")
-        elif gate["state"] != "approved":
-            raise FlowError("GATE_REJECTED", "selection gate was not approved; completed history cannot be reopened", exit_code=6)
-        current = snapshot()
+        current = snapshot(root)
         current_model = validate_flow_topology(current, args.feature, args.flow_id)
         assert current_model is not None
-        return status_flow(args, value=current, workspace=workspace, store=store, model=current_model)
+        return status_flow(root, args, value=current, workspace=workspace, store=store, model=current_model)
 
 
-def reject_flow(args: argparse.Namespace) -> Mapping[str, Any]:
-    workspace = feature_workspace(operator_dir(), args.feature)
+def reject_flow(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
+    workspace = feature_workspace(root, args.feature)
     with ArtifactStore(workspace) as store:
-        value = snapshot()
+        value = snapshot(root)
         model = validate_flow_topology(value, args.feature, args.flow_id)
         assert model is not None
         require_start_intent(model, args)
@@ -1183,14 +1654,15 @@ def reject_flow(args: argparse.Namespace) -> Mapping[str, Any]:
              "cannot reject after implementation selection exists", exit_code=6)
         gate = model["gate"]
         if gate["state"] == "pending":
-            graph_mutate("gate decide", f"design-reject-gate-{args.feature}-{args.flow_id}", value,
+            graph_mutate(root, "gate decide", f"design-reject-gate-{args.feature}-{args.flow_id}", value,
+                         {"action": "reject", "featureId": args.feature, "flowId": args.flow_id},
                          gate_node_id=gate["id"], decision="rejected")
         elif gate["state"] != "rejected":
             raise FlowError("GATE_ALREADY_DECIDED", "selection gate is already approved or cancelled", exit_code=6)
-        current = snapshot()
+        current = snapshot(root)
         current_model = validate_flow_topology(current, args.feature, args.flow_id)
         assert current_model is not None
-        return status_flow(args, value=current, workspace=workspace, store=store, model=current_model)
+        return status_flow(root, args, value=current, workspace=workspace, store=store, model=current_model)
 
 
 def collect_evidence(evidence: Sequence[str]) -> Tuple[List[Tuple[str, bytes]], List[Dict[str, Any]]]:
@@ -1225,7 +1697,7 @@ def copy_evidence(store: ArtifactStore, relative: str, message: str,
     return file_digest(message_data), records
 
 
-def feedback_intake(request_id: str, feature_id: str, flow_id: str, node_id: str, source_node: str,
+def feedback_intake(root: OperatorRoot, request_id: str, feature_id: str, flow_id: str, node_id: str, source_node: str,
                     message: str, evidence_path: str, message_hash: str,
                     evidence: Sequence[Mapping[str, Any]]) -> Mapping[str, Any]:
     request = {
@@ -1234,7 +1706,8 @@ def feedback_intake(request_id: str, feature_id: str, flow_id: str, node_id: str
         "message": message, "messageHash": message_hash, "evidencePath": evidence_path,
         "evidence": [dict(item) for item in evidence],
     }
-    raw = bounded_command(command_path("OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND"), request, "trusted feedback intake owner")
+    raw = bounded_command(root, command_path("OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND", "operator-feedback.sh"), request,
+                          "trusted feedback intake owner", "feedback")
     result = load_interface(raw, "trusted feedback result")
     exact(result, {"ok", "schemaVersion", "requestId", "feedbackId", "status", "evidencePath"}, "feedback result")
     fail(result.get("ok") is True and result.get("schemaVersion") == FEEDBACK_RESULT_VERSION
@@ -1247,16 +1720,16 @@ def feedback_intake(request_id: str, feature_id: str, flow_id: str, node_id: str
     return result
 
 
-def dissatisfied_flow(args: argparse.Namespace) -> Mapping[str, Any]:
+def dissatisfied_flow(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
     require_identifier(args.request_id, "request ID", REQUEST_RE)
     require_canonical_text(args.message, "message", 4096)
-    workspace = feature_workspace(operator_dir(), args.feature)
+    workspace = feature_workspace(root, args.feature)
     files, evidence_records = collect_evidence(args.evidence)
     message_data = ("# Dissatisfaction\n\n" + args.message.strip() + "\n").encode("utf-8")
     message_hash = file_digest(message_data)
     evidence_hash = file_digest(canonical(evidence_records))
     with ArtifactStore(workspace) as store:
-        value = snapshot()
+        value = snapshot(root)
         model = validate_flow_topology(value, args.feature, args.flow_id)
         assert model is not None
         require_start_intent(model, args)
@@ -1274,7 +1747,7 @@ def dissatisfied_flow(args: argparse.Namespace) -> Mapping[str, Any]:
                      and design["evidenceHash"] == evidence_hash,
                      "INTENT_CONFLICT", "dissatisfaction retry differs from immutable request intent", args.request_id, 6)
                 copy_evidence(store, design["artifactPath"], args.message, files)
-                return status_flow(args, value=value, workspace=workspace, store=store, model=model)
+                return status_flow(root, args, value=value, workspace=workspace, store=store, model=model)
             if design["messageHash"] == message_hash and design["evidenceHash"] == evidence_hash:
                 raise FlowError("REQUEST_ID_CONFLICT", "the same dissatisfaction evidence already uses a different request ID",
                                 {"existing": design["requestId"], "requested": args.request_id}, 6)
@@ -1287,14 +1760,14 @@ def dissatisfied_flow(args: argparse.Namespace) -> Mapping[str, Any]:
         node_id = f"{model['prefix']}-improvement-{token}"
         relative = f"work/design-options/improvements/improvement-{token}"
         copy_evidence(store, relative, args.message, files)
-        feedback = feedback_intake(args.request_id, args.feature, args.flow_id, node_id, previous["id"],
+        feedback = feedback_intake(root, args.request_id, args.feature, args.flow_id, node_id, previous["id"],
                                    args.message.strip(), relative, message_hash, evidence_records)
-        value = snapshot()
+        value = snapshot(root)
         model = validate_flow_topology(value, args.feature, args.flow_id)
         assert model is not None
         for existing in model["improvements"]:
             if existing["metadata"]["designFlow"]["requestId"] == args.request_id:
-                return status_flow(args, value=value, workspace=workspace, store=store, model=model)
+                return status_flow(root, args, value=value, workspace=workspace, store=store, model=model)
         fail(len(model["improvements"]) + 1 == sequence, "REVISION_CONFLICT",
              "forward improvement sequence changed; retry the same request", exit_code=6)
         implementation = model["implementation"]
@@ -1311,21 +1784,23 @@ def dissatisfied_flow(args: argparse.Namespace) -> Mapping[str, Any]:
         definition["edges"].extend((edge("contains", args.feature_node, node_id), edge("assigned-to", node_id, args.lane),
                                     edge("depends-on", node_id, previous["id"]),
                                     edge("feedback-for", node_id, implementation["id"])))
-        graph_mutate("replace-definition", f"design-improvement-{args.request_id}", value, definition=definition)
-        current = snapshot()
+        graph_mutate(root, "replace-definition", f"design-improvement-{args.request_id}", value,
+                     {"action": "improve", "featureId": args.feature, "flowId": args.flow_id,
+                             "feedbackRequestId": args.request_id}, definition=definition)
+        current = snapshot(root)
         current_model = validate_flow_topology(current, args.feature, args.flow_id)
         assert current_model is not None
-        return status_flow(args, value=current, workspace=workspace, store=store, model=current_model)
+        return status_flow(root, args, value=current, workspace=workspace, store=store, model=current_model)
 
 
-def status_flow(args: argparse.Namespace, value: Optional[Mapping[str, Any]] = None,
+def status_flow(root: OperatorRoot, args: argparse.Namespace, value: Optional[Mapping[str, Any]] = None,
                 workspace: Optional[FeatureWorkspace] = None, store: Optional[ArtifactStore] = None,
                 model: Optional[Mapping[str, Any]] = None) -> Mapping[str, Any]:
-    current_workspace = workspace or feature_workspace(operator_dir(), args.feature)
+    current_workspace = workspace or feature_workspace(root, args.feature)
     if store is None:
         with ArtifactStore(current_workspace) as opened:
-            return status_flow(args, value=value, workspace=current_workspace, store=opened, model=model)
-    current = value or snapshot()
+            return status_flow(root, args, value=value, workspace=current_workspace, store=opened, model=model)
+    current = value or snapshot(root)
     current_model = model or validate_flow_topology(current, args.feature, args.flow_id)
     assert current_model is not None
     if args.feature_node != current_model["intent"]["featureNodeId"]:
@@ -1364,7 +1839,8 @@ def status_flow(args: argparse.Namespace, value: Optional[Mapping[str, Any]] = N
         "proposals": proposal_status,
         "selection": {"gateNodeId": gate["id"], "gateState": gate["state"], "approved": gate["state"] == "approved",
                       "selectedProposal": selected, "proposedProposal": proposed,
-                      "durableGraphGate": gate["state"] in {"approved", "rejected"}},
+                      "durableGraphGate": gate["state"] in {"approved", "rejected"},
+                      "materializationPending": gate["state"] == "approved" and implementation is None},
         "implementation": implementation_status, "improvements": improvement_status,
     }
     return {"ok": True, "command": "status", "data": data}
@@ -1420,6 +1896,10 @@ def print_text(payload: Mapping[str, Any]) -> None:
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     try:
+        injected = sorted(PROVIDER_OVERRIDE_VARIABLES.intersection(os.environ))
+        fail(not injected, "AUTHORITY_DENIED",
+             "installed design flow rejects trusted-provider command overrides",
+             {"variables": injected}, 4)
         args = parser().parse_args(argv)
         args.feature_node = args.feature_node or args.feature
         require_identifier(args.feature, "feature ID")
@@ -1431,16 +1911,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             fail(0 <= args.priority <= 1000, "USAGE", "priority must be between 0 and 1000", exit_code=2)
         if hasattr(args, "title"):
             require_canonical_text(args.title, "title", 512)
-        if args.command == "start":
-            payload = start_flow(args)
-        elif args.command == "select":
-            payload = select_flow(args)
-        elif args.command == "reject":
-            payload = reject_flow(args)
-        elif args.command == "dissatisfied":
-            payload = dissatisfied_flow(args)
-        else:
-            payload = status_flow(args)
+        with OperatorRoot.open() as operator_root:
+            if args.command == "start":
+                payload = start_flow(operator_root, args)
+            elif args.command == "select":
+                payload = select_flow(operator_root, args)
+            elif args.command == "reject":
+                payload = reject_flow(operator_root, args)
+            elif args.command == "dissatisfied":
+                payload = dissatisfied_flow(operator_root, args)
+            else:
+                payload = status_flow(operator_root, args)
+            operator_root.verify_children()
         if args.json:
             sys.stdout.buffer.write(canonical(payload))
         else:
@@ -1467,4 +1949,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 raise SystemExit(main())
 PY
 
-exec python3 -c "$OPERATOR_DESIGN_FLOW_PROGRAM" "$@"
+PATH="/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/usr/local/bin"
+export PATH
+unset PYTHONPATH PYTHONHOME
+exec /usr/bin/python3 -E -s -c "$OPERATOR_DESIGN_FLOW_PROGRAM" "$@"

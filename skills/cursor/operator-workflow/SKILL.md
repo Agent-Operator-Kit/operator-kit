@@ -1,3 +1,8 @@
+---
+name: operator-workflow
+description: Use when setting up or operating Agent Operator Kit, tmux lanes, git worktrees, external task packets, handoffs, Cursor Cloud Agents, or status summaries.
+---
+
 # Cursor Operator Workflow Skill
 
 Use this skill when setting up or operating Agent Operator Kit from Cursor IDE, Cursor CLI, or Cursor Cloud Agents.
@@ -58,6 +63,13 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
    - `bash scripts/operator-catalog.sh list roles`
 7. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
+
+For fresh `latest` setup, install V5 with the complete runtime and eleven
+schemas, initialize catalog before deriving the role map from `OPERATOR_LANES`,
+and create only private empty external runtime directories. Do not initialize
+graph history, bindings, authority/proof keys, or host sessions. A plain V4
+update preserves its `4` marker and artifacts and reports explicit migration
+required; use a reviewed `operator-v5-migrate.sh plan` before apply.
 
 For an empty scoped project folder, first suggest this top-level layout:
 
@@ -164,3 +176,9 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Ask before destructive cleanup, credential/provider-console changes,
   production deploys, release submissions, regulated or safety-critical
   behavior, or product decisions that cannot be safely inferred.
+- V5 production work enters through the signed `operator-host.sh` boundary;
+  never use permission-bypass launches or direct graph-file writes.
+- Keep private authority/proof keys out of the repo, `OPERATOR_DIR`,
+  environment, CLI, task packets, logs, and handoffs.
+- Treat graph history, fences, bindings, host effects, evidence, and migration
+  manifests as durable backup/recovery state, not disposable workspace data.

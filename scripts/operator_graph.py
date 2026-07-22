@@ -13,6 +13,7 @@ import contextlib
 import ctypes
 import ctypes.util
 import datetime as dt
+import fcntl
 import hashlib
 import heapq
 import json
@@ -789,30 +790,7 @@ def validate_event(event: Any, sequence: int, seen_requests: Set[str], seen_even
     validate_event_proof(event)
 
 
-def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
-    if not path.is_file():
-        raise GraphError("NOT_INITIALIZED", f"Missing event journal: {path}")
-    try:
-        size = path.stat().st_size
-        fail(size <= MAX_JOURNAL_BYTES + MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Event journal exceeds recoverable size")
-        data = path.read_bytes()
-    except OSError as exc:
-        raise GraphError("IO_ERROR", f"Cannot read event journal: {path}", str(exc)) from exc
-    if data and not data.endswith(b"\n"):
-        if not recover_tail:
-            raise GraphError("CORRUPT_JOURNAL", "Journal ends with an uncommitted partial record")
-        committed_length = data.rfind(b"\n") + 1
-        try:
-            descriptor = os.open(str(path), os.O_WRONLY)
-            try:
-                os.ftruncate(descriptor, committed_length)
-                os.fsync(descriptor)
-            finally:
-                os.close(descriptor)
-            fsync_directory(path.parent)
-        except OSError as exc:
-            raise GraphError("IO_ERROR", "Cannot recover partial journal tail", str(exc)) from exc
-        data = data[:committed_length]
+def parse_committed_events(data: bytes) -> List[Dict[str, Any]]:
     fail(len(data) <= MAX_JOURNAL_BYTES, "CORRUPT_JOURNAL", "Committed event journal is too large")
     fail(bool(data), "CORRUPT_JOURNAL", "Event journal has no committed records")
     events: List[Dict[str, Any]] = []
@@ -845,6 +823,33 @@ def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
         previous_time = occurred
         events.append(event)
     return events
+
+
+def read_events(path: Path, recover_tail: bool = False) -> List[Dict[str, Any]]:
+    if not path.is_file():
+        raise GraphError("NOT_INITIALIZED", f"Missing event journal: {path}")
+    try:
+        size = path.stat().st_size
+        fail(size <= MAX_JOURNAL_BYTES + MAX_EVENT_BYTES, "CORRUPT_JOURNAL", "Event journal exceeds recoverable size")
+        data = path.read_bytes()
+    except OSError as exc:
+        raise GraphError("IO_ERROR", f"Cannot read event journal: {path}", str(exc)) from exc
+    if data and not data.endswith(b"\n"):
+        if not recover_tail:
+            raise GraphError("CORRUPT_JOURNAL", "Journal ends with an uncommitted partial record")
+        committed_length = data.rfind(b"\n") + 1
+        try:
+            descriptor = os.open(str(path), os.O_WRONLY)
+            try:
+                os.ftruncate(descriptor, committed_length)
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            fsync_directory(path.parent)
+        except OSError as exc:
+            raise GraphError("IO_ERROR", "Cannot recover partial journal tail", str(exc)) from exc
+        data = data[:committed_length]
+    return parse_committed_events(data)
 
 
 def _replay(events: Sequence[Mapping[str, Any]], authority: Optional[Mapping[str, Any]] = None) -> Tuple[Dict[str, Any], Dict[str, Any]]:
@@ -1213,6 +1218,30 @@ def host_id() -> str:
     return socket.gethostname() or "unknown-host"
 
 
+class MachTimebaseInfo(ctypes.Structure):
+    _fields_ = [("numer", ctypes.c_uint32), ("denom", ctypes.c_uint32)]
+
+
+def macos_continuous_time_ns() -> int:
+    try:
+        library_name = ctypes.util.find_library("System") or "/usr/lib/libSystem.B.dylib"
+        library = ctypes.CDLL(library_name, use_errno=True)
+        continuous = library.mach_continuous_time
+        continuous.argtypes = []
+        continuous.restype = ctypes.c_uint64
+        timebase = library.mach_timebase_info
+        timebase.argtypes = [ctypes.POINTER(MachTimebaseInfo)]
+        timebase.restype = ctypes.c_int
+        info = MachTimebaseInfo()
+        fail(timebase(ctypes.byref(info)) == 0 and info.numer > 0 and info.denom > 0,
+             "CLOCK_UNAVAILABLE", "macOS continuous clock timebase is unavailable")
+        return int(continuous()) * int(info.numer) // int(info.denom)
+    except GraphError:
+        raise
+    except (AttributeError, OSError, TypeError, ValueError) as exc:
+        raise GraphError("CLOCK_UNAVAILABLE", "macOS mach_continuous_time is unavailable", str(exc)) from exc
+
+
 def boot_id() -> str:
     linux_path = Path("/proc/sys/kernel/random/boot_id")
     try:
@@ -1228,8 +1257,15 @@ def boot_id() -> str:
             return f"boot-epoch:{match.group(1)}"
     except (OSError, subprocess.SubprocessError):
         pass
-    approximate = int((time.time() - time.monotonic()) // 60)
-    return f"boot-minute:{approximate}"
+    if sys.platform == "darwin":
+        # Some application sandboxes deny kern.boottime and expose a
+        # process-relative Python monotonic clock. mach_continuous_time remains
+        # cross-process and boot-relative, so the rounded wall/continuous
+        # difference is a stable boot epoch instead of a per-process identity.
+        approximate = round(time.time() - macos_continuous_time_ns() / 1_000_000_000)
+        return f"boot-epoch-approx:{approximate}"
+    approximate = round(time.time() - time.monotonic())
+    return f"boot-epoch-approx:{approximate}"
 
 
 def process_start(pid: int) -> str:
@@ -1255,30 +1291,6 @@ HOST_ID = host_id()
 BOOT_ID = boot_id()
 
 
-class MachTimebaseInfo(ctypes.Structure):
-    _fields_ = [("numer", ctypes.c_uint32), ("denom", ctypes.c_uint32)]
-
-
-def macos_continuous_time_ns() -> int:
-    try:
-        library_name = ctypes.util.find_library("System") or "/usr/lib/libSystem.B.dylib"
-        library = ctypes.CDLL(library_name, use_errno=True)
-        continuous = library.mach_continuous_time
-        continuous.argtypes = []
-        continuous.restype = ctypes.c_uint64
-        timebase = library.mach_timebase_info
-        timebase.argtypes = [ctypes.POINTER(MachTimebaseInfo)]
-        timebase.restype = ctypes.c_int
-        info = MachTimebaseInfo()
-        fail(timebase(ctypes.byref(info)) == 0 and info.numer > 0 and info.denom > 0,
-             "CLOCK_UNAVAILABLE", "macOS continuous clock timebase is unavailable")
-        return int(continuous()) * int(info.numer) // int(info.denom)
-    except GraphError:
-        raise
-    except (AttributeError, OSError, TypeError, ValueError) as exc:
-        raise GraphError("CLOCK_UNAVAILABLE", "macOS mach_continuous_time is unavailable", str(exc)) from exc
-
-
 def host_monotonic_sample() -> Tuple[str, int]:
     if sys.platform.startswith("linux"):
         linux_uptime = Path("/proc/uptime")
@@ -1300,7 +1312,8 @@ def host_monotonic_ns() -> int:
 
 
 class DirectoryLock:
-    def __init__(self, path: Path, timeout: float = 10.0, lease_seconds: float = 30.0):
+    def __init__(self, path: Path, timeout: float = 10.0, lease_seconds: float = 30.0,
+                 *, parent_fd: Optional[int] = None):
         self.path = path
         self.timeout = timeout
         self.lease_seconds = lease_seconds
@@ -1310,6 +1323,25 @@ class DirectoryLock:
         self.start = process_start(self.pid)
         self.stop_event = threading.Event()
         self.heartbeat_thread: Optional[threading.Thread] = None
+        self.parent_fd: Optional[int] = None
+        self.lock_fd: Optional[int] = None
+        self.lock_identity: Optional[Tuple[int, int]] = None
+        self.entry_name = path.name
+        if parent_fd is not None:
+            fail(bool(self.entry_name) and self.entry_name not in {".", ".."}
+                 and "/" not in self.entry_name and "\x00" not in self.entry_name,
+                 "IO_ERROR", "Anchored graph lock has an unsafe directory name")
+            try:
+                self.parent_fd = os.dup(parent_fd)
+                parent_info = os.fstat(self.parent_fd)
+                fail(stat.S_ISDIR(parent_info.st_mode) and parent_info.st_uid == os.geteuid(),
+                     "IO_ERROR", "Anchored graph lock parent is unsafe")
+            except BaseException:
+                if self.parent_fd is not None:
+                    with contextlib.suppress(OSError):
+                        os.close(self.parent_fd)
+                    self.parent_fd = None
+                raise
 
     def owner(self) -> Dict[str, Any]:
         now = utc_now()
@@ -1326,6 +1358,8 @@ class DirectoryLock:
         }
 
     def __enter__(self) -> "DirectoryLock":
+        if self.parent_fd is not None:
+            return self._enter_anchored()
         deadline = time.monotonic() + self.timeout
         while True:
             created = False
@@ -1352,14 +1386,263 @@ class DirectoryLock:
                         shutil.rmtree(self.path)
                 raise GraphError("IO_ERROR", f"Cannot create graph lock: {self.path}", str(exc)) from exc
 
+    def _entry_identity(self, *, require_safe: bool = True) -> Optional[Tuple[int, int]]:
+        assert self.parent_fd is not None
+        try:
+            info = os.stat(self.entry_name, dir_fd=self.parent_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        if require_safe:
+            fail(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode)
+                 and info.st_uid == os.geteuid(), "LOCK_TIMEOUT",
+                 "Anchored graph lock directory is unsafe")
+        return info.st_dev, info.st_ino
+
+    def _assert_anchored_entry(self) -> None:
+        fail(self.lock_identity is not None and self._entry_identity() == self.lock_identity,
+             "LOCK_TIMEOUT", "Graph transaction lock directory was interchanged")
+
+    def _open_anchored_lock(self) -> None:
+        assert self.parent_fd is not None
+        before = self._entry_identity()
+        fail(before is not None, "LOCK_TIMEOUT", "Graph transaction lock disappeared during acquisition")
+        descriptor = os.open(self.entry_name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+                             | getattr(os, "O_NOFOLLOW", 0), dir_fd=self.parent_fd)
+        try:
+            actual = os.fstat(descriptor)
+            fail((actual.st_dev, actual.st_ino) == before and stat.S_ISDIR(actual.st_mode)
+                 and actual.st_uid == os.geteuid(), "LOCK_TIMEOUT",
+                 "Graph transaction lock changed during descriptor acquisition")
+        except BaseException:
+            os.close(descriptor)
+            raise
+        self.lock_fd = descriptor
+        self.lock_identity = before
+
+    def _read_owner_anchored(self, *, require_entry: bool = True) -> Dict[str, Any]:
+        assert self.lock_fd is not None
+        if require_entry:
+            self._assert_anchored_entry()
+        try:
+            before = os.stat("owner.json", dir_fd=self.lock_fd, follow_symlinks=False)
+            fail(stat.S_ISREG(before.st_mode) and not stat.S_ISLNK(before.st_mode)
+                 and before.st_uid == os.geteuid() and before.st_nlink == 1
+                 and before.st_size <= MAX_BINDING_BYTES,
+                 "LOCK_TIMEOUT", "Graph lock owner is unsafe")
+            descriptor = os.open("owner.json", os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0),
+                                 dir_fd=self.lock_fd)
+            try:
+                actual = os.fstat(descriptor)
+                fail((actual.st_dev, actual.st_ino) == (before.st_dev, before.st_ino)
+                     and stat.S_ISREG(actual.st_mode) and actual.st_uid == os.geteuid()
+                     and actual.st_nlink == 1 and actual.st_size <= MAX_BINDING_BYTES,
+                     "LOCK_TIMEOUT", "Graph lock owner changed during descriptor acquisition")
+                data = bytearray()
+                while len(data) <= MAX_BINDING_BYTES:
+                    chunk = os.read(descriptor, min(65536, MAX_BINDING_BYTES + 1 - len(data)))
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                final = os.fstat(descriptor)
+                fail(len(data) <= MAX_BINDING_BYTES
+                     and (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns)
+                     == (actual.st_dev, actual.st_ino, actual.st_size, actual.st_mtime_ns)
+                     and len(data) == final.st_size,
+                     "LOCK_TIMEOUT", "Graph lock owner changed during descriptor read")
+            finally:
+                os.close(descriptor)
+        except FileNotFoundError as exc:
+            raise GraphError("LOCK_TIMEOUT", "Graph lock owner is missing", str(exc)) from exc
+        if require_entry:
+            self._assert_anchored_entry()
+        return parse_json_bytes(bytes(data), self.path / "owner.json", "LOCK_TIMEOUT")
+
+    def _write_owner_anchored(self) -> None:
+        assert self.lock_fd is not None
+        self._assert_anchored_entry()
+        temporary = f".owner.json.tmp.{self.pid}.{uuid.uuid4()}"
+        descriptor: Optional[int] = None
+        try:
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                                 | getattr(os, "O_NOFOLLOW", 0), 0o600, dir_fd=self.lock_fd)
+            data = canonical_bytes(self.owner())
+            written = 0
+            while written < len(data):
+                count = os.write(descriptor, data[written:])
+                fail(count > 0, "IO_ERROR", "Short graph lock owner write")
+                written += count
+            os.fsync(descriptor)
+            os.close(descriptor)
+            descriptor = None
+            self._assert_anchored_entry()
+            os.replace(temporary, "owner.json", src_dir_fd=self.lock_fd, dst_dir_fd=self.lock_fd)
+            os.fsync(self.lock_fd)
+            self._assert_anchored_entry()
+        except GraphError:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary, dir_fd=self.lock_fd)
+            raise
+        except OSError as exc:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary, dir_fd=self.lock_fd)
+            raise GraphError("IO_ERROR", "Cannot write anchored graph lock owner", str(exc)) from exc
+        finally:
+            if descriptor is not None:
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+
+    def _owned_owner(self, owner: Mapping[str, Any]) -> bool:
+        return (owner.get("token") == self.token and owner.get("epoch") == self.epoch
+                and owner.get("hostId") == HOST_ID and owner.get("bootId") == BOOT_ID
+                and owner.get("pid") == self.pid and owner.get("processStart") == self.start)
+
+    def _find_anchored_entry(self) -> Optional[str]:
+        assert self.parent_fd is not None and self.lock_identity is not None
+        matches: List[str] = []
+        for name in os.listdir(self.parent_fd):
+            try:
+                info = os.stat(name, dir_fd=self.parent_fd, follow_symlinks=False)
+            except FileNotFoundError:
+                continue
+            if (info.st_dev, info.st_ino) == self.lock_identity:
+                matches.append(name)
+        fail(len(matches) <= 1, "LOCK_TIMEOUT", "Graph lock identity is ambiguous during release")
+        return matches[0] if matches else None
+
+    def _break_stale_anchored(self) -> bool:
+        """Recover only a proven-stale owner through the held graph descriptor."""
+        try:
+            self._open_anchored_lock()
+        except (GraphError, OSError):
+            return False
+        stale = False
+        try:
+            try:
+                owner = self._read_owner_anchored()
+                required = {"schemaVersion", "hostId", "bootId", "pid", "processStart",
+                            "token", "epoch", "heartbeatAt", "expiresAt"}
+                if set(owner) != required or owner.get("schemaVersion") != LOCK_VERSION:
+                    raise GraphError("LOCK_TIMEOUT", "Malformed graph lock owner")
+                if owner["hostId"] != HOST_ID or owner["bootId"] != BOOT_ID:
+                    return False
+                try:
+                    pid = int(owner["pid"])
+                    os.kill(pid, 0)
+                    stale = process_start(pid) != owner["processStart"]
+                except (ProcessLookupError, ValueError):
+                    stale = True
+                except PermissionError:
+                    stale = False
+            except GraphError:
+                lock_info = os.fstat(self.lock_fd)
+                stale = time.time() - lock_info.st_mtime >= OWNERLESS_LOCK_GRACE_SECONDS
+            if not stale:
+                return False
+            self._assert_anchored_entry()
+            names = set(os.listdir(self.lock_fd))
+            if names == {"owner.json"}:
+                os.unlink("owner.json", dir_fd=self.lock_fd)
+                os.fsync(self.lock_fd)
+            elif names:
+                return False
+            held_name = self._find_anchored_entry()
+            if held_name is None:
+                return False
+            before = os.stat(held_name, dir_fd=self.parent_fd, follow_symlinks=False)
+            if (before.st_dev, before.st_ino) != self.lock_identity:
+                return False
+            os.rmdir(held_name, dir_fd=self.parent_fd)
+            os.fsync(self.parent_fd)
+            return True
+        except OSError:
+            return False
+        finally:
+            if self.lock_fd is not None:
+                with contextlib.suppress(OSError):
+                    os.close(self.lock_fd)
+                self.lock_fd = None
+            self.lock_identity = None
+
+    def _remove_anchored_lock(self, *, owner_required: bool) -> bool:
+        """Remove only the held lock inode; return whether its published name was lost."""
+        assert self.parent_fd is not None and self.lock_fd is not None and self.lock_identity is not None
+        # An unsafe replacement (including a symlink) is simply a different
+        # published identity here. Release must still clean the held original
+        # inode without opening or mutating the replacement.
+        published_identity = self._entry_identity(require_safe=False)
+        interchanged = published_identity != self.lock_identity
+        names = set(os.listdir(self.lock_fd))
+        if "owner.json" in names:
+            owner = self._read_owner_anchored(require_entry=False)
+            fail(self._owned_owner(owner), "LOCK_TIMEOUT",
+                 "Graph transaction lock owner changed before release")
+            fail(names == {"owner.json"}, "LOCK_TIMEOUT",
+                 "Graph transaction lock directory contains unexpected entries")
+            os.unlink("owner.json", dir_fd=self.lock_fd)
+            os.fsync(self.lock_fd)
+        else:
+            fail(not owner_required and not names, "LOCK_TIMEOUT",
+                 "Graph transaction lock owner disappeared before release")
+        held_name = self._find_anchored_entry()
+        if held_name is None:
+            return True
+        before = os.stat(held_name, dir_fd=self.parent_fd, follow_symlinks=False)
+        fail((before.st_dev, before.st_ino) == self.lock_identity,
+             "LOCK_TIMEOUT", "Graph lock identity changed before anchored removal")
+        os.rmdir(held_name, dir_fd=self.parent_fd)
+        os.fsync(self.parent_fd)
+        return interchanged or held_name != self.entry_name
+
+    def _close_anchored_descriptors(self) -> None:
+        if self.lock_fd is not None:
+            with contextlib.suppress(OSError):
+                os.close(self.lock_fd)
+            self.lock_fd = None
+        if self.parent_fd is not None:
+            with contextlib.suppress(OSError):
+                os.close(self.parent_fd)
+            self.parent_fd = None
+
+    def _enter_anchored(self) -> "DirectoryLock":
+        assert self.parent_fd is not None
+        deadline = time.monotonic() + self.timeout
+        try:
+            while True:
+                try:
+                    os.mkdir(self.entry_name, 0o700, dir_fd=self.parent_fd)
+                    os.fsync(self.parent_fd)
+                    break
+                except FileExistsError:
+                    if self._break_stale_anchored():
+                        continue
+                    if time.monotonic() >= deadline:
+                        raise GraphError("LOCK_TIMEOUT", f"Timed out waiting for graph lock: {self.path}")
+                    time.sleep(0.025)
+            self._open_anchored_lock()
+            self._write_owner_anchored()
+            self.heartbeat_thread = threading.Thread(target=self._heartbeat, daemon=True)
+            self.heartbeat_thread.start()
+            return self
+        except BaseException:
+            if self.lock_fd is not None:
+                with contextlib.suppress(Exception):
+                    self._remove_anchored_lock(owner_required=False)
+            self._close_anchored_descriptors()
+            raise
+
     def _heartbeat(self) -> None:
         interval = max(0.1, self.lease_seconds / 3)
         while not self.stop_event.wait(interval):
             try:
-                current = read_json_file(self.path / "owner.json", "LOCK_TIMEOUT", "LOCK_TIMEOUT", MAX_BINDING_BYTES)
+                current = (self._read_owner_anchored() if self.parent_fd is not None
+                           else read_json_file(self.path / "owner.json", "LOCK_TIMEOUT",
+                                               "LOCK_TIMEOUT", MAX_BINDING_BYTES))
                 if current.get("token") != self.token:
                     return
-                atomic_write_json(self.path / "owner.json", self.owner())
+                if self.parent_fd is not None:
+                    self._write_owner_anchored()
+                else:
+                    atomic_write_json(self.path / "owner.json", self.owner())
             except GraphError:
                 return
 
@@ -1398,16 +1681,24 @@ class DirectoryLock:
         shutil.rmtree(stale, ignore_errors=True)
 
     def assert_owned(self) -> None:
-        owner = read_json_file(self.path / "owner.json", "LOCK_TIMEOUT", "LOCK_TIMEOUT", MAX_BINDING_BYTES)
-        fail(owner.get("token") == self.token and owner.get("epoch") == self.epoch
-             and owner.get("hostId") == HOST_ID and owner.get("bootId") == BOOT_ID
-             and owner.get("pid") == self.pid and owner.get("processStart") == self.start,
+        owner = (self._read_owner_anchored() if self.parent_fd is not None
+                 else read_json_file(self.path / "owner.json", "LOCK_TIMEOUT",
+                                     "LOCK_TIMEOUT", MAX_BINDING_BYTES))
+        fail(self._owned_owner(owner),
              "LOCK_TIMEOUT", "Graph transaction lock ownership was lost")
 
     def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
         self.stop_event.set()
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.join(timeout=1)
+        if self.parent_fd is not None:
+            try:
+                interchanged = self._remove_anchored_lock(owner_required=True)
+            finally:
+                self._close_anchored_descriptors()
+            fail(not interchanged, "LOCK_TIMEOUT",
+                 "Graph transaction lock directory was interchanged before release")
+            return
         try:
             owner = read_json_file(self.path / "owner.json", "LOCK_TIMEOUT", "LOCK_TIMEOUT", MAX_BINDING_BYTES)
             if owner.get("token") == self.token:
@@ -1427,21 +1718,433 @@ class Store:
         self.events_path = self.graph_dir / "events.jsonl"
         self.lock_path = self.graph_dir / ".lock"
         self.active_lock: Optional[DirectoryLock] = None
+        self.design_root_guard: Optional[Any] = None
+        self.trusted_graph_fd: Optional[int] = None
+        self.trusted_authority_fd: Optional[int] = None
+        self.trusted_bindings_fd: Optional[int] = None
+        self.trusted_identities: Dict[str, Tuple[int, int]] = {}
+        self.trusted_leaf_fds: Dict[Tuple[str, str], int] = {}
+        self.trusted_leaf_identities: Dict[Tuple[str, str], Optional[Tuple[int, int]]] = {}
+        self.trusted_binding_manifest: Dict[str, Tuple[int, int, int, str]] = {}
+
+    def attach_trusted_root(self, guard: Any) -> None:
+        self.design_root_guard = guard
+        opened: List[int] = []
+        try:
+            def child(parent: int, name: str) -> int:
+                descriptor = os.open(name, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+                                     | getattr(os, "O_NOFOLLOW", 0), dir_fd=parent)
+                opened.append(descriptor)
+                info = os.fstat(descriptor)
+                fail(stat.S_ISDIR(info.st_mode) and info.st_uid == os.geteuid(),
+                     "IO_ERROR", f"Trusted graph directory is unsafe: {name}")
+                return descriptor
+            supplied_children = getattr(guard, "children", {})
+            fail({"authority", "graph", "bindings"} <= set(supplied_children), "IO_ERROR",
+                 "Trusted graph child capabilities are incomplete")
+            self.trusted_graph_fd = os.dup(supplied_children["graph"]); opened.append(self.trusted_graph_fd)
+            self.trusted_authority_fd = os.dup(supplied_children["authority"]); opened.append(self.trusted_authority_fd)
+            self.trusted_bindings_fd = os.dup(supplied_children["bindings"]); opened.append(self.trusted_bindings_fd)
+            self.trusted_identities = {
+                "graph": self._identity(self.trusted_graph_fd),
+                "authority": self._identity(self.trusted_authority_fd),
+                "bindings": self._identity(self.trusted_bindings_fd),
+            }
+            # Pin every authority/graph input before the command can wait on
+            # the graph lock.  A pathname can be changed A->B->A between two
+            # checks; the held descriptors are the authority for all reads.
+            supplied_leaves = getattr(guard, "leaves", {})
+            for label, descriptor in supplied_leaves.items():
+                parts = label.split("/")
+                if parts[0] == "host":
+                    continue
+                area = "authority" if parts[0] == "authority" else (
+                    "bindings" if parts[:2] == ["graph", "bindings"] else "graph")
+                key = (area, parts[-1])
+                if descriptor is None:
+                    self.trusted_leaf_identities[key] = None
+                else:
+                    held_leaf = os.dup(descriptor)
+                    info = os.fstat(held_leaf)
+                    self.trusted_leaf_fds[key] = held_leaf
+                    self.trusted_leaf_identities[key] = (info.st_dev, info.st_ino)
+            required_keys = {("authority", "control-graph-public-key.json"),
+                             ("graph", "definition.json"), ("graph", "projection.json"),
+                             ("graph", "events.jsonl")}
+            fail(required_keys <= set(self.trusted_leaf_identities), "IO_ERROR",
+                 "Trusted graph fixed leaf capabilities are incomplete")
+            self.trusted_binding_manifest = dict(getattr(guard, "binding_manifest", {}))
+            self.assert_trusted_topology()
+        except BaseException:
+            for descriptor in self.trusted_leaf_fds.values():
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+            self.trusted_leaf_fds.clear()
+            self.trusted_leaf_identities.clear()
+            for descriptor in reversed(opened):
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+            self.trusted_graph_fd = self.trusted_authority_fd = self.trusted_bindings_fd = None
+            raise
+
+    @staticmethod
+    def _identity(descriptor: int) -> Tuple[int, int]:
+        info = os.fstat(descriptor)
+        return info.st_dev, info.st_ino
+
+    def close(self) -> None:
+        for descriptor in self.trusted_leaf_fds.values():
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
+        self.trusted_leaf_fds.clear()
+        self.trusted_leaf_identities.clear()
+        for name in ("trusted_bindings_fd", "trusted_authority_fd", "trusted_graph_fd"):
+            descriptor = getattr(self, name)
+            if descriptor is not None:
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+                setattr(self, name, None)
+
+    def _trusted_parent(self, area: str) -> int:
+        descriptor = {"graph": self.trusted_graph_fd,
+                      "authority": self.trusted_authority_fd,
+                      "bindings": self.trusted_bindings_fd}.get(area)
+        fail(descriptor is not None, "IO_ERROR", f"Trusted {area} descriptor is unavailable")
+        return int(descriptor)
+
+    def _trusted_area(self, parent: int) -> str:
+        identity = self._identity(parent)
+        for area in ("graph", "authority", "bindings"):
+            if self.trusted_identities.get(area) == identity:
+                return area
+        raise GraphError("IO_ERROR", "Trusted graph parent descriptor is unknown")
+
+    def _pin_trusted_leaf(self, area: str, name: str, required: bool) -> None:
+        key = (area, name)
+        parent = self._trusted_parent(area)
+        old = self.trusted_leaf_fds.pop(key, None)
+        if old is not None:
+            with contextlib.suppress(OSError):
+                os.close(old)
+        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+        if area == "graph" and name == "events.jsonl":
+            flags = os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+        try:
+            descriptor = os.open(name, flags, dir_fd=parent)
+        except FileNotFoundError as exc:
+            self.trusted_leaf_identities[key] = None
+            if required:
+                raise GraphError("IO_ERROR", f"Trusted graph file is missing: {name}") from exc
+            return
+        info = os.fstat(descriptor)
+        try:
+            fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                 and info.st_nlink == 1, "IO_ERROR",
+                 f"Trusted graph file is unsafe: {name}")
+            self.trusted_leaf_fds[key] = descriptor
+            self.trusted_leaf_identities[key] = (info.st_dev, info.st_ino)
+        except BaseException:
+            os.close(descriptor)
+            raise
+
+    def _published_leaf_identity(self, area: str, name: str) -> Optional[Tuple[int, int]]:
+        try:
+            info = os.stat(name, dir_fd=self._trusted_parent(area), follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        fail(stat.S_ISREG(info.st_mode) and not stat.S_ISLNK(info.st_mode)
+             and info.st_uid == os.geteuid() and info.st_nlink == 1,
+             "IO_ERROR", f"Trusted graph file became unsafe: {name}")
+        return info.st_dev, info.st_ino
+
+    def _assert_trusted_leaf(self, area: str, name: str) -> None:
+        key = (area, name)
+        fail(key in self.trusted_leaf_identities, "IO_ERROR",
+             f"Trusted graph file was not pinned: {name}")
+        fail(self._published_leaf_identity(area, name) == self.trusted_leaf_identities[key],
+             "IO_ERROR", f"Trusted graph file identity changed: {name}")
+
+    def _published_identity(self, parent: int, name: str) -> Optional[Tuple[int, int]]:
+        try:
+            info = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        except FileNotFoundError:
+            return None
+        fail(stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode),
+             "IO_ERROR", f"Trusted graph directory became unsafe: {name}")
+        return info.st_dev, info.st_ino
+
+    def assert_trusted_topology(self) -> None:
+        if self.design_root_guard is None:
+            return
+        self.design_root_guard.verify_path()
+        assert self.trusted_graph_fd is not None and self.trusted_authority_fd is not None
+        assert self.trusted_bindings_fd is not None
+        published_graph = self._published_identity(self.design_root_guard.descriptor, "graph")
+        fail(published_graph == self.trusted_identities["graph"], "IO_ERROR",
+             "Trusted graph directory identity changed",
+             {"expected": self.trusted_identities["graph"], "actual": published_graph})
+        fail(self._published_identity(self.design_root_guard.descriptor, "authority")
+             == self.trusted_identities["authority"], "IO_ERROR",
+             "Trusted authority directory identity changed")
+        fail(self._published_identity(self.trusted_graph_fd, "bindings")
+             == self.trusted_identities["bindings"], "IO_ERROR",
+             "Trusted bindings directory identity changed")
+
+    def _read_trusted_leaf(self, parent: int, name: str, maximum: int,
+                           missing_code: str, invalid_code: str) -> bytes:
+        self.assert_trusted_topology()
+        area = self._trusted_area(parent)
+        key = (area, name)
+        fail(key in self.trusted_leaf_identities, invalid_code,
+             f"Trusted graph file was not present in the held snapshot: {name}")
+        if self.trusted_leaf_identities[key] is None:
+            raise GraphError(missing_code, f"Missing state file: {name}")
+        self._assert_trusted_leaf(area, name)
+        try:
+            descriptor = os.dup(self.trusted_leaf_fds[key])
+            try:
+                actual = os.fstat(descriptor)
+                fail((actual.st_dev, actual.st_ino) == self.trusted_leaf_identities[key]
+                     and stat.S_ISREG(actual.st_mode) and actual.st_uid == os.geteuid()
+                     and actual.st_nlink == 1 and actual.st_size <= maximum,
+                     invalid_code, f"Trusted graph file changed after it was pinned: {name}")
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                data = bytearray()
+                while len(data) <= maximum:
+                    chunk = os.read(descriptor, min(65536, maximum + 1 - len(data)))
+                    if not chunk:
+                        break
+                    data.extend(chunk)
+                final = os.fstat(descriptor)
+                fail(len(data) <= maximum and len(data) == final.st_size
+                     and (final.st_dev, final.st_ino, final.st_size, final.st_mtime_ns, final.st_nlink)
+                     == (actual.st_dev, actual.st_ino, actual.st_size, actual.st_mtime_ns, 1),
+                     invalid_code, f"Trusted graph file changed during read: {name}")
+            finally:
+                os.close(descriptor)
+        except GraphError:
+            raise
+        except OSError as exc:
+            raise GraphError("IO_ERROR", f"Cannot read trusted graph file: {name}", str(exc)) from exc
+        self._assert_trusted_leaf(area, name)
+        self.assert_trusted_topology()
+        return bytes(data)
+
+    def _read_trusted_json(self, parent: int, name: str, missing_code: str,
+                           invalid_code: str, maximum: int) -> Dict[str, Any]:
+        return parse_json_bytes(self._read_trusted_leaf(parent, name, maximum,
+                                                        missing_code, invalid_code),
+                                Path(name), invalid_code)
 
     def lock(self) -> DirectoryLock:
+        if self.trusted_graph_fd is not None:
+            self.assert_trusted_topology()
+            return StoreLock(self, DirectoryLock(self.lock_path, timeout=10.0,
+                                                  parent_fd=self.trusted_graph_fd))
         self.graph_dir.mkdir(parents=True, exist_ok=True)
         return StoreLock(self, DirectoryLock(self.lock_path, timeout=10.0))
 
     def assert_lock(self) -> None:
         fail(self.active_lock is not None, "IO_ERROR", "Graph transaction lock is not held")
         self.active_lock.assert_owned()
+        self.assert_trusted_topology()
 
     def load_authority(self) -> Dict[str, Any]:
+        if self.trusted_authority_fd is not None:
+            return validate_authority(self._read_trusted_json(
+                self.trusted_authority_fd, "control-graph-public-key.json",
+                "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES))
         fail(self.authority_path.exists() and not self.authority_path.is_symlink()
              and stat.S_ISREG(self.authority_path.stat().st_mode), "AUTHORITY_DENIED", "Authority trust anchor is missing or unsafe")
         return validate_authority(read_json_file(self.authority_path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES))
 
+    def read_binding(self, binding_id: str) -> Dict[str, Any]:
+        name = f"{binding_id}.json"
+        if self.trusted_bindings_fd is not None:
+            key = ("bindings", name)
+            if key not in self.trusted_leaf_identities:
+                record = self.trusted_binding_manifest.get(name)
+                fail(record is not None, "AUTHORITY_DENIED",
+                     "Actor binding was absent from the parent capability manifest")
+                descriptor = os.open(name, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0),
+                                     dir_fd=self.trusted_bindings_fd)
+                info = os.fstat(descriptor)
+                fail((info.st_dev, info.st_ino, info.st_size) == record[:3]
+                     and stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                     and info.st_nlink == 1, "AUTHORITY_DENIED",
+                     "Actor binding differs from the parent capability manifest")
+                digest = hashlib.sha256()
+                offset = 0
+                while offset < info.st_size:
+                    chunk = os.pread(descriptor, min(65536, info.st_size - offset), offset)
+                    fail(bool(chunk), "AUTHORITY_DENIED", "Actor binding changed during verification")
+                    digest.update(chunk); offset += len(chunk)
+                fail(digest.hexdigest() == record[3], "AUTHORITY_DENIED",
+                     "Actor binding content differs from the parent capability manifest")
+                self.trusted_leaf_fds[key] = descriptor
+                self.trusted_leaf_identities[key] = (info.st_dev, info.st_ino)
+            return self._read_trusted_json(self.trusted_bindings_fd, name,
+                                           "AUTHORITY_DENIED", "AUTHORITY_DENIED",
+                                           MAX_BINDING_BYTES)
+        path = self.binding_dir / name
+        fail(path.parent.resolve() == self.binding_dir.resolve() and path.exists()
+             and not path.is_symlink() and stat.S_ISREG(path.stat().st_mode),
+             "AUTHORITY_DENIED", "Actor binding document is missing or unsafe")
+        return read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES)
+
+    def read_graph_json(self, name: str, missing_code: str, invalid_code: str,
+                        maximum: int) -> Dict[str, Any]:
+        if self.trusted_graph_fd is not None:
+            return self._read_trusted_json(self.trusted_graph_fd, name,
+                                           missing_code, invalid_code, maximum)
+        return read_json_file(self.graph_dir / name, missing_code, invalid_code, maximum)
+
+    def read_events(self, recover_tail: bool = False) -> List[Dict[str, Any]]:
+        if self.trusted_graph_fd is None:
+            return read_events(self.events_path, recover_tail=recover_tail)
+        maximum = MAX_JOURNAL_BYTES + MAX_EVENT_BYTES
+        data = self._read_trusted_leaf(self.trusted_graph_fd, "events.jsonl", maximum,
+                                       "NOT_INITIALIZED", "CORRUPT_JOURNAL")
+        if data and not data.endswith(b"\n"):
+            fail(recover_tail, "CORRUPT_JOURNAL",
+                 "Journal ends with an uncommitted partial record")
+            committed_length = data.rfind(b"\n") + 1
+            self.assert_lock()
+            self._assert_trusted_leaf("graph", "events.jsonl")
+            descriptor = os.dup(self.trusted_leaf_fds[("graph", "events.jsonl")])
+            try:
+                info = os.fstat(descriptor)
+                fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                     and info.st_nlink == 1, "CORRUPT_JOURNAL",
+                     "Event journal is unsafe during recovery")
+                os.ftruncate(descriptor, committed_length)
+                os.fsync(descriptor)
+            finally:
+                os.close(descriptor)
+            os.fsync(self.trusted_graph_fd)
+            self.assert_lock()
+            self._assert_trusted_leaf("graph", "events.jsonl")
+            data = data[:committed_length]
+        return parse_committed_events(data)
+
+    def journal_size(self) -> int:
+        if self.trusted_graph_fd is None:
+            try:
+                return self.events_path.stat().st_size
+            except FileNotFoundError:
+                return 0
+            except OSError as exc:
+                raise GraphError("IO_ERROR", "Cannot preflight event journal size", str(exc)) from exc
+        self.assert_trusted_topology()
+        key = ("graph", "events.jsonl")
+        if self.trusted_leaf_identities.get(key) is None:
+            return 0
+        self._assert_trusted_leaf(*key)
+        info = os.fstat(self.trusted_leaf_fds[key])
+        return info.st_size
+
+    def append_event(self, data: bytes) -> None:
+        if self.trusted_graph_fd is None:
+            append_bytes(self.events_path, data)
+            return
+        self.assert_lock()
+        key = ("graph", "events.jsonl")
+        if self.trusted_leaf_identities.get(key) is None:
+            self._assert_trusted_leaf(*key)
+            flags = os.O_RDWR | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+            descriptor = os.open("events.jsonl", flags, 0o600, dir_fd=self.trusted_graph_fd)
+            info = os.fstat(descriptor)
+            fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                 and info.st_nlink == 1, "IO_ERROR", "Event journal is unsafe during creation")
+            self.trusted_leaf_fds[key] = os.dup(descriptor)
+            self.trusted_leaf_identities[key] = (info.st_dev, info.st_ino)
+        else:
+            self._assert_trusted_leaf(*key)
+            descriptor = os.dup(self.trusted_leaf_fds[key])
+        try:
+            info = os.fstat(descriptor)
+            fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+                 and info.st_nlink == 1, "IO_ERROR", "Event journal is unsafe during append")
+            os.lseek(descriptor, 0, os.SEEK_END)
+            written = 0
+            while written < len(data):
+                count = os.write(descriptor, data[written:])
+                fail(count > 0, "IO_ERROR", "Short descriptor-anchored journal write")
+                written += count
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        os.fsync(self.trusted_graph_fd)
+        self._assert_trusted_leaf(*key)
+        self.assert_lock()
+
+    def write_graph_json(self, name: str, value: Any) -> None:
+        if self.trusted_graph_fd is None:
+            atomic_write_json(self.graph_dir / name, value, self.assert_lock)
+            return
+        self.assert_lock()
+        key = ("graph", name)
+        fail(key in self.trusted_leaf_identities, "IO_ERROR",
+             f"Materialized graph destination was not pinned: {name}")
+        self._assert_trusted_leaf(*key)
+        temporary = f".{name}.tmp.{os.getpid()}.{uuid.uuid4()}"
+        descriptor: Optional[int] = None
+        try:
+            try:
+                existing = os.stat(name, dir_fd=self.trusted_graph_fd, follow_symlinks=False)
+                fail(stat.S_ISREG(existing.st_mode) and not stat.S_ISLNK(existing.st_mode)
+                     and existing.st_uid == os.geteuid() and existing.st_nlink == 1,
+                     "IO_ERROR", f"Materialized graph destination is unsafe: {name}")
+            except FileNotFoundError:
+                pass
+            descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                                 | getattr(os, "O_NOFOLLOW", 0), 0o600,
+                                 dir_fd=self.trusted_graph_fd)
+            encoded = canonical_bytes(value)
+            written = 0
+            while written < len(encoded):
+                count = os.write(descriptor, encoded[written:])
+                fail(count > 0, "IO_ERROR", f"Short materialized graph write: {name}")
+                written += count
+            os.fsync(descriptor)
+            os.close(descriptor)
+            descriptor = None
+            self.assert_lock()
+            self._assert_trusted_leaf(*key)
+            os.replace(temporary, name, src_dir_fd=self.trusted_graph_fd,
+                       dst_dir_fd=self.trusted_graph_fd)
+            os.fsync(self.trusted_graph_fd)
+            final = os.stat(name, dir_fd=self.trusted_graph_fd, follow_symlinks=False)
+            fail(stat.S_ISREG(final.st_mode) and final.st_uid == os.geteuid()
+                 and final.st_nlink == 1, "IO_ERROR",
+                 f"Materialized graph destination changed during commit: {name}")
+            self._pin_trusted_leaf("graph", name, required=True)
+            self.assert_lock()
+        except GraphError:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary, dir_fd=self.trusted_graph_fd)
+            raise
+        except OSError as exc:
+            with contextlib.suppress(OSError):
+                os.unlink(temporary, dir_fd=self.trusted_graph_fd)
+            raise GraphError("IO_ERROR", f"Cannot write descriptor-anchored graph file: {name}", str(exc)) from exc
+        finally:
+            if descriptor is not None:
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+
     def has_state(self) -> bool:
+        if self.trusted_graph_fd is not None:
+            self.assert_trusted_topology()
+            for name in ("definition.json", "projection.json"):
+                key = ("graph", name)
+                self._assert_trusted_leaf(*key)
+                if self.trusted_leaf_identities[key] is not None:
+                    return True
+            key = ("graph", "events.jsonl")
+            self._assert_trusted_leaf(*key)
+            return (self.trusted_leaf_identities[key] is not None
+                    and os.fstat(self.trusted_leaf_fds[key]).st_size > 0)
         if self.definition_path.exists() or self.projection_path.exists():
             return True
         try:
@@ -1450,11 +2153,13 @@ class Store:
             return False
 
     def load(self, auto_roll_forward: bool = True) -> Tuple[Dict[str, Any], Dict[str, Any], List[Dict[str, Any]]]:
-        events = read_events(self.events_path, recover_tail=True)
+        events = self.read_events(recover_tail=True)
         replayed_definition, replayed_projection = replay(events, self.load_authority())
         try:
-            definition = validate_definition(read_json_file(self.definition_path, "NOT_INITIALIZED", "INVALID_STATE", MAX_GRAPH_BYTES), materialized=True)
-            raw_projection = read_json_file(self.projection_path, "NOT_INITIALIZED", "INVALID_STATE", MAX_GRAPH_BYTES)
+            definition = validate_definition(self.read_graph_json("definition.json", "NOT_INITIALIZED",
+                                                                  "INVALID_STATE", MAX_GRAPH_BYTES), materialized=True)
+            raw_projection = self.read_graph_json("projection.json", "NOT_INITIALIZED",
+                                                  "INVALID_STATE", MAX_GRAPH_BYTES)
             projection_revision = raw_projection.get("revision") if isinstance(raw_projection, dict) else None
             validate_projection(raw_projection, definition)
             projection = raw_projection
@@ -1465,7 +2170,8 @@ class Store:
                 self.write_materialized(replayed_definition, replayed_projection)
                 return replayed_definition, replayed_projection, events
             try:
-                raw_projection = read_json_file(self.projection_path, "NOT_INITIALIZED", "INVALID_STATE", MAX_GRAPH_BYTES)
+                raw_projection = self.read_graph_json("projection.json", "NOT_INITIALIZED",
+                                                      "INVALID_STATE", MAX_GRAPH_BYTES)
                 projection_revision = raw_projection.get("revision")
             except GraphError:
                 projection_revision = None
@@ -1487,9 +2193,9 @@ class Store:
 
     def write_materialized(self, definition: Mapping[str, Any], projection: Mapping[str, Any]) -> None:
         self.assert_lock()
-        atomic_write_json(self.definition_path, definition, self.assert_lock)
+        self.write_graph_json("definition.json", definition)
         self.assert_lock()
-        atomic_write_json(self.projection_path, projection, self.assert_lock)
+        self.write_graph_json("projection.json", projection)
 
 
 class StoreLock:
@@ -1500,7 +2206,17 @@ class StoreLock:
     def __enter__(self) -> DirectoryLock:
         self.lock.__enter__()
         self.store.active_lock = self.lock
-        return self.lock
+        try:
+            # A design-flow graph process can wait for the production graph
+            # lock while the configured OPERATOR_DIR pathname is renamed and
+            # replaced.  Rebind the held lock to the still-current root before
+            # any state read, proof authorization, or effect can proceed.
+            self.store.assert_lock()
+            return self.lock
+        except BaseException:
+            self.store.active_lock = None
+            self.lock.__exit__(*sys.exc_info())
+            raise
 
     def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
         self.store.active_lock = None
@@ -1641,10 +2357,7 @@ def load_binding(store: Store, args: argparse.Namespace, capability: str) -> Dic
     authority = store.load_authority()
     fail(authority["canonicalHostId"] == HOST_ID, "AUTHORITY_DENIED",
          "Mutations must run on the authority's canonical host", {"canonicalHostId": authority["canonicalHostId"], "localHostId": HOST_ID})
-    path = store.binding_dir / f"{binding_id}.json"
-    fail(path.parent.resolve() == store.binding_dir.resolve(), "AUTHORITY_DENIED", "Actor binding path escapes binding directory")
-    fail(path.exists() and not path.is_symlink() and stat.S_ISREG(path.stat().st_mode), "AUTHORITY_DENIED", "Actor binding document is missing or unsafe")
-    binding = read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES)
+    binding = store.read_binding(binding_id)
     binding = validate_binding(binding, binding_id, authority)
     now = utc_now()
     fail(parse_time(binding["issuedAt"], "AUTHORITY_DENIED") <= now < parse_time(binding["expiresAt"], "AUTHORITY_DENIED"),
@@ -1656,11 +2369,7 @@ def load_binding(store: Store, args: argparse.Namespace, capability: str) -> Dic
 def load_binding_by_id(store: Store, binding_id: str) -> Dict[str, Any]:
     fail(valid_binding_id(binding_id), "AUTHORITY_DENIED", "Actor binding ID is invalid")
     authority = store.load_authority()
-    path = store.binding_dir / f"{binding_id}.json"
-    fail(path.parent.resolve() == store.binding_dir.resolve() and path.exists() and not path.is_symlink()
-         and stat.S_ISREG(path.stat().st_mode), "AUTHORITY_DENIED", "Actor binding document is missing or unsafe")
-    return validate_binding(read_json_file(path, "AUTHORITY_DENIED", "AUTHORITY_DENIED", MAX_BINDING_BYTES),
-                            binding_id, authority)
+    return validate_binding(store.read_binding(binding_id), binding_id, authority)
 
 
 def actor_record(binding: Mapping[str, Any]) -> Dict[str, Any]:
@@ -1874,7 +2583,12 @@ def fingerprint(command: str, binding: Mapping[str, Any], args: argparse.Namespa
     validate_authorization_payload(payload, "AUTHORITY_DENIED")
     channel = ProofChannel(getattr(args, "proof_fd", None))
     try:
+        design_root = getattr(args, "_design_root_guard", None)
+        if design_root is not None:
+            design_root.verify_path()
         signature = channel.sign("authorize", payload, binding["proofKey"])
+        if design_root is not None:
+            design_root.verify_path()
     except Exception:
         channel.close()
         raise
@@ -1967,7 +2681,9 @@ def commit_event(store: Store, events: Sequence[Mapping[str, Any]], event_type: 
     channel = binding.get("_proofChannel")
     fail(isinstance(channel, ProofChannel), "AUTHORITY_DENIED", "Caller proof channel is missing at commit")
     try:
+        store.assert_lock()
         event_signature = channel.sign("event", event_proof_payload(event), binding["proofKey"])
+        store.assert_lock()
     finally:
         channel.close()
     event["proof"] = {
@@ -1980,17 +2696,12 @@ def commit_event(store: Store, events: Sequence[Mapping[str, Any]], event_type: 
     encoded = canonical_bytes(event)
     fail(len(encoded) <= MAX_EVENT_BYTES, "INVALID_STATE", "Event exceeds maximum journal record size")
     store.assert_lock()
-    try:
-        committed_size = store.events_path.stat().st_size
-    except FileNotFoundError:
-        committed_size = 0
-    except OSError as exc:
-        raise GraphError("IO_ERROR", "Cannot preflight event journal size", str(exc)) from exc
+    committed_size = store.journal_size()
     fail(committed_size + len(encoded) <= MAX_JOURNAL_BYTES, "JOURNAL_FULL",
          "Event journal is full; offline checkpoint/rotation is required")
     replayed_definition, replayed_projection = replay([*events, event], store.load_authority())
     store.assert_lock()
-    append_bytes(store.events_path, encoded)
+    store.append_event(encoded)
     store.write_materialized(replayed_definition, replayed_projection)
     return result
 
@@ -2406,7 +3117,7 @@ def command_replay_repair(store: Store, args: argparse.Namespace) -> Dict[str, A
     intent: Dict[str, Any] = {}
     request_fingerprint = fingerprint("replay repair", binding, args, intent)
     with store.lock():
-        events = read_events(store.events_path, recover_tail=True)
+        events = store.read_events(recover_tail=True)
         duplicate = duplicate_result(events, request_id, request_fingerprint)
         if duplicate is not None:
             definition, projection = replay(events, store.load_authority())
@@ -2524,14 +3235,192 @@ def print_json(value: Any, stream: Any = sys.stdout) -> None:
     stream.write("\n")
 
 
+class DesignFlowRootGuard:
+    """Consume and retain a trusted host/design OPERATOR_DIR capability."""
+
+    def __init__(self, descriptor: int, path: Path, identity: Tuple[int, int],
+                 children: Mapping[str, int], leaves: Mapping[str, Optional[int]],
+                 binding_manifest: Mapping[str, Tuple[int, int, int, str]]):
+        self.descriptor = descriptor
+        self.path = path
+        self.identity = identity
+        self.children = dict(children)
+        self.leaves = dict(leaves)
+        self.binding_manifest = dict(binding_manifest)
+
+    @classmethod
+    def open(cls) -> Optional["DesignFlowRootGuard"]:
+        design_present = "OPERATOR_DESIGN_FLOW_ROOT_FD" in os.environ
+        host_present = "OPERATOR_HOST_ROOT_FD" in os.environ
+        fail(not (design_present and host_present), "IO_ERROR",
+             "Graph launcher received ambiguous trusted root capabilities")
+        prefix = ("OPERATOR_HOST_ROOT" if host_present else
+                  "OPERATOR_DESIGN_FLOW_ROOT" if design_present else None)
+        if prefix is None:
+            return None
+        raw_fd = os.environ.get(f"{prefix}_FD")
+        fail(re.fullmatch(r"[0-9]+", raw_fd) is not None, "IO_ERROR",
+             "Inherited trusted root descriptor is invalid")
+        supplied = int(raw_fd)
+        expected_dev = os.environ.get(f"{prefix}_DEV", "")
+        expected_ino = os.environ.get(f"{prefix}_INO", "")
+        fail(re.fullmatch(r"[0-9]+", expected_dev) is not None
+             and re.fullmatch(r"[0-9]+", expected_ino) is not None,
+             "IO_ERROR", "Inherited trusted root identity is invalid")
+        raw_path = os.environ.get(f"{prefix}_PATH", "")
+        fail(bool(raw_path) and os.path.isabs(raw_path), "IO_ERROR",
+             "Inherited trusted root path is invalid")
+        fail(os.environ.get(f"{prefix}_LOCK_MODE") == "exclusive-held", "IO_ERROR",
+             "Inherited trusted root must retain the parent's exclusive lock")
+        descriptor = os.dup(supplied)
+        try:
+            held = os.fstat(descriptor)
+            identity = (int(expected_dev), int(expected_ino))
+            fail(stat.S_ISDIR(held.st_mode) and held.st_uid == os.geteuid()
+                 and (held.st_dev, held.st_ino) == identity,
+                 "IO_ERROR", "Inherited trusted root descriptor identity changed")
+            children: Dict[str, int] = {}
+            for name in ("authority", "graph", "bindings"):
+                child_prefix = f"{prefix}_{name.upper()}"
+                child_fd = os.environ.get(f"{child_prefix}_FD", "")
+                child_dev = os.environ.get(f"{child_prefix}_DEV", "")
+                child_ino = os.environ.get(f"{child_prefix}_INO", "")
+                fail(child_fd.isdigit() and child_dev.isdigit() and child_ino.isdigit(),
+                     "IO_ERROR", f"Inherited {name} capability is invalid")
+                child_descriptor = os.dup(int(child_fd)); child_info = os.fstat(child_descriptor)
+                fail(stat.S_ISDIR(child_info.st_mode) and child_info.st_uid == os.geteuid()
+                     and (child_info.st_dev, child_info.st_ino) == (int(child_dev), int(child_ino)),
+                     "IO_ERROR", f"Inherited {name} capability identity changed")
+                children[name] = child_descriptor
+            raw_leaves = json.loads(os.environ.get(f"{prefix}_LEAF_CAPS", ""))
+            fail(isinstance(raw_leaves, dict) and len(raw_leaves) <= 32, "IO_ERROR",
+                 "Inherited leaf capability cache is invalid")
+            leaves: Dict[str, Optional[int]] = {}
+            for label, record in raw_leaves.items():
+                if record is None:
+                    leaves[label] = None
+                    continue
+                fail(isinstance(record, list) and len(record) == 3, "IO_ERROR",
+                     "Inherited leaf capability record is invalid")
+                leaf = os.dup(int(record[0])); leaf_info = os.fstat(leaf)
+                fail(stat.S_ISREG(leaf_info.st_mode) and leaf_info.st_uid == os.geteuid()
+                     and leaf_info.st_nlink == 1
+                     and (leaf_info.st_dev, leaf_info.st_ino) == (int(record[1]), int(record[2])),
+                     "IO_ERROR", "Inherited leaf capability identity changed")
+                leaves[label] = leaf
+            binding_manifest: Dict[str, Tuple[int, int, int, str]] = {}
+            manifest_fd = os.environ.get(f"{prefix}_BINDING_MANIFEST_FD", "")
+            if manifest_fd:
+                fail(manifest_fd.isdigit(), "IO_ERROR", "Inherited binding manifest FD is invalid")
+                held_manifest = os.dup(int(manifest_fd))
+                try:
+                    os.lseek(held_manifest, 0, os.SEEK_SET)
+                    raw_manifest = os.read(held_manifest, MAX_GRAPH_BYTES + 1)
+                finally:
+                    os.close(held_manifest)
+                value = parse_json_bytes(raw_manifest, Path("binding-capability-manifest"), "IO_ERROR")
+                fail(raw_manifest == canonical_bytes(value)
+                     and value.get("schemaVersion") == "operator.binding-capability-manifest/v1"
+                     and isinstance(value.get("entries"), list) and len(value["entries"]) <= 10000,
+                     "IO_ERROR", "Inherited binding manifest is invalid")
+                for record in value["entries"]:
+                    fail(isinstance(record, dict) and set(record) == {"name", "dev", "ino", "size", "sha256"},
+                         "IO_ERROR", "Inherited binding manifest entry is invalid")
+                    binding_manifest[record["name"]] = (record["dev"], record["ino"],
+                                                        record["size"], record["sha256"])
+            guard = cls(descriptor, Path(os.path.abspath(raw_path)), identity,
+                        children, leaves, binding_manifest)
+            guard.verify_path()
+            guard.verify_children()
+            return guard
+        except BaseException:
+            for mapping_name in ("children", "leaves"):
+                for child in locals().get(mapping_name, {}).values():
+                    if child is not None:
+                        with contextlib.suppress(OSError):
+                            os.close(child)
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
+            raise
+
+    def verify_path(self) -> None:
+        reopened: Optional[int] = None
+        try:
+            expected = os.lstat(self.path)
+            fail(stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+                 and expected.st_uid == os.geteuid()
+                 and (expected.st_dev, expected.st_ino) == self.identity,
+                 "IO_ERROR", "OPERATOR_DIR identity changed at the trusted graph boundary",
+                 str(self.path))
+            reopened = os.open(self.path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+                               | getattr(os, "O_NOFOLLOW", 0))
+            actual = os.fstat(reopened)
+            fail(stat.S_ISDIR(actual.st_mode) and actual.st_uid == os.geteuid()
+                 and (actual.st_dev, actual.st_ino) == self.identity,
+                 "IO_ERROR", "OPERATOR_DIR identity changed during trusted graph verification",
+                 str(self.path))
+        except GraphError:
+            raise
+        except OSError as exc:
+            raise GraphError("IO_ERROR", "Cannot verify OPERATOR_DIR at the trusted graph boundary",
+                             str(exc)) from exc
+        finally:
+            if reopened is not None:
+                os.close(reopened)
+
+    def close(self) -> None:
+        for descriptor in self.children.values():
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
+        for descriptor in self.leaves.values():
+            if descriptor is not None:
+                with contextlib.suppress(OSError):
+                    os.close(descriptor)
+        with contextlib.suppress(OSError):
+            os.close(self.descriptor)
+
+    def verify_children(self) -> None:
+        for parent, entry, key in ((self.descriptor, "authority", "authority"),
+                                   (self.descriptor, "graph", "graph"),
+                                   (self.children["graph"], "bindings", "bindings")):
+            published = os.stat(entry, dir_fd=parent, follow_symlinks=False)
+            held = os.fstat(self.children[key])
+            fail(stat.S_ISDIR(published.st_mode) and not stat.S_ISLNK(published.st_mode)
+                 and (published.st_dev, published.st_ino) == (held.st_dev, held.st_ino),
+                 "IO_ERROR", f"Inherited {key} directory identity changed")
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_parser()
     args: Optional[argparse.Namespace] = None
+    design_root: Optional[DesignFlowRootGuard] = None
+    store: Optional[Store] = None
     try:
         args = parser.parse_args(argv)
         fail(args.operator_dir is not None and str(args.operator_dir).strip(), "USAGE", "--operator-dir or OPERATOR_DIR is required")
-        store = Store(Path(args.operator_dir).expanduser().resolve())
-        result = args.handler(store, args)
+        design_root = DesignFlowRootGuard.open()
+        if design_root is not None:
+            supplied = str(args.operator_dir)
+            fail(supplied == str(design_root.path), "IO_ERROR",
+                 "Graph launcher did not retain the inherited trusted root binding", supplied)
+            # This process is a dedicated graph invocation. Binding its cwd to
+            # the held directory descriptor makes every relative Store path
+            # resolve beneath that inode even if the configured pathname is
+            # renamed and replaced while the command is running. fchdir is the
+            # portable descriptor-anchored primitive on macOS and Linux.
+            os.fchdir(design_root.descriptor)
+            store = Store(Path("."))
+            store.attach_trusted_root(design_root)
+            setattr(args, "_design_root_guard", design_root)
+        else:
+            store = Store(Path(args.operator_dir).expanduser().resolve())
+        try:
+            if design_root is not None:
+                design_root.verify_path()
+            result = args.handler(store, args)
+        finally:
+            if design_root is not None:
+                design_root.verify_path()
         print_json(result)
         return 0
     except GraphError as exc:
@@ -2550,6 +3439,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         channel = getattr(args, "_proof_channel", None) if args is not None else None
         if isinstance(channel, ProofChannel):
             channel.close()
+        if store is not None:
+            store.close()
+        if design_root is not None:
+            design_root.close()
 
 
 if __name__ == "__main__":

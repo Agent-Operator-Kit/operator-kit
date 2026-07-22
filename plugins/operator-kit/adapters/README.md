@@ -24,3 +24,9 @@ runtime plugin APIs.
 Installing any global adapter does not create project-local Operator Kit state.
 Project setup remains explicit through `operator-sync.sh`, `operator-upgrade.sh`,
 or installed project-local `scripts/operator-*.sh`.
+
+The adapters remain version `0.1.0` and release-track `v3`, but their canonical
+skill/template copies are compatible with project kit versions 2, 4, and 5.
+The separate `../v5-compatibility.json` records V5 runtime requirements without
+rewriting the historical `../v3-adapter-bundle.json` or implying a hidden host
+API. V5 graph/key initialization is never an adapter installation side effect.

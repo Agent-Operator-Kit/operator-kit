@@ -3,19 +3,37 @@ set -euo pipefail
 
 unset OPERATOR_CONFIG PROJECT_NAME PROJECT_ROOT CODE_DIR TMUX_SESSION DEFAULT_BRANCH OPERATOR_LANES
 
-KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DESIGN_FLOW="$KIT_ROOT/scripts/operator-design-flow.sh"
+TEST_SOURCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+KIT_ROOT="${OPERATOR_KIT_TEST_ROOT:-$TEST_SOURCE_ROOT}"
+PRODUCTION_DESIGN_FLOW="$KIT_ROOT/scripts/operator-design-flow.sh"
+DESIGN_FLOW="$PRODUCTION_DESIGN_FLOW"
 SCHEDULER="$KIT_ROOT/scripts/operator-scheduler.sh"
 TMP_ROOT="$(mktemp -d /tmp/aok-v5-design-flow.XXXXXX)"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 
-export OPERATOR_DIR="$TMP_ROOT/operator"
+installed_operator_dir="${OPERATOR_DESIGN_FLOW_TEST_OPERATOR_DIR:-}"
+if [ -n "$installed_operator_dir" ]; then
+  export OPERATOR_DIR="$installed_operator_dir"
+  unset OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT
+else
+  export OPERATOR_DIR="$TMP_ROOT/operator"
+  unset OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT
+fi
 FEATURE_DIR="$OPERATOR_DIR/features/FS-0008-rm-0006-design-flow"
 FEATURE_TWO_DIR="$OPERATOR_DIR/features/FS-0009-rm-0006-design-flow-two"
 SNAPSHOT="$TMP_ROOT/snapshot.json"
 GRAPH_LOG="$TMP_ROOT/graph-requests.jsonl"
 FEEDBACK_LOG="$TMP_ROOT/feedback-requests.jsonl"
-mkdir -p "$FEATURE_DIR" "$FEATURE_TWO_DIR" "$OPERATOR_DIR/graph"
+mkdir -p "$FEATURE_DIR" "$FEATURE_TWO_DIR" "$OPERATOR_DIR/graph/bindings" \
+  "$OPERATOR_DIR/authority" "$OPERATOR_DIR/host" "$OPERATOR_DIR/prompts"
+printf '{}\n' > "$OPERATOR_DIR/authority/control-graph-public-key.json"
+if [ -z "$installed_operator_dir" ]; then
+  cp "$TEST_SOURCE_ROOT/templates/prompts/design-proposal.md" "$OPERATOR_DIR/prompts/design-proposal.md"
+else
+  test -f "$OPERATOR_DIR/prompts/design-proposal.md"
+  mkdir -p "$KIT_ROOT/templates/prompts"
+  printf 'REPO_LOCAL_DESIGN_PROMPT_POISON\n' > "$KIT_ROOT/templates/prompts/design-proposal.md"
+fi
 printf 'control-owned marker\n' > "$OPERATOR_DIR/graph/DO-NOT-READ"
 printf '{"id":"FS-0008","slug":"rm-0006-design-flow"}\n' > "$FEATURE_DIR/status.json"
 printf '{"id":"FS-0009","slug":"rm-0006-design-flow-two"}\n' > "$FEATURE_TWO_DIR/status.json"
@@ -51,20 +69,74 @@ path = __import__('pathlib').Path(path)
 path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
 PY
 
-cat > "$TMP_ROOT/snapshot-provider" <<'SH'
-#!/usr/bin/env bash
-set -euo pipefail
-if [ -n "${DESIGN_SMOKE_SNAPSHOT_READY:-}" ]; then
-  : > "$DESIGN_SMOKE_SNAPSHOT_READY"
-  while [ ! -e "${DESIGN_SMOKE_SNAPSHOT_GO:?}" ]; do sleep 0.01; done
-fi
-exec /bin/cat "$DESIGN_SMOKE_SNAPSHOT"
-SH
+cat > "$TMP_ROOT/snapshot-provider" <<'PY'
+#!/usr/bin/env python3
+import os, pathlib, stat, time
+
+def validate_root():
+    assert os.environ["OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE"] == "exclusive-held"
+    fd = int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_FD"])
+    identity = (int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_DEV"]),
+                int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_INO"]))
+    path = os.environ["OPERATOR_DESIGN_FLOW_ROOT_PATH"]
+    assert os.environ["OPERATOR_DIR"] == path
+    held = os.fstat(fd)
+    assert stat.S_ISDIR(held.st_mode) and (held.st_dev, held.st_ino) == identity
+    expected = os.lstat(path)
+    assert stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        actual = os.fstat(descriptor)
+        assert (expected.st_dev, expected.st_ino) == identity == (actual.st_dev, actual.st_ino)
+    finally:
+        os.close(descriptor)
+    graph_fd = os.open("graph", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    marker_fd = os.open("DO-NOT-READ", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=graph_fd)
+    try:
+        assert os.read(marker_fd, 4096) == b"control-owned marker\n"
+    finally:
+        os.close(marker_fd)
+        os.close(graph_fd)
+
+ready = os.environ.get("DESIGN_SMOKE_SNAPSHOT_READY")
+if ready:
+    pathlib.Path(ready).touch()
+    go = pathlib.Path(os.environ["DESIGN_SMOKE_SNAPSHOT_GO"])
+    while not go.exists():
+        time.sleep(0.01)
+validate_root()
+os.execv("/bin/cat", ["cat", os.environ["DESIGN_SMOKE_SNAPSHOT"]])
+PY
 chmod +x "$TMP_ROOT/snapshot-provider"
 
 cat > "$TMP_ROOT/graph-launcher" <<'PY'
 #!/usr/bin/env python3
-import json, os, pathlib, sys
+import json, os, pathlib, stat, sys, time
+
+def validate_root():
+    assert os.environ["OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE"] == "exclusive-held"
+    fd = int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_FD"])
+    identity = (int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_DEV"]),
+                int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_INO"]))
+    path = os.environ["OPERATOR_DESIGN_FLOW_ROOT_PATH"]
+    assert os.environ["OPERATOR_DIR"] == path
+    held = os.fstat(fd)
+    assert stat.S_ISDIR(held.st_mode) and (held.st_dev, held.st_ino) == identity
+    expected = os.lstat(path)
+    assert stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        actual = os.fstat(descriptor)
+        assert (expected.st_dev, expected.st_ino) == identity == (actual.st_dev, actual.st_ino)
+    finally:
+        os.close(descriptor)
+    graph_fd = os.open("graph", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    marker_fd = os.open("DO-NOT-READ", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=graph_fd)
+    try:
+        assert os.read(marker_fd, 4096) == b"control-owned marker\n"
+    finally:
+        os.close(marker_fd)
+        os.close(graph_fd)
 
 def reject_float(raw):
     raise ValueError(raw)
@@ -79,10 +151,19 @@ def pairs(items):
 
 request = json.loads(sys.stdin.read(), parse_float=reject_float, parse_constant=reject_float,
                      object_pairs_hook=pairs)
-required = {"schemaVersion","command","requestId","graphId","expectedRevision","definition","gateNodeId","decision"}
+required = {"schemaVersion","command","requestId","graphId","expectedRevision","cliIntent","definition","gateNodeId","decision"}
 assert set(request) == required
 assert request["schemaVersion"] == "operator.design-flow-graph-mutation-request/v1"
+assert request["cliIntent"]["action"] in {"start","select","reject","improve"}
 assert "actorBinding" not in request and "proofFd" not in request and "authorityKey" not in request
+
+ready = os.environ.get("DESIGN_SMOKE_MUTATION_READY")
+if ready:
+    pathlib.Path(ready).touch()
+    go = pathlib.Path(os.environ["DESIGN_SMOKE_MUTATION_GO"])
+    while not go.exists():
+        time.sleep(0.01)
+validate_root()
 
 snapshot_path = pathlib.Path(os.environ["DESIGN_SMOKE_SNAPSHOT"])
 log_path = pathlib.Path(os.environ["DESIGN_SMOKE_GRAPH_LOG"])
@@ -94,6 +175,12 @@ if request["graphId"] != snapshot["graphId"] or request["expectedRevision"] != s
 command = request["command"]
 if command == "replace-definition":
     assert request["gateNodeId"] is None and request["decision"] is None
+    fail_once = os.environ.get("DESIGN_SMOKE_FAIL_REPLACE_ONCE")
+    if (fail_once and request["cliIntent"]["action"] == "select"
+            and pathlib.Path(fail_once).exists()):
+        pathlib.Path(fail_once).unlink()
+        print('{"error":{"code":"BROKER_UNAVAILABLE","message":"injected"},"ok":false}', file=sys.stderr)
+        raise SystemExit(7)
     definition = request["definition"]
     assert set(definition) == {"schemaVersion","graphId","nodes","edges"}
     prior_states = {item["id"]: item["state"] for item in snapshot["nodes"]}
@@ -140,13 +227,46 @@ chmod +x "$TMP_ROOT/graph-launcher"
 
 cat > "$TMP_ROOT/feedback-owner" <<'PY'
 #!/usr/bin/env python3
-import json, os, pathlib, sys
+import json, os, pathlib, stat, sys, time
+
+def validate_root():
+    assert os.environ["OPERATOR_DESIGN_FLOW_ROOT_LOCK_MODE"] == "exclusive-held"
+    fd = int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_FD"])
+    identity = (int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_DEV"]),
+                int(os.environ["OPERATOR_DESIGN_FLOW_ROOT_INO"]))
+    path = os.environ["OPERATOR_DESIGN_FLOW_ROOT_PATH"]
+    assert os.environ["OPERATOR_DIR"] == path
+    held = os.fstat(fd)
+    assert stat.S_ISDIR(held.st_mode) and (held.st_dev, held.st_ino) == identity
+    expected = os.lstat(path)
+    assert stat.S_ISDIR(expected.st_mode) and not stat.S_ISLNK(expected.st_mode)
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        actual = os.fstat(descriptor)
+        assert (expected.st_dev, expected.st_ino) == identity == (actual.st_dev, actual.st_ino)
+    finally:
+        os.close(descriptor)
+    graph_fd = os.open("graph", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+    marker_fd = os.open("DO-NOT-READ", os.O_RDONLY | os.O_NOFOLLOW, dir_fd=graph_fd)
+    try:
+        assert os.read(marker_fd, 4096) == b"control-owned marker\n"
+    finally:
+        os.close(marker_fd)
+        os.close(graph_fd)
+
 request = json.load(sys.stdin)
 required = {"schemaVersion","requestId","featureId","flowId","improvementNodeId","sourceNodeId",
             "message","messageHash","evidencePath","evidence"}
 assert set(request) == required
 assert request["schemaVersion"] == "operator.design-flow-feedback-request/v1"
 assert request["evidencePath"].startswith("work/design-options/improvements/")
+ready = os.environ.get("DESIGN_SMOKE_FEEDBACK_READY")
+if ready:
+    pathlib.Path(ready).touch()
+    go = pathlib.Path(os.environ["DESIGN_SMOKE_FEEDBACK_GO"])
+    while not go.exists():
+        time.sleep(0.01)
+validate_root()
 log = pathlib.Path(os.environ["DESIGN_SMOKE_FEEDBACK_LOG"])
 existing = [] if not log.exists() else [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line]
 match = next((item for item in existing if item["requestId"] == request["requestId"]), None)
@@ -166,9 +286,45 @@ chmod +x "$TMP_ROOT/feedback-owner"
 export DESIGN_SMOKE_SNAPSHOT="$SNAPSHOT"
 export DESIGN_SMOKE_GRAPH_LOG="$GRAPH_LOG"
 export DESIGN_SMOKE_FEEDBACK_LOG="$FEEDBACK_LOG"
-export OPERATOR_DESIGN_FLOW_SNAPSHOT_COMMAND="$TMP_ROOT/snapshot-provider"
-export OPERATOR_DESIGN_FLOW_MUTATION_COMMAND="$TMP_ROOT/graph-launcher"
-export OPERATOR_DESIGN_FLOW_FEEDBACK_COMMAND="$TMP_ROOT/feedback-owner"
+export DESIGN_SMOKE_SNAPSHOT_PROVIDER="$TMP_ROOT/snapshot-provider"
+export DESIGN_SMOKE_MUTATION_PROVIDER="$TMP_ROOT/graph-launcher"
+export DESIGN_SMOKE_FEEDBACK_PROVIDER="$TMP_ROOT/feedback-owner"
+fixture_runtime="$TMP_ROOT/scripts"
+mkdir -p "$fixture_runtime"
+cp "$PRODUCTION_DESIGN_FLOW" "$fixture_runtime/operator-design-flow.sh"
+/usr/bin/python3 -E -s - "$fixture_runtime/operator-design-flow.sh" <<'PY'
+import pathlib, sys
+path = pathlib.Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+needle = "    root.refresh_mutable_graph_leaves(request_id, expected_revision + 1)\n"
+assert text.count(needle) == 1
+path.write_text(text.replace(needle, "    # Fake graph fixture has no RM-0007 materialization.\n"), encoding="utf-8")
+PY
+cp "$TEST_SOURCE_ROOT/scripts/operator-bootstrap.sh" "$fixture_runtime/operator-bootstrap.sh"
+mkdir -p "$TMP_ROOT/plugins/operator-kit/.codex-plugin" "$TMP_ROOT/templates/prompts"
+cp "$TEST_SOURCE_ROOT/plugins/operator-kit/.codex-plugin/plugin.json" \
+  "$TMP_ROOT/plugins/operator-kit/.codex-plugin/plugin.json"
+cp "$TEST_SOURCE_ROOT/templates/prompts/design-proposal.md" \
+  "$TMP_ROOT/templates/prompts/design-proposal.md"
+cat > "$fixture_runtime/operator-graph.sh" <<'SH'
+#!/bin/sh
+set -eu
+case "${OPERATOR_DESIGN_FLOW_PROVIDER_MODE:-}" in
+  snapshot) exec "$DESIGN_SMOKE_SNAPSHOT_PROVIDER" ;;
+  mutation) exec "$DESIGN_SMOKE_MUTATION_PROVIDER" ;;
+  *) printf 'unexpected fixture graph provider mode\n' >&2; exit 2 ;;
+esac
+SH
+cat > "$fixture_runtime/operator-feedback.sh" <<'SH'
+#!/bin/sh
+set -eu
+[ "${OPERATOR_DESIGN_FLOW_PROVIDER_MODE:-}" = feedback ] || exit 2
+exec "$DESIGN_SMOKE_FEEDBACK_PROVIDER"
+SH
+chmod 755 "$fixture_runtime/operator-design-flow.sh" "$fixture_runtime/operator-graph.sh" \
+  "$fixture_runtime/operator-feedback.sh"
+DESIGN_FLOW="$fixture_runtime/operator-design-flow.sh"
+export OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT="$TMP_ROOT"
 
 expect_error() {
   local expected="$1"
@@ -183,6 +339,129 @@ import json, sys
 value = json.load(open(sys.argv[1], encoding="utf-8"))
 assert value["ok"] is False and value["error"]["code"] == sys.argv[2], value
 PY
+}
+
+assert_root_identity_error() {
+  /usr/bin/python3 - "$1" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+assert value["ok"] is False and value["error"]["code"] == "IO_ERROR", value
+assert "OPERATOR_DIR identity changed" in value["error"]["message"], value
+PY
+}
+
+file_state() {
+  if [ -e "$1" ]; then
+    shasum -a 256 "$1"
+  else
+    printf 'missing\n'
+  fi
+}
+
+tree_state() {
+  /usr/bin/python3 - "$1" <<'PY'
+import hashlib, json, os, stat, sys
+root = os.path.abspath(sys.argv[1])
+result = {}
+for current, directories, files in os.walk(root, topdown=True, followlinks=False):
+    directories.sort()
+    files.sort()
+    for name in ["."] + directories + files if current == root else directories + files:
+        path = current if name == "." else os.path.join(current, name)
+        info = os.lstat(path)
+        key = os.path.relpath(path, root)
+        item = {"dev": info.st_dev, "ino": info.st_ino, "mode": info.st_mode,
+                "nlink": info.st_nlink, "size": info.st_size,
+                "mtime_ns": info.st_mtime_ns, "ctime_ns": info.st_ctime_ns}
+        if stat.S_ISREG(info.st_mode):
+            with open(path, "rb") as handle:
+                item["sha256"] = hashlib.sha256(handle.read()).hexdigest()
+        elif stat.S_ISLNK(info.st_mode):
+            item["target"] = os.readlink(path)
+        result[key] = item
+print(json.dumps(result, sort_keys=True, separators=(",", ":")))
+PY
+}
+
+wait_for_root_lock() {
+  /usr/bin/python3 - "$1" <<'PY'
+import fcntl, os, sys, time
+descriptor = os.open(sys.argv[1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+deadline = time.monotonic() + 10
+try:
+    while time.monotonic() < deadline:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit(0)
+        else:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+            time.sleep(0.01)
+    raise SystemExit("production provider did not retain the inherited root lock")
+finally:
+    os.close(descriptor)
+PY
+}
+
+feature_state() {
+  find "$FEATURE_DIR" -type f -exec shasum -a 256 {} \; | sort
+}
+
+root_swap_at_interface() {
+  local label="$1"
+  local ready_name="$2"
+  local go_name="$3"
+  shift 3
+  local ready="$TMP_ROOT/$label-ready"
+  local go="$TMP_ROOT/$label-go"
+  local original="${OPERATOR_DIR}.$label-original.$$"
+  local replacement="${OPERATOR_DIR}.$label-replacement.$$"
+  local output="$TMP_ROOT/$label.out"
+  local error="$TMP_ROOT/$label.err"
+  local snapshot_before graph_before feedback_before artifacts_before
+  snapshot_before="$(file_state "$SNAPSHOT")"
+  graph_before="$(file_state "$GRAPH_LOG")"
+  feedback_before="$(file_state "$FEEDBACK_LOG")"
+  artifacts_before="$(feature_state)"
+  mkdir -p "$replacement/graph" "$replacement/prompts" "$replacement/features/poison-feature"
+  printf 'OPERATOR_ROOT_EFFECT_POISON\n' > "$replacement/graph/DO-NOT-READ"
+  printf 'OPERATOR_ROOT_EFFECT_POISON\n' > "$replacement/prompts/design-proposal.md"
+  printf '{"id":"POISON","slug":"poison"}\n' > "$replacement/features/poison-feature/status.json"
+  export "$ready_name=$ready"
+  export "$go_name=$go"
+  "$@" > "$output" 2> "$error" &
+  local command_pid=$!
+  for _ in $(seq 1 500); do
+    [ -e "$ready" ] && break
+    sleep 0.01
+  done
+  test -e "$ready"
+  mv "$OPERATOR_DIR" "$original"
+  mv "$replacement" "$OPERATOR_DIR"
+  touch "$go"
+  set +e
+  wait "$command_pid"
+  local command_rc=$?
+  mv "$OPERATOR_DIR" "$replacement"
+  local replacement_restore_rc=$?
+  mv "$original" "$OPERATOR_DIR"
+  local original_restore_rc=$?
+  set -e
+  unset "$ready_name" "$go_name"
+  test "$command_rc" -ne 0
+  test "$replacement_restore_rc" -eq 0
+  test "$original_restore_rc" -eq 0
+  assert_root_identity_error "$error"
+  test "$snapshot_before" = "$(file_state "$SNAPSHOT")"
+  test "$graph_before" = "$(file_state "$GRAPH_LOG")"
+  test "$feedback_before" = "$(file_state "$FEEDBACK_LOG")"
+  test "$artifacts_before" = "$(feature_state)"
+  test ! -e "$replacement/work"
+  if rg -n 'OPERATOR_ROOT_EFFECT_POISON' "$OPERATOR_DIR"; then
+    printf '%s root-swap poison reached the original workspace\n' "$label" >&2
+    exit 1
+  fi
+  rm -rf "$replacement"
 }
 
 snapshot_case() {
@@ -272,6 +551,181 @@ PY
   mv "$backup" "$SNAPSHOT"
 }
 
+# Installed design status defaults to the real operator-graph launcher. Hold a
+# production graph lock after its inherited-root validation, replace the
+# configured pathname, and prove the nested graph runtime remains descriptor
+# anchored: it may fail on the original uninitialized graph, but it must not
+# read, lock, repair, or otherwise touch the poison replacement graph.
+if [ -n "$installed_operator_dir" ]; then
+  production_graph_original="${OPERATOR_DIR}.production-graph-original.$$"
+  production_graph_replacement="${OPERATOR_DIR}.production-graph-replacement.$$"
+  production_graph_error="$TMP_ROOT/production-graph-swap.err"
+  mkdir -p "$OPERATOR_DIR/graph/.lock" "$production_graph_replacement/graph" \
+    "$production_graph_replacement/prompts"
+  printf 'block production graph provider\n' > "$OPERATOR_DIR/graph/.lock/unexpected"
+  printf 'OPERATOR_PRODUCTION_GRAPH_REPLACEMENT_POISON\n' > "$production_graph_replacement/graph/poison"
+  printf 'OPERATOR_PRODUCTION_GRAPH_REPLACEMENT_POISON\n' > "$production_graph_replacement/prompts/design-proposal.md"
+  bash "$PRODUCTION_DESIGN_FLOW" status --feature FS-0008 --json \
+    > "$TMP_ROOT/production-graph-swap.out" 2> "$production_graph_error" &
+  production_graph_pid=$!
+  wait_for_root_lock "$OPERATOR_DIR"
+  mv "$OPERATOR_DIR" "$production_graph_original"
+  mv "$production_graph_replacement" "$OPERATOR_DIR"
+  production_graph_replacement_before="$(tree_state "$OPERATOR_DIR")"
+  rm "$production_graph_original/graph/.lock/unexpected"
+  rmdir "$production_graph_original/graph/.lock"
+  set +e
+  wait "$production_graph_pid"
+  production_graph_rc=$?
+  set -e
+  production_graph_replacement_after="$(tree_state "$OPERATOR_DIR")"
+  mv "$OPERATOR_DIR" "$production_graph_replacement"
+  mv "$production_graph_original" "$OPERATOR_DIR"
+  test "$production_graph_rc" -ne 0
+  assert_root_identity_error "$production_graph_error"
+  test "$production_graph_replacement_before" = "$production_graph_replacement_after"
+  if rg -n 'OPERATOR_PRODUCTION_GRAPH_REPLACEMENT_POISON' "$OPERATOR_DIR"; then
+    printf 'production graph provider consumed replacement-root poison\n' >&2
+    exit 1
+  fi
+  rm -rf "$production_graph_replacement"
+fi
+
+# Pause after the command has opened both its OPERATOR_DIR snapshot and feature
+# artifact descriptor, then replace OPERATOR_DIR with a same-owner real tree
+# containing a poison prompt. Prompt selection must reject the root identity
+# change, write no artifacts, consume no poison, and issue no graph mutation.
+root_swap_ready="$TMP_ROOT/root-swap-ready"
+root_swap_go="$TMP_ROOT/root-swap-go"
+root_swap_original="${OPERATOR_DIR}.design-flow-original.$$"
+root_swap_replacement="${OPERATOR_DIR}.design-flow-replacement.$$"
+mkdir -p "$root_swap_replacement/prompts"
+printf 'OPERATOR_ROOT_SWAP_PROMPT_POISON\n' > "$root_swap_replacement/prompts/design-proposal.md"
+export DESIGN_SMOKE_SNAPSHOT_READY="$root_swap_ready"
+export DESIGN_SMOKE_SNAPSHOT_GO="$root_swap_go"
+bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+  --lane design-lane --title "First value" --json \
+  > "$TMP_ROOT/root-swap.out" 2> "$TMP_ROOT/root-swap.err" &
+root_swap_pid=$!
+for _ in $(seq 1 500); do
+  [ -e "$root_swap_ready" ] && break
+  sleep 0.01
+done
+test -e "$root_swap_ready"
+mv "$OPERATOR_DIR" "$root_swap_original"
+mv "$root_swap_replacement" "$OPERATOR_DIR"
+touch "$root_swap_go"
+set +e
+wait "$root_swap_pid"
+root_swap_rc=$?
+mv "$OPERATOR_DIR" "$root_swap_replacement"
+replacement_restore_rc=$?
+mv "$root_swap_original" "$OPERATOR_DIR"
+original_restore_rc=$?
+set -e
+test "$root_swap_rc" -ne 0
+test "$replacement_restore_rc" -eq 0
+test "$original_restore_rc" -eq 0
+/usr/bin/python3 - "$TMP_ROOT/root-swap.err" <<'PY'
+import json, sys
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+assert value["ok"] is False and value["error"]["code"] == "IO_ERROR", value
+assert "OPERATOR_DIR identity changed" in value["error"]["message"], value
+PY
+test ! -e "$FEATURE_DIR/work"
+test ! -s "$GRAPH_LOG"
+if rg -n 'OPERATOR_ROOT_SWAP_PROMPT_POISON' "$OPERATOR_DIR"; then
+  printf 'root-swap poison was consumed into the original Operator workspace\n' >&2
+  exit 1
+fi
+rm -rf "$root_swap_replacement"
+unset DESIGN_SMOKE_SNAPSHOT_READY DESIGN_SMOKE_SNAPSHOT_GO
+
+# Pause the real mutation boundary only after start has read the proposal
+# prompt and published its descriptor-anchored proposal artifacts. A root
+# replacement at that point must be rejected by the inherited FD/identity
+# contract before graph mutation; artifacts remain wholly in the original
+# feature and no replacement poison is consumed.
+post_prompt_ready="$TMP_ROOT/post-prompt-ready"
+post_prompt_go="$TMP_ROOT/post-prompt-go"
+post_prompt_original="${OPERATOR_DIR}.post-prompt-original.$$"
+post_prompt_replacement="${OPERATOR_DIR}.post-prompt-replacement.$$"
+post_prompt_snapshot_before="$(file_state "$SNAPSHOT")"
+mkdir -p "$post_prompt_replacement/graph" "$post_prompt_replacement/prompts"
+printf 'OPERATOR_POST_PROMPT_POISON\n' > "$post_prompt_replacement/graph/DO-NOT-READ"
+printf 'OPERATOR_POST_PROMPT_POISON\n' > "$post_prompt_replacement/prompts/design-proposal.md"
+export DESIGN_SMOKE_MUTATION_READY="$post_prompt_ready"
+export DESIGN_SMOKE_MUTATION_GO="$post_prompt_go"
+bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+  --lane design-lane --title "First value" --json \
+  > "$TMP_ROOT/post-prompt.out" 2> "$TMP_ROOT/post-prompt.err" &
+post_prompt_pid=$!
+for _ in $(seq 1 500); do
+  [ -e "$post_prompt_ready" ] && break
+  sleep 0.01
+done
+test -e "$post_prompt_ready"
+test -f "$FEATURE_DIR/work/design-options/proposal-a/prompt.md"
+mv "$OPERATOR_DIR" "$post_prompt_original"
+mv "$post_prompt_replacement" "$OPERATOR_DIR"
+touch "$post_prompt_go"
+set +e
+wait "$post_prompt_pid"
+post_prompt_rc=$?
+mv "$OPERATOR_DIR" "$post_prompt_replacement"
+post_prompt_replacement_restore_rc=$?
+mv "$post_prompt_original" "$OPERATOR_DIR"
+post_prompt_original_restore_rc=$?
+set -e
+unset DESIGN_SMOKE_MUTATION_READY DESIGN_SMOKE_MUTATION_GO
+test "$post_prompt_rc" -ne 0
+test "$post_prompt_replacement_restore_rc" -eq 0
+test "$post_prompt_original_restore_rc" -eq 0
+assert_root_identity_error "$TMP_ROOT/post-prompt.err"
+test "$post_prompt_snapshot_before" = "$(file_state "$SNAPSHOT")"
+test ! -s "$GRAPH_LOG"
+test -f "$FEATURE_DIR/work/design-options/proposal-a/prompt.md"
+test ! -e "$post_prompt_replacement/work"
+if rg -n 'OPERATOR_POST_PROMPT_POISON' "$OPERATOR_DIR"; then
+  printf 'post-prompt root-swap poison reached the original workspace\n' >&2
+  exit 1
+fi
+rm -rf "$post_prompt_replacement"
+
+# A caller-controlled source-mode locator cannot suppress the shipped
+# post-mutation replay contract.  This source-shaped test copy uses the fake
+# mutation provider (which deliberately has no RM-0007 journal/materialization)
+# and must therefore fail after the provider reports success.  Only the main
+# fixture copy above is patched to emulate replay; no environment variable can
+# disable verification in the distributed runtime.
+replay_source="$TMP_ROOT/replay-security-source"
+mkdir -p "$replay_source/scripts" "$replay_source/plugins/operator-kit/.codex-plugin" \
+  "$replay_source/templates/prompts"
+cp "$PRODUCTION_DESIGN_FLOW" "$replay_source/scripts/operator-design-flow.sh"
+cp "$TEST_SOURCE_ROOT/scripts/operator-bootstrap.sh" "$replay_source/scripts/operator-bootstrap.sh"
+cp "$fixture_runtime/operator-graph.sh" "$replay_source/scripts/operator-graph.sh"
+cp "$fixture_runtime/operator-feedback.sh" "$replay_source/scripts/operator-feedback.sh"
+cp "$TEST_SOURCE_ROOT/plugins/operator-kit/.codex-plugin/plugin.json" \
+  "$replay_source/plugins/operator-kit/.codex-plugin/plugin.json"
+cp "$TEST_SOURCE_ROOT/templates/prompts/design-proposal.md" \
+  "$replay_source/templates/prompts/design-proposal.md"
+chmod 755 "$replay_source/scripts/"*.sh
+cp "$SNAPSHOT" "$TMP_ROOT/replay-security-snapshot.json"
+rm -f "$GRAPH_LOG"
+feature_backup="$TMP_ROOT/replay-security-feature"
+cp -R "$FEATURE_DIR" "$feature_backup"
+DESIGN_FLOW="$replay_source/scripts/operator-design-flow.sh"
+export OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT="$replay_source"
+expect_error IO_ERROR bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+  --lane design-lane --title "First value" --json
+test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "1"
+rm -rf "$FEATURE_DIR"
+mv "$feature_backup" "$FEATURE_DIR"
+mv "$TMP_ROOT/replay-security-snapshot.json" "$SNAPSHOT"
+rm -f "$GRAPH_LOG"
+DESIGN_FLOW="$fixture_runtime/operator-design-flow.sh"
+export OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT="$TMP_ROOT"
+
 bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
   --lane design-lane --title "First value" --json > "$TMP_ROOT/start.json"
 
@@ -293,12 +747,58 @@ assert sorted(item.name for item in options.iterdir() if item.is_dir()) == ["pro
 for proposal in ("proposal-a","proposal-b","proposal-c"):
     assert (options / proposal / "prompt.md").is_file()
     assert (options / proposal / "brief.md").is_file()
+    rendered = (options / proposal / "prompt.md").read_text(encoding="utf-8")
+    assert "REPO_LOCAL_DESIGN_PROMPT_POISON" not in rendered
+    assert "A human must choose a proposal via" in rendered
 PY
 
 # Start retries discover the durable graph shape and do not append again.
 bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
   --lane design-lane --title "First value" --json > /dev/null
 test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "1"
+
+if [ -n "$installed_operator_dir" ]; then
+  # Exercise the fixture copy in installed mode: its trusted providers remain
+  # local test siblings, but prompt selection must use only OPERATOR_DIR.
+  unset OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT
+  # An installed runtime never probes a repo-local template, including final
+  # component and intermediate-directory symlink variants.
+  printf 'REPO_LOCAL_FILE_SYMLINK_POISON\n' > "$TMP_ROOT/repo-file-poison.md"
+  rm "$KIT_ROOT/templates/prompts/design-proposal.md"
+  ln -s "$TMP_ROOT/repo-file-poison.md" "$KIT_ROOT/templates/prompts/design-proposal.md"
+  bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+    --lane design-lane --title "First value" --json > /dev/null
+  unlink "$KIT_ROOT/templates/prompts/design-proposal.md"
+  rmdir "$KIT_ROOT/templates/prompts"
+  mkdir -p "$TMP_ROOT/repo-prompts-poison"
+  printf 'REPO_LOCAL_INTERMEDIATE_SYMLINK_POISON\n' > "$TMP_ROOT/repo-prompts-poison/design-proposal.md"
+  ln -s "$TMP_ROOT/repo-prompts-poison" "$KIT_ROOT/templates/prompts"
+  bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+    --lane design-lane --title "First value" --json > /dev/null
+  unlink "$KIT_ROOT/templates/prompts"
+
+  # The selected external prompt itself is fail-closed for both final and
+  # intermediate symlinks; neither poison target can be consumed.
+  mv "$OPERATOR_DIR/prompts/design-proposal.md" "$TMP_ROOT/external-prompt.md"
+  ln -s "$TMP_ROOT/repo-file-poison.md" "$OPERATOR_DIR/prompts/design-proposal.md"
+  expect_error IO_ERROR bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+    --lane design-lane --title "First value" --json
+  unlink "$OPERATOR_DIR/prompts/design-proposal.md"
+  mv "$TMP_ROOT/external-prompt.md" "$OPERATOR_DIR/prompts/design-proposal.md"
+  mv "$OPERATOR_DIR/prompts" "$TMP_ROOT/external-prompts-real"
+  ln -s "$TMP_ROOT/repo-prompts-poison" "$OPERATOR_DIR/prompts"
+  expect_error IO_ERROR bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+    --lane design-lane --title "First value" --json
+  unlink "$OPERATOR_DIR/prompts"
+  mv "$TMP_ROOT/external-prompts-real" "$OPERATOR_DIR/prompts"
+
+  # Source-template mode is unavailable to an installed runtime even when a
+  # caller explicitly points the opt-in at the installed repository.
+  export OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT="$KIT_ROOT"
+  expect_error IO_ERROR bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
+    --lane design-lane --title "First value" --json
+  export OPERATOR_DESIGN_FLOW_TRUSTED_SOURCE_ROOT="$TMP_ROOT"
+fi
 
 # Every start retry field is immutable intent, not a hint.
 expect_error INTENT_CONFLICT bash "$DESIGN_FLOW" start --feature FS-0008 --brief "$TMP_ROOT/brief.md" \
@@ -384,10 +884,23 @@ assert selection["proposedProposal"] is None
 PY
 mv "$TMP_ROOT/rejected-backup.json" "$SNAPSHOT"
 
-# Inject a host failure after the implementation definition append. The child
-# remains gated and the same select retry must finish only the graph gate event.
-touch "$TMP_ROOT/fail-gate-once"
-export DESIGN_SMOKE_FAIL_GATE_ONCE="$TMP_ROOT/fail-gate-once"
+# Non-start commands bind the same held root across their trusted interfaces.
+# Status is paused in snapshot delivery; reject and select are paused after
+# their validated snapshot but before the graph launcher can mutate.
+root_swap_at_interface status-root-swap DESIGN_SMOKE_SNAPSHOT_READY DESIGN_SMOKE_SNAPSHOT_GO \
+  bash "$DESIGN_FLOW" status --feature FS-0008 --json
+root_swap_at_interface reject-root-swap DESIGN_SMOKE_MUTATION_READY DESIGN_SMOKE_MUTATION_GO \
+  bash "$DESIGN_FLOW" reject --feature FS-0008 --json
+root_swap_at_interface select-root-swap DESIGN_SMOKE_MUTATION_READY DESIGN_SMOKE_MUTATION_GO \
+  bash "$DESIGN_FLOW" select --feature FS-0008 --lane design-lane --proposal proposal-b --json
+test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "1"
+
+# Inject a host failure after the human gate commit but before implementation
+# materialization. Generic status must report the durable partial state, reject
+# and dissatisfaction remain blocked, and select must resume after an unrelated
+# graph revision without repeating the gate decision.
+touch "$TMP_ROOT/fail-replace-once"
+export DESIGN_SMOKE_FAIL_REPLACE_ONCE="$TMP_ROOT/fail-replace-once"
 expect_error TRUSTED_INTERFACE_FAILED bash "$DESIGN_FLOW" select --feature FS-0008 \
   --lane design-lane --proposal proposal-b --json
 
@@ -395,42 +908,44 @@ python3 - "$SNAPSHOT" "$TMP_ROOT/clock.json" <<'PY'
 import json, pathlib, sys
 snapshot = json.load(open(sys.argv[1], encoding="utf-8"))
 gate = next(item for item in snapshot["nodes"] if item.get("metadata",{}).get("designFlow",{}).get("role") == "selection-gate")
-implementation = next(item for item in snapshot["nodes"] if item.get("metadata",{}).get("designFlow",{}).get("role") == "implementation")
-assert gate["state"] == "pending" and implementation["state"] == "pending"
-assert implementation["metadata"]["designFlow"]["selectedProposal"] == "proposal-b"
+assert gate["state"] == "approved"
+assert not any(item.get("metadata",{}).get("designFlow",{}).get("role") == "implementation"
+               for item in snapshot["nodes"])
 clock = {"schemaVersion":"operator.scheduler-clock/v1","hostId":"smoke-host","bootId":"smoke-boot",
          "monotonicSource":"macos-mach-continuous","monotonicNs":1000000000}
 pathlib.Path(sys.argv[2]).write_text(json.dumps(clock, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
 PY
+test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "2"
+bash "$DESIGN_FLOW" status --feature FS-0008 --json > "$TMP_ROOT/partial-status.json"
+python3 - "$TMP_ROOT/partial-status.json" <<'PY'
+import json, sys
+data = json.load(open(sys.argv[1], encoding="utf-8"))["data"]
+assert data["selection"]["gateState"] == "approved"
+assert data["selection"]["durableGraphGate"] is True
+assert data["selection"]["materializationPending"] is True
+assert data["selection"]["selectedProposal"] is None
+assert data["implementation"] is None
+PY
+expect_error GATE_ALREADY_DECIDED bash "$DESIGN_FLOW" reject --feature FS-0008 --json
+expect_error OUTCOME_INCOMPLETE bash "$DESIGN_FLOW" dissatisfied --feature FS-0008 \
+  --lane design-lane --request-id partial-review --message "must remain blocked" --json
 
-# A canonical-looking implementation without its exact gated-by relationship
-# is corrupt and must not trigger the human gate mutation on retry.
-cp "$SNAPSHOT" "$TMP_ROOT/missing-gate-backup.json"
+# Simulate an unrelated, valid graph revision between approval and retry. The
+# selection append must use the new CAS revision while retaining gate history.
 python3 - "$SNAPSHOT" <<'PY'
 import json, pathlib, sys
 path = pathlib.Path(sys.argv[1])
 value = json.loads(path.read_text(encoding="utf-8"))
-implementation = next(node for node in value["nodes"] if node.get("metadata",{}).get("designFlow",{}).get("role") == "implementation")
-value["edges"] = [edge for edge in value["edges"] if not (edge["kind"] == "gated-by" and edge["from"] == implementation["id"])]
+value["revision"] += 1
+value["eventCount"] += 1
+value["updatedAt"] = "2026-07-22T00:00:59.000000Z"
 path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-PY
-expect_error FLOW_CORRUPT bash "$DESIGN_FLOW" select --feature FS-0008 \
-  --lane design-lane --proposal proposal-b --json
-test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "2"
-mv "$TMP_ROOT/missing-gate-backup.json" "$SNAPSHOT"
-
-bash "$SCHEDULER" frontier --snapshot "$SNAPSHOT" --clock "$TMP_ROOT/clock.json" \
-  --capacity 10 --json --explain > "$TMP_ROOT/frontier-pending.json"
-python3 - "$TMP_ROOT/frontier-pending.json" <<'PY'
-import json, sys
-data = json.load(open(sys.argv[1], encoding="utf-8"))["data"]
-item = next(item for item in data["excluded"] if "implementation" in item["nodeId"])
-assert [reason["code"] for reason in item["reasons"]] == ["GATE_PENDING"]
 PY
 
 bash "$DESIGN_FLOW" select --feature FS-0008 --lane design-lane \
   --proposal proposal-b --json > "$TMP_ROOT/selected.json"
 test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "3"
+unset DESIGN_SMOKE_FAIL_REPLACE_ONCE
 
 bash "$SCHEDULER" frontier --snapshot "$SNAPSHOT" --clock "$TMP_ROOT/clock.json" \
   --capacity 10 --json --explain > "$TMP_ROOT/frontier-approved.json"
@@ -444,6 +959,7 @@ assert status["selection"]["approved"] is True
 assert status["selection"]["selectedProposal"] == "proposal-b"
 assert status["selection"]["proposedProposal"] == "proposal-b"
 assert status["selection"]["durableGraphGate"] is True
+assert status["selection"]["materializationPending"] is False
 assert any("implementation" in item["nodeId"] for item in frontier["runnable"])
 proposals = [item for item in snapshot["nodes"] if item.get("metadata",{}).get("designFlow",{}).get("role") == "proposal"]
 assert len(proposals) == 3 and all(item["state"] == "completed" for item in proposals)
@@ -451,6 +967,22 @@ implementation = next(item for item in snapshot["nodes"] if item.get("metadata",
 gate_edges = [item for item in snapshot["edges"] if item["kind"] == "gated-by" and item["from"] == implementation["id"]]
 assert len(gate_edges) == 1 and gate_edges[0]["to"] == status["selection"]["gateNodeId"]
 PY
+
+# A selected implementation without its exact gated-by relationship is corrupt
+# and must not trigger any further graph mutation on retry.
+cp "$SNAPSHOT" "$TMP_ROOT/missing-gate-backup.json"
+python3 - "$SNAPSHOT" <<'PY'
+import json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+value = json.loads(path.read_text(encoding="utf-8"))
+implementation = next(node for node in value["nodes"] if node.get("metadata",{}).get("designFlow",{}).get("role") == "implementation")
+value["edges"] = [edge for edge in value["edges"] if not (edge["kind"] == "gated-by" and edge["from"] == implementation["id"])]
+path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+PY
+expect_error FLOW_CORRUPT bash "$DESIGN_FLOW" select --feature FS-0008 \
+  --lane design-lane --proposal proposal-b --json
+test "$(wc -l < "$GRAPH_LOG" | tr -d ' ')" = "3"
+mv "$TMP_ROOT/missing-gate-backup.json" "$SNAPSHOT"
 
 # Successful selection retries do not mutate or duplicate the child.
 bash "$DESIGN_FLOW" select --feature FS-0008 --lane design-lane --proposal proposal-b --json > /dev/null
@@ -478,6 +1010,131 @@ value = json.loads(path.read_text(encoding="utf-8"))
 next(item for item in value["nodes"] if item.get("metadata",{}).get("designFlow",{}).get("role") == "implementation")["state"] = "completed"
 path.write_text(json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
 PY
+
+# Exercise the installed feedback owner itself, not the smoke shim. The owner
+# takes the inherited root lock and then the descriptor-opened inbox lock.
+# Holding the latter gives a deterministic post-validation swap point. It must
+# refuse before publishing an FB record and must leave the replacement root
+# byte-, metadata-, and topology-identical.
+if [ -n "$installed_operator_dir" ]; then
+  production_feedback_request="production-provider-swap-001"
+  production_feedback_original="${OPERATOR_DIR}.production-feedback-original.$$"
+  production_feedback_replacement="${OPERATOR_DIR}.production-feedback-replacement.$$"
+  production_feedback_ready="$TMP_ROOT/production-feedback-inbox-held"
+  production_feedback_release="$TMP_ROOT/production-feedback-inbox-release"
+  production_feedback_error="$TMP_ROOT/production-feedback-swap.err"
+  /usr/bin/python3 - "$OPERATOR_DIR/roadmap/inbox" "$production_feedback_ready" "$production_feedback_release" <<'PY' &
+import fcntl, os, pathlib, sys, time
+descriptor = os.open(sys.argv[1], os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+try:
+    fcntl.flock(descriptor, fcntl.LOCK_EX)
+    pathlib.Path(sys.argv[2]).touch()
+    deadline = time.monotonic() + 20
+    while not pathlib.Path(sys.argv[3]).exists():
+        if time.monotonic() >= deadline:
+            raise SystemExit("timed out waiting to release production feedback inbox")
+        time.sleep(0.01)
+finally:
+    fcntl.flock(descriptor, fcntl.LOCK_UN)
+    os.close(descriptor)
+PY
+  production_feedback_locker_pid=$!
+  for _ in $(seq 1 500); do
+    [ -e "$production_feedback_ready" ] && break
+    sleep 0.01
+  done
+  test -e "$production_feedback_ready"
+  mkdir -p "$production_feedback_replacement/graph" "$production_feedback_replacement/prompts" \
+    "$production_feedback_replacement/roadmap/inbox"
+  printf 'OPERATOR_PRODUCTION_FEEDBACK_REPLACEMENT_POISON\n' > "$production_feedback_replacement/graph/DO-NOT-READ"
+  printf 'OPERATOR_PRODUCTION_FEEDBACK_REPLACEMENT_POISON\n' > "$production_feedback_replacement/prompts/design-proposal.md"
+  production_feedback_graph_before="$(file_state "$GRAPH_LOG")"
+  bash "$PRODUCTION_DESIGN_FLOW" dissatisfied --feature FS-0008 --lane design-lane \
+    --request-id "$production_feedback_request" --message "Production provider root binding" \
+    --evidence "$TMP_ROOT/evidence.txt" --json \
+    > "$TMP_ROOT/production-feedback-swap.out" 2> "$production_feedback_error" &
+  production_feedback_pid=$!
+  wait_for_root_lock "$OPERATOR_DIR"
+  mv "$OPERATOR_DIR" "$production_feedback_original"
+  mv "$production_feedback_replacement" "$OPERATOR_DIR"
+  production_feedback_replacement_before="$(tree_state "$OPERATOR_DIR")"
+  touch "$production_feedback_release"
+  wait "$production_feedback_locker_pid"
+  set +e
+  wait "$production_feedback_pid"
+  production_feedback_rc=$?
+  set -e
+  production_feedback_replacement_after="$(tree_state "$OPERATOR_DIR")"
+  mv "$OPERATOR_DIR" "$production_feedback_replacement"
+  mv "$production_feedback_original" "$OPERATOR_DIR"
+  test "$production_feedback_rc" -ne 0
+  assert_root_identity_error "$production_feedback_error"
+  test "$production_feedback_replacement_before" = "$production_feedback_replacement_after"
+  test "$production_feedback_graph_before" = "$(file_state "$GRAPH_LOG")"
+  test "$(find "$OPERATOR_DIR/roadmap/inbox" "$production_feedback_replacement/roadmap/inbox" \
+    -type f -name 'FB-*-design-flow-*.md' | wc -l | tr -d ' ')" = "0"
+  if rg -n 'OPERATOR_PRODUCTION_FEEDBACK_REPLACEMENT_POISON' "$OPERATOR_DIR"; then
+    printf 'production feedback provider consumed replacement-root poison\n' >&2
+    exit 1
+  fi
+  production_feedback_token="$(/usr/bin/python3 -c 'import hashlib,sys; print(hashlib.sha256(sys.argv[1].encode()).hexdigest()[:12])' "$production_feedback_request")"
+  rm -rf "$FEATURE_DIR/work/design-options/improvements/improvement-$production_feedback_token"
+  rm -rf "$production_feedback_replacement"
+fi
+
+# Dissatisfaction reaches its trusted feedback owner only after evidence has
+# been copied through the original feature descriptor. Pause that owner, swap
+# the root, and require the inherited root contract to refuse before feedback
+# or graph mutation. The partial artifacts must remain exclusively anchored to
+# the original feature for an idempotent retry.
+dissatisfied_swap_ready="$TMP_ROOT/dissatisfied-swap-ready"
+dissatisfied_swap_go="$TMP_ROOT/dissatisfied-swap-go"
+dissatisfied_swap_original="${OPERATOR_DIR}.dissatisfied-original.$$"
+dissatisfied_swap_replacement="${OPERATOR_DIR}.dissatisfied-replacement.$$"
+dissatisfied_snapshot_before="$(file_state "$SNAPSHOT")"
+dissatisfied_graph_before="$(file_state "$GRAPH_LOG")"
+mkdir -p "$dissatisfied_swap_replacement/graph" "$dissatisfied_swap_replacement/prompts"
+printf 'OPERATOR_DISSATISFIED_ROOT_POISON\n' > "$dissatisfied_swap_replacement/graph/DO-NOT-READ"
+printf 'OPERATOR_DISSATISFIED_ROOT_POISON\n' > "$dissatisfied_swap_replacement/prompts/design-proposal.md"
+export DESIGN_SMOKE_FEEDBACK_READY="$dissatisfied_swap_ready"
+export DESIGN_SMOKE_FEEDBACK_GO="$dissatisfied_swap_go"
+bash "$DESIGN_FLOW" dissatisfied --feature FS-0008 --lane design-lane \
+  --request-id review-001 --message "Needs a clearer hierarchy" \
+  --evidence "$TMP_ROOT/evidence.txt" --json \
+  > "$TMP_ROOT/dissatisfied-swap.out" 2> "$TMP_ROOT/dissatisfied-swap.err" &
+dissatisfied_swap_pid=$!
+for _ in $(seq 1 500); do
+  [ -e "$dissatisfied_swap_ready" ] && break
+  sleep 0.01
+done
+test -e "$dissatisfied_swap_ready"
+test "$(find "$FEATURE_DIR/work/design-options/improvements" -name dissatisfaction.md | wc -l | tr -d ' ')" = "1"
+mv "$OPERATOR_DIR" "$dissatisfied_swap_original"
+mv "$dissatisfied_swap_replacement" "$OPERATOR_DIR"
+touch "$dissatisfied_swap_go"
+set +e
+wait "$dissatisfied_swap_pid"
+dissatisfied_swap_rc=$?
+mv "$OPERATOR_DIR" "$dissatisfied_swap_replacement"
+dissatisfied_replacement_restore_rc=$?
+mv "$dissatisfied_swap_original" "$OPERATOR_DIR"
+dissatisfied_original_restore_rc=$?
+set -e
+unset DESIGN_SMOKE_FEEDBACK_READY DESIGN_SMOKE_FEEDBACK_GO
+test "$dissatisfied_swap_rc" -ne 0
+test "$dissatisfied_replacement_restore_rc" -eq 0
+test "$dissatisfied_original_restore_rc" -eq 0
+assert_root_identity_error "$TMP_ROOT/dissatisfied-swap.err"
+test "$dissatisfied_snapshot_before" = "$(file_state "$SNAPSHOT")"
+test "$dissatisfied_graph_before" = "$(file_state "$GRAPH_LOG")"
+test ! -e "$FEEDBACK_LOG"
+test ! -e "$dissatisfied_swap_replacement/work"
+test "$(find "$FEATURE_DIR/work/design-options/improvements" -name dissatisfaction.md | wc -l | tr -d ' ')" = "1"
+if rg -n 'OPERATOR_DISSATISFIED_ROOT_POISON' "$OPERATOR_DIR"; then
+  printf 'dissatisfied root-swap poison reached the original workspace\n' >&2
+  exit 1
+fi
+rm -rf "$dissatisfied_swap_replacement"
 
 bash "$DESIGN_FLOW" dissatisfied --feature FS-0008 --lane design-lane \
   --request-id review-001 --message "Needs a clearer hierarchy" \
@@ -538,7 +1195,7 @@ assert [item["sequence"] for item in status["improvements"]] == [1,2]
 implementation = next(item for item in snapshot["nodes"] if item.get("metadata",{}).get("designFlow",{}).get("role") == "implementation")
 assert implementation["state"] == "completed"
 for request in requests:
-    assert set(request) == {"schemaVersion","command","requestId","graphId","expectedRevision","definition","gateNodeId","decision"}
+    assert set(request) == {"schemaVersion","command","requestId","graphId","expectedRevision","cliIntent","definition","gateNodeId","decision"}
     encoded = json.dumps(request)
     for forbidden in ("actorBinding","proofFd","privateKey","authorityKey","holderScope"):
         assert forbidden not in encoded

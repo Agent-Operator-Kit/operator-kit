@@ -41,18 +41,21 @@ It keeps the V1 worktree, tmux, task-packet, and handoff model, then adds:
 - dependency-aware batch planning
 - operator approval before parallel dispatch
 
-V4 feature-session orchestration is being layered on top of that model. V4 uses
+V4 feature-session orchestration remains part of that model. V4 uses
 one Codex or Cursor project as the operator cockpit, binds each chat to a
 feature session, stores feature state under `OPERATOR_DIR/features/<FS-id-slug>/`,
 and lets the operator spawn feature-specific lane instances from reusable role
 templates. Conflicts are checked by files, contracts, surfaces, branches,
 worktrees, and shared resources rather than by role name alone.
 
-The approved V5 implementation baseline is documented in
+The `latest` channel now installs Operator Kit V5. Its normative model is documented in
 [`docs/concepts/operator-v5.md`](docs/concepts/operator-v5.md). V5 adds a typed
 control graph, ownership leases, a deterministic runnable frontier, a bounded
-heartbeat loop, and host runners over graph scopes while keeping roadmap intent
-separate from runtime scheduling.
+heartbeat loop, signed host/broker mutations, and a three-proposal design gate
+while keeping roadmap intent separate from runtime scheduling. Fresh installs
+receive `OPERATOR_KIT_VERSION="5"`. Updating an existing V4 project installs
+the V5 tooling but deliberately leaves its marker at `4` until the reviewed,
+explicit migration succeeds.
 
 V1 remains available at the `v1` git tag:
 
@@ -123,6 +126,10 @@ bash scripts/operator-sync.sh --target "$HOME/Projects/acme" --bootstrap-if-miss
     roadmap/
     tasks/
     memory/
+    authority/       # public trust anchor only; never a private key
+    graph/           # append-only history and replayable projections
+    host/            # private host sessions, handoffs, and effect fences
+    loop/            # private heartbeat state
 ```
 
 Installed project assets include:
@@ -152,6 +159,12 @@ bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
+bash scripts/operator-role-map.sh init|show|validate
+bash scripts/operator-graph.sh status|snapshot|replay check
+bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
+bash scripts/operator-loop.sh status|pause|resume
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-v5-migrate.sh plan
 bash scripts/operator-sync.sh --target /path/to/project
 bash scripts/operator-upgrade.sh
 ```
@@ -185,13 +198,14 @@ bash scripts/operator-sync.sh --channel stable --target /path/to/project
 # V3 plugin-based adapter release, after the v3 tag is published
 bash scripts/operator-sync.sh --channel v3 --target /path/to/project
 
-# Latest source, currently V4 feature-session orchestration
+# Latest source: V5 control graph and trusted host runtime
 bash scripts/operator-sync.sh --channel latest --target /path/to/project
 ```
 
 `stable` is an alias for `v2.1` so existing users can keep updating the
-current released Operator Kit without being forced onto V4. `latest` is for
-active development and early adopters.
+current released Operator Kit without being forced onto V5. `latest` is the V5
+distribution channel. A plain latest update never silently migrates a V4
+project; follow [the V4-to-V5 migration guide](docs/guides/operator-v5-migration.md).
 
 Pin V1 for a project:
 
@@ -267,6 +281,8 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 
 - [Operator model](docs/concepts/operator-model.md)
 - [Operator V4 feature sessions](docs/concepts/operator-v4-feature-sessions.md)
+- [Operator V5 architecture](docs/concepts/operator-v5.md)
+- [V4-to-V5 migration](docs/guides/operator-v5-migration.md)
 - [V3 host adapter packaging](docs/guides/v3-host-adapters.md)
 - [V3 install flow](docs/guides/v3-install-flow.md)
 - [Codex plugin packaging](docs/guides/codex-plugin-package.md)
@@ -286,6 +302,11 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 - Do not let two lanes edit the same files at the same time.
 - In V4, bind execution chats to a feature session and check conflicts by
   files, contracts, surfaces, branches, worktrees, and shared resources.
+- In V5, treat the signed append-only graph as runtime authority. Never launch
+  a bypass runner, edit graph files, or put private proof/authority keys in the
+  repo, `OPERATOR_DIR`, environment, CLI arguments, task packets, or handoffs.
+- Back up and restore `OPERATOR_DIR` as durable state. Graph history, fences,
+  bindings, host effect ledgers, handoffs, roadmap, and memory are not disposable.
 - Keep generated operator state under `OPERATOR_DIR`.
 - Keep temporary work under `OPERATOR_DIR/tasks/<slug>/work/`.
 - Do not commit raw handoffs, task packets, pane captures, memory packs, or transient notes.

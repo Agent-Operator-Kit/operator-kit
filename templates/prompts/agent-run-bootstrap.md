@@ -54,6 +54,12 @@ Goals:
   - `.cursor/skills/incubation/SKILL.md`
   - `.cursor/environment.json.example`
 - Create the external operator workspace as `<project-root>/operator` unless I specify another path.
+- Fresh latest installs use Operator Kit V5, derive the role map from
+  `OPERATOR_LANES`, and install every V5 runtime plus all eleven schemas.
+- Create only private empty V5 runtime directories. Do not initialize graph
+  history, bindings, authority keys, proof keys, or host sessions during setup.
+- A plain update of V4 must preserve its marker and artifacts and report that
+  reviewed explicit migration is required.
 
 Lane requirements:
 
@@ -101,10 +107,14 @@ Required behavior:
     - `bash scripts/operator-roadmap.sh status`
     - `bash scripts/operator-catalog.sh list roles`
     - `bash scripts/operator-plan-batch.sh`
+    - `bash scripts/operator-role-map.sh validate`
 16. Confirm generated task, handoff, and memory files landed under `OPERATOR_DIR`, not inside the repo.
 17. Confirm `scripts/operator-memory.sh`, `scripts/operator-roadmap.sh`, `scripts/operator-feedback.sh`, `scripts/operator-catalog.sh`, `scripts/operator-system-map.sh`, `scripts/operator-recommend-lanes.sh`, `scripts/operator-plan-batch.sh`, `scripts/operator-update.sh`, `scripts/operator-sync.sh`, and `scripts/operator-upgrade.sh` are installed for future safe refreshes.
 18. Confirm `AGENTS.md` points Codex users to the global `$operator` skill when available.
 19. Show git status and list intended repo changes.
+20. Confirm no permission-bypass runner flags are installed, private keys are
+    absent from the repo and `OPERATOR_DIR`, and the durable external workspace
+    has a documented backup/recovery path.
 
 If starting from only the GitHub URL, clone the kit or use the remote entry
 point, then run:

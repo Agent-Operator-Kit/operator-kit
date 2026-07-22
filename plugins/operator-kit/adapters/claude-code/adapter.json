@@ -7,7 +7,9 @@
   "kind": "host-adapter-package",
   "description": "Claude Code adapter package for Agent Operator Kit workflow skills, slash commands, and project subagent templates.",
   "compatibleProjectKitVersions": [
-    "2"
+    "2",
+    "4",
+    "5"
   ],
   "requiresProjectScopedSetup": true,
   "requiresSourceRootOperatorConfig": false,

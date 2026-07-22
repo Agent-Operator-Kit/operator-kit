@@ -1,8 +1,8 @@
 # Operator Kit V5 Architecture Baseline
 
-Status: approved implementation baseline for the V5 integration branch.
+Status: final V5 distribution contract.
 
-Base source revision: `6be01fed0f82faa1edd8f8024732fcdcf88f89ad`.
+Integrated distribution base: `701146c6bbbb4c526d1b4ff0671d662da6e47984`.
 
 ## Authority And Durable State
 
@@ -87,6 +87,8 @@ silently reinterpreted as the V5 source of truth.
 - RM-0005 owns Codex and Claude host-runner adapters.
 - RM-0006 owns three-proposal design selection and forward improvement flow.
 
-Shared installation lists, version migration, top-level documentation, and
-combined smoke coverage are integration-owned and are updated once after the
-feature branches land.
+The final distribution registers every runtime, all eleven schemas, target-
+derived role maps, explicit lossless V4 migration, version-aware status,
+plugin/adapter compatibility metadata, and the combined installed-project
+matrix. Installation creates private runtime directories only; it does not
+initialize production graph history, authority/binding state, or keys.

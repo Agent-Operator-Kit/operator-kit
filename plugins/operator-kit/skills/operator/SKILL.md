@@ -147,6 +147,11 @@ Before operator work, resolve the project root:
    V4 installs may also provide `scripts/operator-feature.sh` and
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
+   V5 installs must additionally provide `operator-role-map.sh`,
+   `operator-graph.sh`, `operator-scheduler.sh`, `operator-loop.sh`,
+   `operator-host.sh`, `operator-proof-broker.sh`, `operator-design-flow.sh`,
+   and `operator-v5-migrate.sh`, their plain Python helpers, and the eleven-file
+   `schemas/operator-v5/` bundle.
 6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 7. Read `operator.config.env`.
 8. Read `AGENTS.md` if present.
@@ -164,6 +169,34 @@ bash scripts/operator-summary.sh
 
 If partial, explain what was found and what is missing; do not dispatch or collect until repaired.
 If not installed, say Operator Kit is not installed in this project and offer setup or a path switch.
+
+## V5 Control Runtime
+
+Fresh latest installs are V5. The signed append-only graph is runtime
+authority; roadmap, feature folders, chats, tmux, prompts, and host metadata
+remain planning/evidence indexes. Production mutations go only through a
+signed actor binding and the isolated host proof broker. Execute graph scopes
+through `operator-host.sh`; do not run permission-bypass agents, write graph
+files directly, or treat a runner result as a human gate.
+
+Status must report project kit version, migration state, graph initialization,
+host runtime, and broker/keychain readiness without auto-initializing or
+repairing graph state. Human gates remain explicit for subjective proposal
+selection, integration, push/publish/release, credentials, destructive or
+production changes, and irreversible high-risk work. Dissatisfaction creates
+forward feedback work rather than reopening completed nodes.
+
+Private authority/proof keys never enter a repo, `OPERATOR_DIR`, environment,
+CLI argument, task packet, log, or handoff. Graph history, fences, signed
+bindings, host effect ledgers, evidence, and migration manifests are durable
+backup/recovery state; the external workspace is not disposable.
+
+For V4 updated to latest, preserve `OPERATOR_KIT_VERSION="4"` and report
+migration required. Run `operator-v5-migrate.sh plan`; apply only from a
+reviewed mapping with stopped writers, safe external state, compatible graph,
+available broker/keychain tooling, and explicit `MIGRATE_V4_TO_V5`
+authorization. Never reinterpret V4 files as graph truth or initialize graph
+or key state during migration.
 
 ## Core Commands
 
@@ -188,6 +221,12 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
+bash scripts/operator-role-map.sh init|show|validate
+bash scripts/operator-graph.sh status|snapshot|replay check
+bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
+bash scripts/operator-loop.sh status|pause|resume
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-v5-migrate.sh plan
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
@@ -644,12 +683,14 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-catalog.sh list roles
    bash scripts/operator-recommend-lanes.sh
    bash scripts/operator-plan-batch.sh
+   if [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then bash scripts/operator-role-map.sh validate; fi
    bash scripts/operator-upgrade.sh --channel latest --dry-run --skip-skills --target <project-root>
    git status --short
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
 
 The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, task working files, captures, and all source code.
+It must also preserve a V4 version marker until explicit migration succeeds.
 
 ## Guardrails
 

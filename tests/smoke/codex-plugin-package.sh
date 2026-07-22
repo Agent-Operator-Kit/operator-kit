@@ -8,6 +8,7 @@ KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PLUGIN_ROOT="$KIT_ROOT/plugins/operator-kit"
 MANIFEST="$PLUGIN_ROOT/.codex-plugin/plugin.json"
 MARKETPLACE_ENTRY="$PLUGIN_ROOT/marketplace-entry.json"
+V5_COMPATIBILITY="$PLUGIN_ROOT/v5-compatibility.json"
 
 fail() {
   printf '%s\n' "$1" >&2
@@ -17,6 +18,7 @@ fail() {
 test -d "$PLUGIN_ROOT" || fail "Missing plugin root: $PLUGIN_ROOT"
 test -f "$MANIFEST" || fail "Missing plugin manifest: $MANIFEST"
 test -f "$MARKETPLACE_ENTRY" || fail "Missing marketplace entry metadata."
+test -f "$V5_COMPATIBILITY" || fail "Missing V5 compatibility metadata."
 test -d "$PLUGIN_ROOT/skills" || fail "Missing plugin skills directory."
 
 python3 - "$MANIFEST" "$MARKETPLACE_ENTRY" <<'PY'
@@ -113,6 +115,18 @@ if not isinstance(policy, dict) or policy.get("installation") != "AVAILABLE" or 
 if marketplace_entry.get("category") != "Developer Tools":
     print("marketplace entry category must be Developer Tools", file=sys.stderr)
     raise SystemExit(1)
+PY
+
+python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
+import json, sys
+manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
+assert manifest["version"] == "0.4.6"
+assert compatibility["projectKitVersion"] == "5"
+assert compatibility["pluginVersion"] == manifest["version"]
+assert compatibility["releaseSemverChanged"] is False
+assert compatibility["historicalBundle"] == "v3-adapter-bundle.json"
+assert compatibility["safety"]["productionBypassAllowed"] is False
 PY
 
 diff_log="$(mktemp /tmp/aok-plugin-skills-diff.XXXXXX)"

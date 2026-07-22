@@ -27,9 +27,24 @@ captures/
 memory/project.md
 memory/episodes/*.md
 memory/packs/
+authority/control-graph-public-key.json
+graph/{bindings,events.jsonl,definition.json,projection.json}
+host/
+loop/
+migrations/v4-to-v5-manifest.json
 ```
 
-This directory is outside the repo by design. It is safe to delete and recreate unless you intentionally keep local task history.
+This directory is outside the repo by design, but it is not safe to delete and
+recreate as a unit. V5 graph history, lease fences, signed bindings, host effect
+ledgers, migration checksums, handoffs, roadmap, and memory are durable state.
+Back them up and recover them consistently with the repository revision and
+public trust anchor. Stop writers before backup or restore, and validate
+recovered graph history with signed replay.
+
+Private authority and proof keys never belong here, in a repository,
+environment variable, command line, task packet, log, or handoff. Recover them
+through the approved control plane and OS keychain. Do not launch V5 work with
+permission bypasses or initialize graph/key state during ordinary install.
 
 Use `memory/project.md` for durable project facts and `tasks/<slug>/memory.md` for feature-track facts that should move across lanes. Episode files are distilled from collected handoffs.
 
