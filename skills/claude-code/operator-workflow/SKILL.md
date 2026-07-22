@@ -14,6 +14,9 @@ Run the Agent Operator Kit bootstrap, or copy these templates into the target re
 ```text
 templates/claude/commands/operator-bootstrap.md -> .claude/commands/operator-bootstrap.md
 templates/claude/commands/operator-status.md -> .claude/commands/operator-status.md
+templates/claude/commands/operator-open.md -> .claude/commands/operator-open.md
+templates/claude/commands/operator-tick.md -> .claude/commands/operator-tick.md
+templates/claude/commands/operator-goal-context.md -> .claude/commands/operator-goal-context.md
 templates/claude/agents/operator-workflow.md -> .claude/agents/operator-workflow.md
 ```
 
@@ -30,6 +33,19 @@ or:
 ```text
 /operator-status
 ```
+
+For Operator V5 host execution, only the top-level Claude session binds and
+ticks a graph node:
+
+```text
+/operator-open --session <session-id> --scope <node-id>
+/operator-tick --session <session-id> --scope <node-id>
+/operator-goal-context --session <session-id> --scope <node-id>
+```
+
+Claude subagents and hooks may report evidence or request that the top-level
+session run a tick. They cannot bind or lease a node, reprioritize the graph,
+decide gates, integrate, or cross the bound scope.
 
 You can also ask:
 

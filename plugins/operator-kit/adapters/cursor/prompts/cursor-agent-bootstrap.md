@@ -75,7 +75,7 @@ Cursor-first lane defaults when Codex is unavailable:
 ```text
 operator|Cursor IDE|app|main|
 cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent
-ui|Claude Code|app-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+ui|Claude Code|app-ui|claude/ui|claude --permission-mode dontAsk
 ```
 
 Use:

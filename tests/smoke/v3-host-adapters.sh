@@ -137,6 +137,15 @@ cmp -s "$KIT_ROOT/templates/claude/commands/operator-bootstrap.md" \
 cmp -s "$KIT_ROOT/templates/claude/commands/operator-status.md" \
   "$CLAUDE/project-templates/.claude/commands/operator-status.md" \
   || fail "Claude operator-status command is out of sync."
+cmp -s "$KIT_ROOT/templates/claude/commands/operator-open.md" \
+  "$CLAUDE/project-templates/.claude/commands/operator-open.md" \
+  || fail "Claude operator-open command is out of sync."
+cmp -s "$KIT_ROOT/templates/claude/commands/operator-tick.md" \
+  "$CLAUDE/project-templates/.claude/commands/operator-tick.md" \
+  || fail "Claude operator-tick command is out of sync."
+cmp -s "$KIT_ROOT/templates/claude/commands/operator-goal-context.md" \
+  "$CLAUDE/project-templates/.claude/commands/operator-goal-context.md" \
+  || fail "Claude operator-goal-context command is out of sync."
 cmp -s "$KIT_ROOT/templates/claude/agents/operator-workflow.md" \
   "$CLAUDE/project-templates/.claude/agents/operator-workflow.md" \
   || fail "Claude operator-workflow agent is out of sync."
