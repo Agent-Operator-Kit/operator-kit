@@ -137,7 +137,7 @@ python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
 import json, sys
 manifest = json.load(open(sys.argv[1], encoding="utf-8"))
 compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
-assert manifest["version"] == "0.5.0-preview.1"
+assert manifest["version"] == "0.5.0-preview.2"
 assert compatibility["projectKitVersion"] == "5"
 assert compatibility["pluginVersion"] == manifest["version"]
 assert compatibility["releaseChannel"] == "preview"
@@ -164,6 +164,19 @@ while IFS= read -r skill_dir; do
   sed -n '2,20p' "$skill_md" | grep -q '^name:[[:space:]]*' || fail "Skill name missing: $skill_md"
   sed -n '2,20p' "$skill_md" | grep -q '^description:[[:space:]]*' || fail "Skill description missing: $skill_md"
 done < <(find "$PLUGIN_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+
+operator_skill="$PLUGIN_ROOT/skills/operator/SKILL.md"
+grep -q '^## First Invocation And Setup Recommendation$' "$operator_skill" \
+  || fail "Operator skill is missing first-invocation setup detection."
+grep -q 'workspace-shared installs' "$operator_skill" \
+  || fail "Operator first-run guidance must cover workspace-shared installs."
+grep -q -- '--channel latest' "$operator_skill" \
+  || fail "Operator first-run setup must select the latest V5 channel."
+grep -q -- '--bootstrap-if-missing' "$operator_skill" \
+  || fail "Operator first-run setup must support explicit bootstrap."
+if grep -q '/Users/' "$operator_skill"; then
+  fail "Operator skill must not contain a developer-specific absolute path."
+fi
 
 tmp_root="$(mktemp -d /tmp/aok-plugin-sync.XXXXXX)"
 trap 'rm -rf "$tmp_root"' EXIT
