@@ -3,3 +3,9 @@
 tmp/
 node_modules/
 coverage/
+
+# Agent Operator Kit generated state
+operator/
+tasks/
+handoffs/
+captures/

@@ -50,7 +50,7 @@ The preserved V3 adapter bundle adds host packages for Cursor and Claude Code un
 APIs.
 
 `v5-compatibility.json` registers the final V5 project runtime and migration
-contract against the preview plugin (`0.5.0-preview.2`) and adapter (`0.1.0`)
+contract against the stable plugin (`0.5.0`) and adapter (`0.1.0`)
 package versions. It sits alongside, and does not relabel,
 `v3-adapter-bundle.json`.
 V5 execution remains project-local and enters through the signed host/broker
@@ -111,7 +111,7 @@ contract lives in `docs/concepts/sticky-operator-mode.md`.
 `plugin.json` uses semver for the global Codex adapter package. Slice 1 starts
 at `0.1.0`; the V4 feature-session package is `0.4.6`; and the first V5
 sharing pilot starts at `0.5.0-preview.1`; first-invocation project detection is
-included in `0.5.0-preview.2`.
+included in `0.5.0-preview.2`; and the stable V5 plugin release is `0.5.0`.
 
 Compatibility rule:
 
@@ -124,8 +124,8 @@ Compatibility rule:
   using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
-- V5 compatibility did not itself require a plugin semver bump. The preview
-  bump marks the first distributable V5 pilot while the project runtime marker,
+- V5 compatibility did not itself require a plugin semver bump. The `0.5.0`
+  release marks the stable distributable V5 plugin while the project runtime marker,
   explicit V4 migration, and `v5-compatibility.json` continue to carry the
   compatibility boundary.
 

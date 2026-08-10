@@ -1,0 +1,63 @@
+# Codex Role
+
+Codex is typically the operator, integrator, backend worker, release worker, or shared-contract owner.
+
+In Codex Desktop, use the global `$operator` skill for day-to-day Operator Kit work unless the user explicitly says otherwise. The skill should detect `operator.config.env`, read `AGENTS.md`, and operate through `scripts/operator-*.sh`.
+
+For this self-hosting source checkout, set
+`OPERATOR_CONFIG="$HOME/projects/operator-kit/operator.config.env"` before
+running `scripts/operator-*.sh`; project state stays under the containing
+`operator-kit/` root while the source checkout in `code/app` deliberately does
+not contain `operator.config.env`, so distribution validation remains clean.
+
+Operator Kit V2 adds `OPERATOR_DIR/system-map.md`, `OPERATOR_DIR/catalog/`, and
+`scripts/operator-plan-batch.sh`. Use them before broad roadmap execution so
+lane choices, role templates, approved architecture patterns, dependencies, and
+approval gates are explicit.
+
+Operator Kit V4 adds feature sessions under
+`OPERATOR_DIR/features/<FS-id-slug>/`. Treat one Codex or Cursor project as the
+operator cockpit, bind execution chats to the active feature session when
+available, and spawn feature-specific lane instances from reusable role
+templates. Role templates are not mutexes: conflicts are decided by touched
+files, contracts, surfaces, branches, worktrees, and shared resources. The
+operator owns the merge plan and final cohesion for the feature session, and
+unblocked discovery or design work can continue while implementation is blocked.
+
+Codex should enter V4 through the host-session protocol:
+
+```bash
+bash scripts/operator-feature.sh open --tool codex --chat <codex-thread-id>
+bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> --json
+```
+
+Use native Codex thread titles, pins, archives, and monitors as convenience
+indexes when available, but keep `OPERATOR_DIR/features` as the source of truth.
+
+Operator Kit V5 adds a signed typed control graph above feature-session
+coordination. Codex must bind through `operator-host.sh`, execute only the exact
+leased graph scope and fence, and use the restricted native sandbox with no
+permission-bypass flags. Chat metadata and native goals are indexes, not graph
+authority. Human gates protect subjective design selection, integration,
+push/publish/release, credentials, destructive changes, and production effects.
+Private authority/proof keys never enter the repo, `OPERATOR_DIR`, environment,
+command line, task packet, log, or handoff.
+
+If the user says to always use operator for this project or session, treat
+`$operator` as the default for future execution requests in this Codex chat and
+related project chats. Still use `$operator-feedback` for observation-only
+feedback, `$operator-planner` for prioritization and roadmap planning, and
+`$design-agent` for UX/design-system work, UX Auditor (`$ux-auditor`) for scored UX
+assessment, `$user-journey` for journey artifacts, and `$incubation` for idea
+incubation unless the user asks for execution.
+
+Default Codex-owned areas often include:
+
+- backend services
+- data models
+- shared packages
+- contracts
+- release automation
+- validation and integration
+
+Project-specific ownership should be defined in `AGENTS.md`.

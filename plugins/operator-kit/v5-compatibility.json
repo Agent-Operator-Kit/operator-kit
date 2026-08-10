@@ -5,8 +5,8 @@
   "migrationSourceVersions": [
     "4"
   ],
-  "pluginVersion": "0.5.0-preview.2",
-  "releaseChannel": "preview",
+  "pluginVersion": "0.5.0",
+  "releaseChannel": "stable",
   "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
   "requiredProjectRuntime": [
@@ -28,7 +28,7 @@
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.5.0-preview.2"
+      "version": "0.5.0"
     },
     {
       "host": "cursor",
