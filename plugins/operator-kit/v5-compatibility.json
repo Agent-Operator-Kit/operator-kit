@@ -5,8 +5,9 @@
   "migrationSourceVersions": [
     "4"
   ],
-  "pluginVersion": "0.4.6",
-  "releaseSemverChanged": false,
+  "pluginVersion": "0.5.0-preview.1",
+  "releaseChannel": "preview",
+  "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
   "requiredProjectRuntime": [
     "scripts/operator-role-map.sh",
@@ -27,7 +28,7 @@
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.4.6"
+      "version": "0.5.0-preview.1"
     },
     {
       "host": "cursor",

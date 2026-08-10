@@ -550,6 +550,7 @@ class LoopStore:
         self.root = root
         self.create = create
         self.root_fd: Optional[int] = None
+        self.graph_fd: Optional[int] = None
         self.loop_fd: Optional[int] = None
 
     def __enter__(self) -> "LoopStore":
@@ -558,6 +559,11 @@ class LoopStore:
             self.root_fd = os.open(self.root, flags)
             root_info = os.fstat(self.root_fd)
             self._require_owned_directory(root_info, "OPERATOR_DIR")
+            try:
+                self.graph_fd = os.open("graph", flags, dir_fd=self.root_fd)
+                self._require_owned_directory(os.fstat(self.graph_fd), "graph directory")
+            except FileNotFoundError:
+                self.graph_fd = None
             try:
                 self.loop_fd = os.open("loop", flags, dir_fd=self.root_fd)
             except FileNotFoundError:
@@ -581,7 +587,7 @@ class LoopStore:
         self.close()
 
     def close(self) -> None:
-        for descriptor_name in ("loop_fd", "root_fd"):
+        for descriptor_name in ("loop_fd", "graph_fd", "root_fd"):
             descriptor = getattr(self, descriptor_name)
             if descriptor is not None:
                 with contextlib.suppress(OSError):
@@ -725,7 +731,13 @@ class LoopStore:
 @contextlib.contextmanager
 def exclusive_lock(root: Path, kind: str, blocking: bool) -> Iterator[None]:
     with LoopStore(root, create=kind == "state") as store:
-        descriptor = store.root_fd if kind == "tick" else store.loop_fd
+        # The trusted host holds an exclusive capability lock on OPERATOR_DIR
+        # while it supervises a tick. Re-locking that directory from the
+        # launchd-contained child self-deadlocks on macOS. A real V5 graph is
+        # always present, so use its directory as the independent singleton
+        # tick boundary. The root fallback preserves the standalone harness
+        # and pre-initialization fail-closed behavior without creating state.
+        descriptor = (store.graph_fd or store.root_fd) if kind == "tick" else store.loop_fd
         fail(descriptor is not None, "IO_ERROR", "lock directory is unavailable", exit_code=3)
         flags = fcntl.LOCK_EX | (0 if blocking else fcntl.LOCK_NB)
         try:
@@ -1125,6 +1137,13 @@ def finalize_result(result: Mapping[str, Any], graph_id: str, node_id: str, tick
     mutations: List[Mapping[str, Any]] = []
     error: Optional[Dict[str, Any]] = None
     try:
+        snapshot, _clock = current_revision(capacity)
+        node = snapshot_node_index(snapshot).get(node_id)
+        state = node.get("state") if isinstance(node, dict) else None
+        if state == "pending":
+            ready = mutate_current("transition", graph_id, node_id, tick_id, capacity,
+                                   lease_id, fence, "ready")
+            mutations.append(ready)
         active = mutate_current("transition", graph_id, node_id, tick_id, capacity, lease_id, fence, "active")
         mutations.append(active)
         target = "completed" if result["status"] == "succeeded" else "failed"
@@ -1143,18 +1162,36 @@ def finalize_result(result: Mapping[str, Any], graph_id: str, node_id: str, tick
             return "failed", mutations, error
     except LoopError as exc:
         try:
-            snapshot, _clock = current_revision(capacity)
-            node = snapshot_node_index(snapshot).get(node_id)
-            state = node.get("state") if isinstance(node, dict) else None
-            if state in {"pending", "ready"}:
-                active = mutate_current("transition", graph_id, node_id, tick_id, capacity,
-                                        lease_id, fence, "active")
-                mutations.append(active)
-                state = "active"
+            def observed_state() -> Optional[str]:
+                current, _trusted_clock = current_revision(capacity)
+                current_node = snapshot_node_index(current).get(node_id)
+                value = current_node.get("state") if isinstance(current_node, dict) else None
+                return value if isinstance(value, str) else None
+
+            state = observed_state()
+            if state == "pending":
+                try:
+                    ready = mutate_current("transition", graph_id, node_id, tick_id, capacity,
+                                           lease_id, fence, "ready")
+                    mutations.append(ready)
+                except LoopError:
+                    pass
+                state = observed_state()
+            if state == "ready":
+                try:
+                    active = mutate_current("transition", graph_id, node_id, tick_id, capacity,
+                                            lease_id, fence, "active")
+                    mutations.append(active)
+                except LoopError:
+                    pass
+                state = observed_state()
             if state == "active":
-                failed = mutate_current("transition", graph_id, node_id, tick_id, capacity,
-                                        lease_id, fence, "failed")
-                mutations.append(failed)
+                try:
+                    failed = mutate_current("transition", graph_id, node_id, tick_id, capacity,
+                                            lease_id, fence, "failed")
+                    mutations.append(failed)
+                except LoopError:
+                    pass
         except LoopError:
             pass
         error = safe_error(exc)

@@ -59,7 +59,8 @@ require(bundle.get("projectScopedSetupRequired") is True, "bundle must require p
 require("2" in bundle.get("compatibleProjectKitVersions", []), "bundle must target Operator Kit V2")
 require(compatibility.get("projectKitVersion") == "5", "V5 compatibility version mismatch")
 require(compatibility.get("historicalBundle") == "v3-adapter-bundle.json", "V5 metadata must preserve the V3 bundle")
-require(compatibility.get("releaseSemverChanged") is False, "V5 registration must not claim a semver change")
+require(compatibility.get("releaseChannel") == "preview", "V5 registration must use the preview channel")
+require(compatibility.get("releaseSemverChanged") is True, "V5 preview must claim its semver change")
 
 sticky = bundle.get("stickyMode")
 require(isinstance(sticky, dict), "bundle must declare stickyMode")

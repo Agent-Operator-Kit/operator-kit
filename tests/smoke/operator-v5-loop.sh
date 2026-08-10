@@ -520,6 +520,27 @@ after="$(shasum -a 256 "$FAKE_STATE" | awk '{print $1}')"
 [ ! -e "$OPERATOR_DIR/loop" ] || fail "dry-run created durable loop state"
 assert_json "$TMP_ROOT/dry-run.json" "value['data']['claimedCount'] == 0 and len(value['data']['frontier']['runnable']) == 2"
 
+# A trusted host retains the OPERATOR_DIR capability lock while its contained
+# loop runs. Once a real V5 graph exists, the loop singleton must remain an
+# independent boundary and must not self-deadlock against that host lock.
+mkdir -p "$OPERATOR_DIR/graph"
+python3 - "$OPERATOR_DIR" "$LOOP" "$TMP_ROOT/host-locked-dry-run.json" <<'PY'
+import fcntl, os, subprocess, sys
+
+descriptor = os.open(sys.argv[1], os.O_RDONLY | os.O_DIRECTORY)
+try:
+    fcntl.flock(descriptor, fcntl.LOCK_EX)
+    with open(sys.argv[3], "wb") as output:
+        result = subprocess.run(["bash", sys.argv[2], "tick", "--dry-run", "--max-actions", "2", "--json"],
+                                env=os.environ, stdout=output, stderr=subprocess.PIPE,
+                                check=False, timeout=10)
+    assert result.returncode == 0, result.stderr.decode("utf-8", errors="replace")
+finally:
+    os.close(descriptor)
+PY
+assert_json "$TMP_ROOT/host-locked-dry-run.json" "value['data']['claimedCount'] == 0 and len(value['data']['frontier']['runnable']) == 2"
+rmdir "$OPERATOR_DIR/graph"
+
 # Capacity is a hard upper bound and every mutation gets a distinct, one-shot
 # host-selected authorize/event broker session.
 bash "$LOOP" tick --max-actions 2 --json > "$TMP_ROOT/bounded.json"

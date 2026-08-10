@@ -1179,7 +1179,9 @@ def atomic_write_json(path: Path, value: Any, before_replace: Optional[Any] = No
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.tmp.{os.getpid()}.{uuid.uuid4()}")
     try:
-        with temporary.open("wb") as handle:
+        descriptor = os.open(str(temporary), os.O_WRONLY | os.O_CREAT | os.O_EXCL
+                             | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        with os.fdopen(descriptor, "wb") as handle:
             handle.write(canonical_bytes(value))
             handle.flush()
             os.fsync(handle.fileno())

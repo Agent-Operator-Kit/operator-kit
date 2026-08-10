@@ -489,6 +489,22 @@ class AnchoredStore:
         finally:
             os.close(parent)
 
+    def refresh_retained_manifest(self, components: Sequence[str], data: bytes) -> None:
+        """Advance the manifest for an append-in-place, still-pinned leaf."""
+        key = tuple(components)
+        self.assert_file(components)
+        descriptor = self.file_fds.get(key)
+        fail(descriptor is not None, "IO_ERROR", "retained manifest leaf is unavailable",
+             "/".join(components), 3)
+        info = os.fstat(descriptor)
+        fail(stat.S_ISREG(info.st_mode) and info.st_uid == os.geteuid()
+             and info.st_nlink == 1 and info.st_size == len(data)
+             and (info.st_dev, info.st_ino) == self.file_identities[key],
+             "IO_ERROR", "retained manifest leaf changed during refresh",
+             "/".join(components), 3)
+        self.file_manifest[key] = (info.st_dev, info.st_ino, info.st_size,
+                                   hashlib.sha256(data).hexdigest())
+
     def _pin_file(self, components: Sequence[str], required: bool = True) -> None:
         key = tuple(components)
         parent = self._open_dir(components[:-1], create=False, private=False)
@@ -1574,25 +1590,92 @@ def broker_environment() -> Dict[str, str]:
     return env
 
 
+def macos_keychain_secret(service: str, account: str,
+                          keychain_path: Optional[Path] = None) -> bytes:
+    """Read a generic-password item without putting its value in argv.
+
+    The macOS ``security`` CLI can only receive long values non-interactively
+    through ``-w VALUE``/``-X VALUE``.  Either form exposes the private proof
+    key in the process argument vector.  Security.framework keeps both lookup
+    selectors and returned secret bytes inside this trusted broker process.
+    """
+    try:
+        security = ctypes.CDLL(
+            "/System/Library/Frameworks/Security.framework/Security"
+        )
+        core_foundation = ctypes.CDLL(
+            "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation"
+        )
+    except OSError as exc:
+        raise HostError("BROKER_UNAVAILABLE", "macOS Keychain framework is unavailable",
+                        str(exc), 3) from exc
+
+    void_pointer = ctypes.c_void_p
+    unsigned_length = ctypes.c_uint32
+    security.SecKeychainFindGenericPassword.argtypes = [
+        void_pointer, unsigned_length, ctypes.c_char_p, unsigned_length,
+        ctypes.c_char_p, ctypes.POINTER(unsigned_length),
+        ctypes.POINTER(void_pointer), ctypes.POINTER(void_pointer),
+    ]
+    security.SecKeychainFindGenericPassword.restype = ctypes.c_int32
+    security.SecKeychainItemFreeContent.argtypes = [void_pointer, void_pointer]
+    security.SecKeychainItemFreeContent.restype = ctypes.c_int32
+    security.SecKeychainOpen.argtypes = [ctypes.c_char_p, ctypes.POINTER(void_pointer)]
+    security.SecKeychainOpen.restype = ctypes.c_int32
+    core_foundation.CFRelease.argtypes = [void_pointer]
+    core_foundation.CFRelease.restype = None
+
+    keychain = void_pointer()
+    item = void_pointer()
+    secret_pointer = void_pointer()
+    secret_length = unsigned_length()
+    selected_keychain: Optional[void_pointer] = None
+    service_bytes = service.encode("utf-8")
+    account_bytes = account.encode("utf-8")
+    try:
+        if keychain_path is not None:
+            status = security.SecKeychainOpen(
+                os.fsencode(keychain_path), ctypes.byref(keychain)
+            )
+            fail(status == 0 and bool(keychain.value), "BROKER_UNAVAILABLE",
+                 "configured macOS keychain is unavailable", exit_code=3)
+            selected_keychain = keychain
+        status = security.SecKeychainFindGenericPassword(
+            selected_keychain,
+            len(service_bytes), service_bytes,
+            len(account_bytes), account_bytes,
+            ctypes.byref(secret_length), ctypes.byref(secret_pointer),
+            ctypes.byref(item),
+        )
+        fail(status == 0 and bool(secret_pointer.value) and 0 < secret_length.value <= 32768,
+             "BROKER_UNAVAILABLE", "proof key is unavailable in the OS keychain",
+             exit_code=3)
+        return ctypes.string_at(secret_pointer, secret_length.value)
+    finally:
+        if secret_pointer.value:
+            security.SecKeychainItemFreeContent(None, secret_pointer)
+        if item.value:
+            core_foundation.CFRelease(item)
+        if keychain.value:
+            core_foundation.CFRelease(keychain)
+
+
 def private_key_secret(binding: Mapping[str, Any], keychain_path: Optional[Path] = None) -> Tuple[int, int]:
     key_id = binding["proofKey"]["keyId"]
     if sys.platform == "darwin":
-        command = ["/usr/bin/security", "find-generic-password", "-s", "agent-operator-kit.proof-key",
-                   "-a", key_id, "-w"]
-        if keychain_path is not None:
-            command.append(str(keychain_path))
+        raw = macos_keychain_secret("agent-operator-kit.proof-key", key_id, keychain_path).strip()
     else:
         secret_tool = shutil.which("secret-tool")
         fail(bool(secret_tool), "BROKER_UNAVAILABLE", "OS keychain client is unavailable", exit_code=3)
         command = [str(secret_tool), "lookup", "service", "agent-operator-kit.proof-key", "key-id", key_id]
-    try:
-        completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                   timeout=10, check=False)
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        raise HostError("BROKER_UNAVAILABLE", "OS keychain lookup failed", str(exc), 3) from exc
-    fail(completed.returncode == 0 and completed.stdout.strip(), "BROKER_UNAVAILABLE",
-         "proof key is unavailable in the OS keychain", exit_code=3)
-    raw = completed.stdout.strip()
+        try:
+            completed = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                       timeout=10, check=False)
+        except (OSError, subprocess.TimeoutExpired) as exc:
+            raise HostError("BROKER_UNAVAILABLE", "OS keychain lookup failed", str(exc), 3) from exc
+        fail(completed.returncode == 0 and completed.stdout.strip(), "BROKER_UNAVAILABLE",
+             "proof key is unavailable in the OS keychain", exit_code=3)
+        raw = completed.stdout.strip()
     try:
         secret = loads(raw, "keychain proof key", 32768)
     except HostError:
@@ -2764,7 +2847,7 @@ def mutation_request(value: Any, record: Mapping[str, Any]) -> Mapping[str, Any]
              "INTERFACE_PROTOCOL", "lease release request is invalid")
     else:
         fail(valid_id(request.get("leaseId"), 256) and integer(request.get("fence"), 1)
-             and request.get("targetState") in {"active", "completed", "failed"}
+             and request.get("targetState") in {"ready", "active", "completed", "failed"}
              and request.get("ttlSeconds") is None, "INTERFACE_PROTOCOL", "transition request is invalid")
     return request
 
@@ -2906,6 +2989,7 @@ def validate_refresh_host_mutation(record: Mapping[str, Any], request: Mapping[s
                 fail(final_journal == after_journal
                      and hashlib.sha256(final_journal).digest() == hashlib.sha256(after_journal).digest(),
                      "CORRUPT_JOURNAL", "graph journal changed during host post-commit validation")
+                store.refresh_retained_manifest(("graph", "events.jsonl"), final_journal)
                 for name in ("definition.json", "projection.json"):
                     descriptor, raw, identity, _parsed = candidates[name]
                     store.adopt_candidate(("graph", name), descriptor, identity, raw)
@@ -2918,6 +3002,72 @@ def validate_refresh_host_mutation(record: Mapping[str, Any], request: Mapping[s
         raise HostError(getattr(exc, "code", "INTERFACE_PROTOCOL"),
                         getattr(exc, "message", "graph mutation post-commit validation failed"),
                         getattr(exc, "details", str(exc)), 4) from exc
+    finally:
+        for descriptor in candidate_descriptors.values():
+            with contextlib.suppress(OSError):
+                os.close(descriptor)
+
+
+def refresh_host_graph_capabilities() -> None:
+    """Replay and adopt graph leaves replaced by a supervised child.
+
+    The interface relay validates every individual mutation in its own
+    process, but the supervising host retains a separate pinned capability
+    cache. Refresh that parent cache from the signed journal before it performs
+    host-subtree cleanup such as removing the invocation credential.
+    """
+    with borrowed_active_store() as store:
+        try:
+            for parts in (("authority", "control-graph-public-key.json"),
+                          ("graph", "definition.json"), ("graph", "projection.json"),
+                          ("graph", "events.jsonl")):
+                store.assert_file(parts)
+            return
+        except HostError as exc:
+            fail(exc.code == "IO_ERROR" and exc.message == "anchored file identity changed"
+                 and exc.details in {"graph/definition.json", "graph/projection.json"},
+                 exc.code, exc.message, exc.details, exc.exit_code)
+    graph = graph_module()
+    candidate_descriptors: Dict[str, int] = {}
+    try:
+        with borrowed_active_store() as store:
+            graph_fd = store.directory_fds.get(("graph",))
+            fail(graph_fd is not None, "IO_ERROR", "held graph directory is unavailable", exit_code=3)
+            lock = graph.DirectoryLock(Path(".lock"), parent_fd=graph_fd)
+            with lock:
+                store.verify_path()
+                store.assert_file(("authority", "control-graph-public-key.json"))
+                store.assert_file(("graph", "events.jsonl"))
+                journal = store.read_bytes(("graph", "events.jsonl"),
+                                           graph.MAX_JOURNAL_BYTES, private=True)
+                events = graph.parse_committed_events(journal)
+                authority_raw = store.read_bytes(("authority", "control-graph-public-key.json"),
+                                                 65536, private=True)
+                authority_value = graph.parse_json_bytes(authority_raw, Path("authority"),
+                                                         "CORRUPT_JOURNAL")
+                authority = graph.validate_authority(authority_value)
+                replayed_definition, replayed_projection = graph.replay(events, authority)
+                candidates: Dict[str, Tuple[int, bytes, Tuple[int, int]]] = {}
+                for name, expected_value in (("definition.json", replayed_definition),
+                                             ("projection.json", replayed_projection)):
+                    descriptor, raw, identity = store.open_candidate_bytes(
+                        ("graph", name), graph.MAX_GRAPH_BYTES, f"graph {name}")
+                    candidate_descriptors[name] = descriptor
+                    parsed = graph.parse_json_bytes(raw, Path(name), "CORRUPT_JOURNAL")
+                    fail(raw == graph.canonical_bytes(parsed) and parsed == expected_value,
+                         "REPLAY_DRIFT", f"graph {name} does not match the validated journal replay")
+                    candidates[name] = (descriptor, raw, identity)
+                final_journal = store.read_bytes(("graph", "events.jsonl"),
+                                                 graph.MAX_JOURNAL_BYTES, private=True)
+                fail(final_journal == journal
+                     and hashlib.sha256(final_journal).digest() == hashlib.sha256(journal).digest(),
+                     "CORRUPT_JOURNAL", "graph journal changed during parent capability refresh")
+                store.refresh_retained_manifest(("graph", "events.jsonl"), final_journal)
+                for name in ("definition.json", "projection.json"):
+                    descriptor, raw, identity = candidates[name]
+                    store.adopt_candidate(("graph", name), descriptor, identity, raw)
+                    candidate_descriptors.pop(name, None)
+                store.assert_file(("graph", "events.jsonl"))
     finally:
         for descriptor in candidate_descriptors.values():
             with contextlib.suppress(OSError):
@@ -3178,7 +3328,11 @@ def result_schema() -> Mapping[str, Any]:
     return {"type": "object", "additionalProperties": False, "required": ["status", "summary", "error"],
             "properties": {"status": {"enum": ["succeeded", "failed"]},
                            "summary": {"type": "string", "maxLength": 4096},
-                           "error": {"type": ["object", "null"]}}}
+                           "error": {"type": ["object", "null"],
+                                     "additionalProperties": False,
+                                     "required": ["code", "message"],
+                                     "properties": {"code": {"type": "string"},
+                                                    "message": {"type": "string"}}}}}
 
 
 def production_runner(record: Mapping[str, Any], request: Mapping[str, Any], worktree: Path, run_dir: Path,
@@ -3829,7 +3983,13 @@ def supervised_loop(record: Mapping[str, Any], max_actions: int, dry_run: bool,
         invocation, invocation_record = create_invocation(record)
         try:
             if sys.platform == "darwin":
-                with InterfaceRelay(record, invocation, root, 4 * max_actions + 16) as relay:
+                # One action may require acquire, runner, pending->ready,
+                # ready->active, terminal transition, release, intervening
+                # snapshot/clock checks, recovery re-reads, and bounded lease
+                # renewals during a long runner. Keep the relay finite while
+                # budgeting for the full signed lifecycle rather than only
+                # the four top-level interfaces.
+                with InterfaceRelay(record, invocation, root, 64 * max_actions + 128) as relay:
                     commands: Dict[str, str] = {}
                     for interface in ("snapshot", "clock", "mutation", "runner"):
                         path = root / interface
@@ -3848,6 +4008,7 @@ def supervised_loop(record: Mapping[str, Any], max_actions: int, dry_run: bool,
             raise HostError("HOST_CONTAINMENT_UNAVAILABLE",
                             "this platform has no configured cgroup/job containment backend", exit_code=3)
         finally:
+            refresh_host_graph_capabilities()
             remove_invocation(invocation_record)
 
 

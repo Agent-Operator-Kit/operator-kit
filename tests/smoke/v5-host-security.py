@@ -103,7 +103,7 @@ class FakeGraph:
         if "holderScope" in intent:
             assert self.host.valid_id(intent["holderScope"], 512)
         if "targetState" in intent:
-            assert intent["targetState"] in {"active", "completed", "failed"}
+            assert intent["targetState"] in {"ready", "active", "completed", "failed"}
 
     @staticmethod
     def actor_record(binding: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -589,6 +589,18 @@ def mutation_postcommit_tests(host: Any) -> None:
         accepted = host.validate_refresh_host_mutation(record, request, host.canonical(result), before)
         assert accepted == result
         assert store.read_bytes(("graph", "definition.json"), host.MAX_JSON_BYTES) == host.canonical(new_definition)
+    finally:
+        host._ACTIVE_HOST_ROOT = prior; store.close(); temporary.cleanup()
+
+    # The supervising parent owns a distinct capability cache from the relay
+    # that validated the mutation. It must replay and adopt the authorized
+    # replacements before cleaning up the host invocation credential.
+    root, store, temporary = prepare(); prior = host._ACTIVE_HOST_ROOT; host._ACTIVE_HOST_ROOT = store
+    try:
+        publish(root)
+        host.refresh_host_graph_capabilities()
+        with host.held_store() as refreshed:
+            assert refreshed.read_bytes(("graph", "definition.json"), host.MAX_JSON_BYTES) == host.canonical(new_definition)
     finally:
         host._ACTIVE_HOST_ROOT = prior; store.close(); temporary.cleanup()
 
