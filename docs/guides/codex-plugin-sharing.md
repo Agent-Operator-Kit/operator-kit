@@ -36,6 +36,29 @@ The helper prepares `~/.codex/operator-kit-plugin-marketplace`, installs
 `operator@operator-kit-local`, and backs up legacy direct Operator skills.
 Restart or reopen Codex Desktop after refreshing the plugin.
 
+## Install Into the Personal Marketplace
+
+Workspace sharing starts from the personal marketplace, not the isolated
+`operator-kit-local` development marketplace. Copy the validated package into
+the personal plugin root:
+
+```bash
+rsync -a --delete --exclude='.DS_Store' \
+  plugins/operator-kit/ \
+  "$HOME/plugins/operator/"
+```
+
+Add an `operator` entry to `$HOME/.agents/plugins/marketplace.json` that points
+at `./plugins/operator`, then install the personal identity:
+
+```bash
+codex plugin add operator@personal-plugins
+```
+
+Verify the personal installation before removing or disabling
+`operator@operator-kit-local`. Restart the ChatGPT desktop app so the Personal
+plugin catalog refreshes.
+
 ## Enable a Project
 
 Installing the plugin does not mutate a project. Bootstrap a new project from a
@@ -56,14 +79,21 @@ through the reviewed V5 host setup for that project.
 `--channel latest` is required for V5 while the default `stable` channel still
 points to the V2.1 release line.
 
-## Workspace Preview
+## Workspace Preview And Sharing
 
 Use a separate preview release and restrict it to a tester group before broad
-workspace rollout. In Codex workspace plugin settings, import the preview
-package, keep its installation policy `AVAILABLE` during the pilot, and share
-it only with the selected audience. Workspace sharing is workspace-scoped; use
-the Git marketplace route for personal accounts or collaborators outside the
-workspace.
+workspace rollout. In the ChatGPT plugin directory:
+
+1. Open **Personal**.
+2. Find Operator under **Created by me**.
+3. Open the plugin's actions or detail page.
+4. Use **Share** to invite people or groups, select their access, or copy the
+   workspace-scoped link.
+
+OpenAI documentation may describe the initial local-to-workspace promotion as
+**Publish**. The access-management dialog presented after promotion is
+**Share**. Workspace sharing remains workspace-scoped; use the Git marketplace
+route for personal accounts or collaborators outside that workspace.
 
 ## Release Checks
 
