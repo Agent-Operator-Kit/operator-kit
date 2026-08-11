@@ -99,7 +99,7 @@ The Cursor profile generates a lane map like:
 ```text
 operator|Cursor IDE|app|main|
 cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent
-ui|Claude Code|app-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+ui|Claude Code|app-ui|claude/ui|claude --safe-mode --permission-mode dontAsk
 ```
 
 Edit the lane names, branches, and invocations before starting workers. Some

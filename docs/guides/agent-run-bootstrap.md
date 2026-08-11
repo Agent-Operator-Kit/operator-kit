@@ -64,6 +64,13 @@ Goals:
   - .cursor/skills/incubation/SKILL.md
   - .cursor/environment.json.example
 - Create the external operator workspace as `<project-root>/operator` unless I specify another path.
+- For a fresh latest install, mark the project as V5, derive the role map from
+  OPERATOR_LANES after catalog initialization, install all eleven V5 schemas
+  and runtimes, and create only private empty external runtime directories.
+- Never initialize production graph history, signed bindings, authority keys,
+  proof keys, or host sessions during setup. Never use permission-bypass launches.
+- If updating V4, preserve its version marker and artifacts; report migration
+  required and use the reviewed explicit V5 migration guide.
 
 Required behavior:
 1. Inspect first. If the target is an empty project root, propose the scoped
@@ -99,8 +106,12 @@ Required behavior:
    - bash scripts/operator-catalog.sh list roles
    - bash scripts/operator-recommend-lanes.sh
    - bash scripts/operator-plan-batch.sh
+   - bash scripts/operator-role-map.sh validate
 12. Confirm generated task, handoff, and memory files landed under OPERATOR_DIR, not inside the repo.
 13. Confirm scripts/operator-memory.sh, scripts/operator-roadmap.sh, scripts/operator-feedback.sh, scripts/operator-catalog.sh, scripts/operator-system-map.sh, scripts/operator-recommend-lanes.sh, scripts/operator-plan-batch.sh, scripts/operator-update.sh, scripts/operator-sync.sh, and scripts/operator-upgrade.sh are installed for future safe refreshes.
+    Also confirm the V5 graph, scheduler, loop, host, proof-broker, design-flow,
+    role-map, and migration commands plus their plain Python helpers and eleven
+    schemas are installed with correct executable/plain modes.
 14. Confirm AGENTS.md points Codex users to the global $operator skill when available.
 15. Show git status and list intended repo changes.
 
@@ -111,6 +122,10 @@ Guardrails:
 - Do not let two agents share the same branch.
 - Do not let two agents edit the same file at the same time.
 - Ask before starting destructive commands, deployments, production builds, or provider-console changes.
+- Treat OPERATOR_DIR graph history, fences, bindings, evidence, and migration
+  manifests as durable backup/recovery state, not disposable scratch data.
+- Keep private authority/proof keys out of the repo, OPERATOR_DIR, environment,
+  command lines, task packets, logs, and handoffs.
 
 Final response:
 - Summarize installed files.

@@ -2,6 +2,8 @@
 set -euo pipefail
 
 KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# shellcheck source=/dev/null
+source "$KIT_ROOT/scripts/operator-lib.sh"
 BOOTSTRAP_PROFILE="${OPERATOR_BOOTSTRAP_PROFILE:-default}"
 TARGET_REPO=""
 
@@ -9,7 +11,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
-Installs Agent Operator Kit V4 scripts/templates into an existing git repository.
+Installs Agent Operator Kit V5 scripts/templates into an existing git repository.
 
 Profiles:
   default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
@@ -73,7 +75,36 @@ default_branch="$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/H
 [ -n "$default_branch" ] || default_branch="main"
 obsolete_cursor_skills=(product-manager)
 
+copy_executable() {
+  local src="$1"
+  local dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  cp "$src" "$dest"
+  chmod 0755 "$dest"
+}
+
+copy_plain() {
+  local src="$1"
+  local dest="$2"
+  mkdir -p "$(dirname "$dest")"
+  cp "$src" "$dest"
+  chmod 0644 "$dest"
+}
+
+copy_plain_directory() {
+  local src_dir="$1"
+  local dest_dir="$2"
+  local src
+  mkdir -p "$dest_dir"
+  chmod 0755 "$dest_dir"
+  for src in "$src_dir"/*; do
+    [ -f "$src" ] || continue
+    copy_plain "$src" "$dest_dir/$(basename "$src")"
+  done
+}
+
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/features" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
+mkdir -p "$repo_root/schemas/operator-v5"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
@@ -88,10 +119,15 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
-  cp "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
-  chmod +x "$repo_root/scripts/$script"
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+  copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
+
+for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py; do
+  copy_plain "$KIT_ROOT/scripts/$helper" "$repo_root/scripts/$helper"
+done
+
+copy_plain_directory "$KIT_ROOT/schemas/operator-v5" "$repo_root/schemas/operator-v5"
 
 if [ ! -f "$repo_root/operator.config.env" ]; then
   if [ "$BOOTSTRAP_PROFILE" = "cursor" ]; then
@@ -102,12 +138,12 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="4"
+OPERATOR_KIT_VERSION="5"
 
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
 cursor|Cursor CLI|$repo_name-cursor|cursor/operator|cursor agent
-ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
 '
 EOF
   else
@@ -118,12 +154,12 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="4"
+OPERATOR_KIT_VERSION="5"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
-backend|Codex CLI|$repo_name-backend|codex/backend|codex --dangerously-bypass-approvals-and-sandbox
-ui|Claude Code|$repo_name-ui|claude/ui|claude --dangerously-skip-permissions --permission-mode bypassPermissions
+backend|Codex CLI|$repo_name-backend|codex/backend|codex --sandbox workspace-write
+ui|Claude Code|$repo_name-ui|claude/ui|claude --permission-mode dontAsk
 '
 EOF
   fi
@@ -141,7 +177,7 @@ if [ ! -f "$repo_root/CLAUDE.md" ]; then
   cp "$KIT_ROOT/templates/repo/CLAUDE.md" "$repo_root/CLAUDE.md"
 fi
 
-for command in operator-bootstrap.md operator-status.md; do
+for command in operator-bootstrap.md operator-status.md operator-open.md operator-tick.md operator-goal-context.md; do
   if [ ! -f "$repo_root/.claude/commands/$command" ]; then
     cp "$KIT_ROOT/templates/claude/commands/$command" "$repo_root/.claude/commands/$command"
   fi
@@ -166,7 +202,7 @@ if [ ! -f "$repo_root/.cursor/environment.json.example" ] && [ ! -f "$repo_root/
 fi
 
 if [ ! -f "$project_root/operator/README.md" ]; then
-  cp "$KIT_ROOT/templates/operator-workspace/README.md" "$project_root/operator/README.md"
+  copy_plain "$KIT_ROOT/templates/operator-workspace/README.md" "$project_root/operator/README.md"
 fi
 
 for roadmap_file in \
@@ -218,7 +254,21 @@ OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operat
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feedback.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-feature.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-catalog.sh" init >/dev/null
+OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-role-map.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-system-map.sh" refresh >/dev/null
+
+# V5 runtime roots are private and external to every repository worktree. The
+# installer deliberately creates no graph events, definitions, projections,
+# bindings, authority keys, host sessions, loop state, or proof material.
+for runtime_dir in authority graph graph/bindings host loop migrations; do
+  mkdir -p "$project_root/operator/$runtime_dir"
+  chmod 0700 "$project_root/operator/$runtime_dir"
+done
+if [ ! -f "$project_root/operator/graph/README.md" ]; then
+  copy_plain "$KIT_ROOT/templates/operator-workspace/graph/README.md" "$project_root/operator/graph/README.md"
+fi
+operator_restore_design_prompt "$project_root/operator" \
+  "$KIT_ROOT/templates/prompts/design-proposal.md" 0 >/dev/null
 
 printf 'Installed Agent Operator Kit into: %s\n' "$repo_root"
 printf 'Operator workspace: %s\n' "$project_root/operator"

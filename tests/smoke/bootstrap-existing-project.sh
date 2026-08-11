@@ -46,9 +46,19 @@ test -f "$tmp_root/code/app/scripts/operator-catalog.sh"
 test -f "$tmp_root/code/app/scripts/operator-system-map.sh"
 test -f "$tmp_root/code/app/scripts/operator-recommend-lanes.sh"
 test -f "$tmp_root/code/app/scripts/operator-plan-batch.sh"
-grep -q 'OPERATOR_KIT_VERSION="4"' "$tmp_root/code/app/operator.config.env"
+grep -q 'OPERATOR_KIT_VERSION="5"' "$tmp_root/code/app/operator.config.env"
+grep -q 'codex --sandbox workspace-write' "$tmp_root/code/app/operator.config.env"
+grep -q 'claude --permission-mode dontAsk' "$tmp_root/code/app/operator.config.env"
+codex_bypass='dangerously-bypass-approvals-and-'"sandbox"
+claude_bypass='dangerously-skip-'"permissions"
+claude_mode='bypass'"Permissions"
+! grep -Eq "$codex_bypass|$claude_bypass|$claude_mode" \
+  "$tmp_root/code/app/operator.config.env"
 test -f "$tmp_root/code/app/.claude/commands/operator-bootstrap.md"
 test -f "$tmp_root/code/app/.claude/commands/operator-status.md"
+test -f "$tmp_root/code/app/.claude/commands/operator-open.md"
+test -f "$tmp_root/code/app/.claude/commands/operator-tick.md"
+test -f "$tmp_root/code/app/.claude/commands/operator-goal-context.md"
 test -f "$tmp_root/code/app/.claude/agents/operator-workflow.md"
 test -f "$tmp_root/code/app/.cursor/rules/operator-workflow.mdc"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
@@ -56,6 +66,16 @@ for cursor_skill in operator-workflow operator operator-planner operator-feedbac
 done
 test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
 test -f "$tmp_root/code/app/.cursor/environment.json.example"
+for v5_script in operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh; do
+  test -x "$tmp_root/code/app/scripts/$v5_script"
+done
+for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py; do
+  test -f "$tmp_root/code/app/scripts/$helper"
+  test ! -x "$tmp_root/code/app/scripts/$helper"
+done
+test "$(find "$tmp_root/code/app/schemas/operator-v5" -type f -name '*.json' | wc -l | tr -d ' ')" = 11
+test ! -e "$tmp_root/operator/graph/events.jsonl"
+test ! -e "$tmp_root/operator/authority/control-graph-public-key.json"
 test ! -d "$tmp_root/code/app/operator"
 test -f "$tmp_root/operator/catalog/README.md"
 test -f "$tmp_root/operator/catalog/roles/provider-integration.md"
@@ -64,6 +84,7 @@ test -f "$tmp_root/operator/system-map.md"
 bash scripts/operator-catalog.sh list roles | grep -q provider-integration
 bash scripts/operator-recommend-lanes.sh >/dev/null
 bash scripts/operator-plan-batch.sh >/dev/null
+bash scripts/operator-role-map.sh validate >/dev/null
 bash scripts/operator-feature.sh active >/dev/null
 bash scripts/operator-conflicts.sh summary >/dev/null
 

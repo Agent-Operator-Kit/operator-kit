@@ -8,6 +8,8 @@ KIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PLUGIN_ROOT="$KIT_ROOT/plugins/operator-kit"
 MANIFEST="$PLUGIN_ROOT/.codex-plugin/plugin.json"
 MARKETPLACE_ENTRY="$PLUGIN_ROOT/marketplace-entry.json"
+V5_COMPATIBILITY="$PLUGIN_ROOT/v5-compatibility.json"
+MARKETPLACE_MANIFEST="$KIT_ROOT/.agents/plugins/marketplace.json"
 
 fail() {
   printf '%s\n' "$1" >&2
@@ -17,9 +19,11 @@ fail() {
 test -d "$PLUGIN_ROOT" || fail "Missing plugin root: $PLUGIN_ROOT"
 test -f "$MANIFEST" || fail "Missing plugin manifest: $MANIFEST"
 test -f "$MARKETPLACE_ENTRY" || fail "Missing marketplace entry metadata."
+test -f "$V5_COMPATIBILITY" || fail "Missing V5 compatibility metadata."
+test -f "$MARKETPLACE_MANIFEST" || fail "Missing repository marketplace manifest."
 test -d "$PLUGIN_ROOT/skills" || fail "Missing plugin skills directory."
 
-python3 - "$MANIFEST" "$MARKETPLACE_ENTRY" <<'PY'
+python3 - "$MANIFEST" "$MARKETPLACE_ENTRY" "$MARKETPLACE_MANIFEST" <<'PY'
 import json
 import re
 import sys
@@ -27,10 +31,13 @@ from pathlib import PurePosixPath
 
 manifest_path = sys.argv[1]
 marketplace_entry_path = sys.argv[2]
+marketplace_manifest_path = sys.argv[3]
 with open(manifest_path, encoding="utf-8") as handle:
     manifest = json.load(handle)
 with open(marketplace_entry_path, encoding="utf-8") as handle:
     marketplace_entry = json.load(handle)
+with open(marketplace_manifest_path, encoding="utf-8") as handle:
+    marketplace_manifest = json.load(handle)
 
 errors = []
 
@@ -113,6 +120,30 @@ if not isinstance(policy, dict) or policy.get("installation") != "AVAILABLE" or 
 if marketplace_entry.get("category") != "Developer Tools":
     print("marketplace entry category must be Developer Tools", file=sys.stderr)
     raise SystemExit(1)
+
+if marketplace_manifest.get("name") != "operator-kit":
+    print("repository marketplace name must be operator-kit", file=sys.stderr)
+    raise SystemExit(1)
+plugins = marketplace_manifest.get("plugins")
+if not isinstance(plugins, list) or len(plugins) != 1:
+    print("repository marketplace must contain exactly one plugin", file=sys.stderr)
+    raise SystemExit(1)
+if plugins[0] != marketplace_entry:
+    print("repository marketplace plugin must match marketplace-entry.json", file=sys.stderr)
+    raise SystemExit(1)
+PY
+
+python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
+import json, sys
+manifest = json.load(open(sys.argv[1], encoding="utf-8"))
+compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
+assert manifest["version"] == "0.5.0"
+assert compatibility["projectKitVersion"] == "5"
+assert compatibility["pluginVersion"] == manifest["version"]
+assert compatibility["releaseChannel"] == "stable"
+assert compatibility["releaseSemverChanged"] is True
+assert compatibility["historicalBundle"] == "v3-adapter-bundle.json"
+assert compatibility["safety"]["productionBypassAllowed"] is False
 PY
 
 diff_log="$(mktemp /tmp/aok-plugin-skills-diff.XXXXXX)"
@@ -133,6 +164,19 @@ while IFS= read -r skill_dir; do
   sed -n '2,20p' "$skill_md" | grep -q '^name:[[:space:]]*' || fail "Skill name missing: $skill_md"
   sed -n '2,20p' "$skill_md" | grep -q '^description:[[:space:]]*' || fail "Skill description missing: $skill_md"
 done < <(find "$PLUGIN_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+
+operator_skill="$PLUGIN_ROOT/skills/operator/SKILL.md"
+grep -q '^## First Invocation And Setup Recommendation$' "$operator_skill" \
+  || fail "Operator skill is missing first-invocation setup detection."
+grep -q 'workspace-shared installs' "$operator_skill" \
+  || fail "Operator first-run guidance must cover workspace-shared installs."
+grep -q -- '--channel latest' "$operator_skill" \
+  || fail "Operator first-run setup must select the latest V5 channel."
+grep -q -- '--bootstrap-if-missing' "$operator_skill" \
+  || fail "Operator first-run setup must support explicit bootstrap."
+if grep -q '/Users/' "$operator_skill"; then
+  fail "Operator skill must not contain a developer-specific absolute path."
+fi
 
 tmp_root="$(mktemp -d /tmp/aok-plugin-sync.XXXXXX)"
 trap 'rm -rf "$tmp_root"' EXIT

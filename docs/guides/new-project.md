@@ -46,6 +46,19 @@ bash scripts/operator-recommend-lanes.sh
 
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.
 
+The latest bootstrap is V5. It derives `operator/catalog/role-map.json` from
+the target's `OPERATOR_LANES`, installs all eleven schemas and V5 runtimes, and
+creates private external runtime directories. It does not create graph events,
+definitions, projections, signed bindings, authority keys, proof keys, or host
+sessions. Control must provision the public anchor, signed bindings, and OS
+keychain proof material, then initialize graph state only through the trusted
+host/graph API.
+
+After provisioning, verify with `operator-role-map.sh validate`,
+`operator-graph.sh status`, and a bound `operator-host.sh current`. Never use a
+permission-bypass runner or place private keys in the repo or external
+workspace. Add `OPERATOR_DIR` to the project's backup and recovery plan.
+
 For Codex Desktop operation after install, add or refresh the bundled global skills:
 
 ```bash

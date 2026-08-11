@@ -187,9 +187,13 @@ for a Codex marketplace:
 }
 ```
 
-The live marketplace file location belongs to the distribution channel. This
-source repo currently keeps the entry as package metadata instead of installing
-or mutating a personal marketplace.
+The repository-level `.agents/plugins/marketplace.json` wraps this entry and
+makes a committed revision installable as a Git-backed marketplace. The local
+migration helper still creates an independent development marketplace under
+`~/.codex/`; neither path mutates project-local Operator state.
+
+See [Sharing the Operator Codex plugin](codex-plugin-sharing.md) for local,
+Git-backed, workspace-preview, and per-project installation guidance.
 
 ## Validation
 

@@ -5,7 +5,11 @@ description: "Manage Agent Operator Kit execution in Codex Desktop. Use when the
 
 # Operator
 
-Use this skill as the Codex Desktop operating wrapper for an installed Agent Operator Kit project. The project-local `operator.config.env` and `scripts/operator-*.sh` files are the source of truth.
+Use this skill as the Codex Desktop operating wrapper for detecting, setting up,
+and operating an Agent Operator Kit project. The plugin may be available through
+workspace sharing before the current project has any Operator runtime. Once
+installed, the project-local `operator.config.env` and `scripts/operator-*.sh`
+files are the source of truth.
 
 Do not treat this as direct tmux chat. Operate through status checks, task packets, dispatch, collection, summaries, and reviewed integration.
 
@@ -29,71 +33,114 @@ prioritizing backlog, prefer `$operator-feedback` or `$operator-planner`.
 Use UX Auditor (`$ux-auditor`) for assessment, `$user-journey` for journey
 artifacts, and `$operator` when work is ready to become execution.
 
-## Codex Chat Getting Started
+## First Invocation And Setup Recommendation
 
-When the user asks how to get started, how to try Operator, or how to begin
-using Operator, assume the primary UX is Codex Desktop chat unless the user
-explicitly asks for terminal-only, Cursor, or Claude Code instructions.
-If the user wants a non-Codex startup path, they should say so directly, for
-example: "get started in Cursor", "get started in Claude Code", or "give me the
-terminal setup". Do not infer Cursor or Claude Code just because their adapters
-exist.
+On the first Operator-routed prompt in a chat, run a read-only project preflight
+before answering, even when the user did not explicitly ask for setup. This is
+especially important for workspace-shared installs: the plugin can be installed
+for the user while the current repository still lacks the project-local runtime.
 
-Default to a chat-first flow:
+Do not repeat the full preflight on every prompt after one project config is
+unambiguously bound. Run it again when the workspace changes, the user asks to
+set up or upgrade Operator, or required files disappear.
 
-1. Detect the current Codex project from the chat workspace.
-2. Classify the workspace before telling the user what to do:
-   - `kit-source`: this repo is the Operator Kit source checkout when
-     `plugins/operator-kit/.codex-plugin/plugin.json` and
-     `scripts/operator-bootstrap.sh` exist.
-   - `installed-project`: `operator.config.env` and the required
-     `scripts/operator-*.sh` files exist.
-   - `legacy-or-stale-project`: an Operator Kit install exists but is missing
-     current scripts such as `operator-feature.sh`, `operator-conflicts.sh`, or
-     `operator-sync.sh`.
-   - `not-installed-project`: a normal git repo without Operator Kit config.
-3. If the Codex plugin is missing but this is the kit source checkout, run the
-   plugin migration script from the source checkout:
-   ```bash
-   bash scripts/operator-plugin-migrate.sh
-   ```
-   If the plugin is already installed, do not retire or reinstall anything
-   unless the package version or source path is stale.
-4. If this is an installed or stale project, update naturally to the latest
-   project-local scripts from the local kit source when available:
-   ```bash
-   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-update.sh --source /Users/norbert/Projects/Agent-Operator-Kit/operator-kit --target <project-root> --channel latest --no-fetch
-   ```
-   Then run status and summary yourself.
-5. If this is a not-installed project and the user asked to get started with
-   Operator in that project, bootstrap it from the local kit source when
-   available:
-   ```bash
-   bash /Users/norbert/Projects/Agent-Operator-Kit/operator-kit/scripts/operator-bootstrap.sh <project-root>
-   ```
-   If bootstrapping would create project files and the user's wording is only
-   exploratory, explain the install plan before writing.
-6. After install or update, open the feature-session cockpit when available:
-   ```bash
-   bash scripts/operator-feature.sh open --tool codex
-   ```
-7. Explain the active feature sessions in chat and recommend one next action:
-   bind this chat to an existing feature, create a new feature session, update
-   the project to latest, or run a safe status-only check.
-8. If no feature is selected and the user names a feature idea, create the
-   feature session and bind this chat:
-   ```bash
-   bash scripts/operator-feature.sh start <slug> "<title>"
-   bash scripts/operator-feature.sh open --tool codex --feature <FS-id>
-   ```
+Classify the workspace as exactly one of:
 
-Do not start by giving the user a long shell checklist when the task can be
-handled from the current Codex chat. Commands are still the implementation
-surface, but the user-facing experience should be: open the project in Codex,
-start or continue a chat, ask Operator to get started, then let Operator detect,
-install, migrate, update, and bind the chat as needed. Do not require the user
-to say "V4"; current feature-session behavior is the default latest Operator
-Kit experience.
+- `kit-source`: `plugins/operator-kit/.codex-plugin/plugin.json` and
+  `scripts/operator-bootstrap.sh` exist.
+- `v5-ready`: `operator.config.env` selects version 5, all V5 scripts and eleven
+  schemas exist, status succeeds, and the graph/host state is usable.
+- `v5-runtime-only`: the V5 runtime is installed but graph authority or host
+  binding has not been initialized.
+- `v4-migration-required`: the project marker is 4 and latest V5 tooling is
+  present, so an explicit reviewed migration is required.
+- `legacy-or-partial`: some Operator files exist, but config, required scripts,
+  or status validation is missing or stale.
+- `not-installed-project`: a normal git repository has no reliable Operator
+  project signals.
+- `no-project`: the workspace is not a git repository and no scoped
+  `code/*/operator.config.env` can be resolved.
+- `ambiguous`: more than one candidate project config is available.
+
+The first response should lead with the classification and one recommended
+next action:
+
+- `v5-ready`: run status and recommend continuing or creating a feature session.
+- `v5-runtime-only`: recommend completing the reviewed trusted-host setup;
+  explain that this creates project-specific authority/bindings and requires
+  explicit approval.
+- `v4-migration-required`: recommend `operator-v5-migrate.sh plan`; never apply
+  the migration without the separate authorization token.
+- `legacy-or-partial`: recommend a latest-channel repair from a trusted source,
+  then status validation.
+- `not-installed-project`: say that the Operator plugin is available but this
+  project is not initialized, and recommend the V5 project setup below.
+- `kit-source`: report source and self-hosting status, then recommend local
+  plugin refresh or project status only when needed.
+- `no-project`: recommend opening a git project or intentionally creating a
+  scoped project before setup.
+- `ambiguous`: list the candidate configs and ask which one to bind; do not
+  mutate either project.
+
+For a normal uninitialized git repository, keep the recommendation concise:
+
+```text
+Operator is available, but this project is not initialized.
+Recommended: install the V5 project runtime using the latest channel.
+This adds project scripts, schemas, operator.config.env, and an external
+operator workspace. It does not start lanes or initialize graph keys.
+Say "set it up" and I can perform and validate the setup here.
+```
+
+If the user explicitly asks to install, initialize, set up, or get started,
+that wording authorizes the normal project-file bootstrap. Otherwise, explain
+the proposed writes and wait for approval before changing the repository.
+Graph authority, private keys, actor bindings, production host sessions,
+worktree creation, tmux startup, migration, dispatch, push, and release remain
+separately gated.
+
+Resolve a trusted project-runtime source in this order:
+
+1. a valid path explicitly supplied through `OPERATOR_KIT_SOURCE` or by the
+   user;
+2. the current checkout when it is classified as `kit-source`;
+3. the official repository `https://github.com/Agent-Operator-Kit/operator-kit.git`.
+
+Do not embed a developer-specific absolute path. When a local source is
+available, use:
+
+```bash
+bash <kit-source>/scripts/operator-sync.sh \
+  --source <kit-source> \
+  --channel latest \
+  --target <project-root> \
+  --bootstrap-if-missing \
+  --skip-skills
+```
+
+When no trusted local source exists, recommend or execute the official remote
+bootstrap only after normal network and project-write authorization:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-kit/main/scripts/operator-sync.sh) \
+  --source https://github.com/Agent-Operator-Kit/operator-kit.git \
+  --channel latest \
+  --target <project-root> \
+  --bootstrap-if-missing \
+  --skip-skills
+```
+
+After setup or repair, run status, summary, memory, catalog, lane recommendation,
+and V5 role-map validation. Confirm that graph status is either deliberately
+initialized or safely `NOT_INITIALIZED`; fresh bootstrap must not create graph
+history, authority, bindings, proof material, or private keys.
+
+Assume Codex Desktop chat is the primary UX unless the user explicitly asks for
+terminal-only, Cursor, or Claude Code instructions. Do not start with a long
+shell checklist when the work can be handled from the current chat. After a
+ready install is bound, open the feature-session cockpit when available and
+recommend one next action: continue an active feature, create a feature session,
+update the runtime, or remain in safe status-only `operator observe` mode.
 
 ## Sticky Operator Mode
 
@@ -147,6 +194,11 @@ Before operator work, resolve the project root:
    V4 installs may also provide `scripts/operator-feature.sh` and
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
+   V5 installs must additionally provide `operator-role-map.sh`,
+   `operator-graph.sh`, `operator-scheduler.sh`, `operator-loop.sh`,
+   `operator-host.sh`, `operator-proof-broker.sh`, `operator-design-flow.sh`,
+   and `operator-v5-migrate.sh`, their plain Python helpers, and the eleven-file
+   `schemas/operator-v5/` bundle.
 6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 7. Read `operator.config.env`.
 8. Read `AGENTS.md` if present.
@@ -164,6 +216,34 @@ bash scripts/operator-summary.sh
 
 If partial, explain what was found and what is missing; do not dispatch or collect until repaired.
 If not installed, say Operator Kit is not installed in this project and offer setup or a path switch.
+
+## V5 Control Runtime
+
+Fresh latest installs are V5. The signed append-only graph is runtime
+authority; roadmap, feature folders, chats, tmux, prompts, and host metadata
+remain planning/evidence indexes. Production mutations go only through a
+signed actor binding and the isolated host proof broker. Execute graph scopes
+through `operator-host.sh`; do not run permission-bypass agents, write graph
+files directly, or treat a runner result as a human gate.
+
+Status must report project kit version, migration state, graph initialization,
+host runtime, and broker/keychain readiness without auto-initializing or
+repairing graph state. Human gates remain explicit for subjective proposal
+selection, integration, push/publish/release, credentials, destructive or
+production changes, and irreversible high-risk work. Dissatisfaction creates
+forward feedback work rather than reopening completed nodes.
+
+Private authority/proof keys never enter a repo, `OPERATOR_DIR`, environment,
+CLI argument, task packet, log, or handoff. Graph history, fences, signed
+bindings, host effect ledgers, evidence, and migration manifests are durable
+backup/recovery state; the external workspace is not disposable.
+
+For V4 updated to latest, preserve `OPERATOR_KIT_VERSION="4"` and report
+migration required. Run `operator-v5-migrate.sh plan`; apply only from a
+reviewed mapping with stopped writers, safe external state, compatible graph,
+available broker/keychain tooling, and explicit `MIGRATE_V4_TO_V5`
+authorization. Never reinterpret V4 files as graph truth or initialize graph
+or key state during migration.
 
 ## Core Commands
 
@@ -188,6 +268,12 @@ bash scripts/operator-catalog.sh list roles
 bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
+bash scripts/operator-role-map.sh init|show|validate
+bash scripts/operator-graph.sh status|snapshot|replay check
+bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
+bash scripts/operator-loop.sh status|pause|resume
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-v5-migrate.sh plan
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
@@ -644,12 +730,14 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-catalog.sh list roles
    bash scripts/operator-recommend-lanes.sh
    bash scripts/operator-plan-batch.sh
+   if [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then bash scripts/operator-role-map.sh validate; fi
    bash scripts/operator-upgrade.sh --channel latest --dry-run --skip-skills --target <project-root>
    git status --short
    ```
 9. Summarize source revision, updated files, installed missing files, preserved project-specific files, validation results, optional companion skills refreshed, and any manual follow-up.
 
 The update flow must preserve project-specific files by default: `operator.config.env`, existing `AGENTS.md`, `CODEX.md`, `CLAUDE.md`, `.claude/*`, `.cursor/*`, raw handoffs, task packets, task working files, captures, and all source code.
+It must also preserve a V4 version marker until explicit migration succeeds.
 
 ## Guardrails
 

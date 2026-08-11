@@ -26,6 +26,31 @@ For day-to-day operation inside an already installed project, prefer the runtime
 13. Dispatch and collect one smoke handoff when appropriate.
 14. Report exact paths, branches, commands, V2 catalog/system-map status, memory/roadmap status, and validation status.
 
+## V5 Distribution And Migration
+
+Fresh `latest` installs use `OPERATOR_KIT_VERSION="5"`. Install the role map,
+graph shell/Python pair, scheduler, loop, host, proof broker, design flow,
+migration command, all eleven schemas, graph workspace template, and design
+prompt. Initialize the catalog before deriving the target role map from
+`OPERATOR_LANES`; never copy the canonical eight-lane example as project truth.
+Create private external runtime directories only. Do not initialize graph
+history, authority/binding state, production keys, host sessions, or proof
+material.
+
+A plain latest update of V4 installs V5 tooling but must preserve its `4`
+marker and report migration required. Use `operator-v5-migrate.sh plan`; apply
+only after the mapping is reviewed, writers are stopped, external state is
+safe and backed up, broker/keychain tooling is available, and the user
+explicitly authorizes `MIGRATE_V4_TO_V5`. V4 artifacts remain in place and are
+never reinterpreted as graph truth.
+
+V5 production work enters through the signed `operator-host.sh` boundary. Do
+not use permission-bypass launches or direct graph-file writes. Private
+authority/proof keys never belong in the repo, `OPERATOR_DIR`, environment,
+CLI, task packets, logs, or handoffs. Treat graph history, fences, bindings,
+host effect ledgers, evidence, and migration manifests as durable
+backup/recovery state.
+
 ## Agent-Run Setup
 
 When the user wants an agent to fully set up the system from scratch, follow `docs/guides/agent-run-bootstrap.md` and the prompt template in `templates/prompts/agent-run-bootstrap.md`.
@@ -109,3 +134,5 @@ cannot be safely inferred.
 - Do not let agents share branches.
 - Do not let agents edit the same file at the same time.
 - Keep project-specific secrets out of docs and examples.
+- Do not initialize production graph/key state during setup or migration.
+- Do not treat the external V5 workspace as disposable.

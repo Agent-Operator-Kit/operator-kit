@@ -193,7 +193,7 @@ prepare_source() {
 
   if [ -d "$SOURCE" ]; then
     SOURCE_PATH="$(cd "$SOURCE" && pwd)"
-    if [ "$NO_FETCH" -eq 0 ] && git -C "$SOURCE_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    if [ "$DRY_RUN" -eq 0 ] && [ "$NO_FETCH" -eq 0 ] && git -C "$SOURCE_PATH" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       if [ -n "$(git -C "$SOURCE_PATH" status --porcelain)" ]; then
         printf 'Source has local changes; skipping git pull: %s\n' "$SOURCE_PATH" >&2
       else
@@ -335,6 +335,11 @@ bootstrap_repo_from_project_root() {
 
   print_scoped_layout "$root" >&2
 
+  if [ "$DRY_RUN" -eq 1 ]; then
+    printf '%s\n' "$repo"
+    return 0
+  fi
+
   mkdir -p "$repo"
   if ! git -C "$repo" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     git -C "$repo" init >/dev/null
@@ -440,6 +445,8 @@ run_project_checks() {
   print_section "Project Checks"
   (
     cd "$target"
+    # shellcheck source=/dev/null
+    source operator.config.env
     bash -n scripts/*.sh
     bash scripts/operator-status.sh
     bash scripts/operator-summary.sh
@@ -454,6 +461,9 @@ run_project_checks() {
     bash scripts/operator-catalog.sh list roles >/dev/null
     bash scripts/operator-recommend-lanes.sh >/dev/null
     bash scripts/operator-plan-batch.sh >/dev/null
+    if [ -f scripts/operator-role-map.sh ] && [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then
+      bash scripts/operator-role-map.sh validate >/dev/null
+    fi
     git status --short
   )
 }
@@ -465,7 +475,10 @@ print_section "Operator Kit Sync"
 printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
-printf 'Default kit version: 4\n'
+case "$CHANNEL" in
+  latest|main) printf 'Fresh-install kit version: 5\n' ;;
+  *) printf 'Fresh-install kit version: selected legacy channel\n' ;;
+esac
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"
 if [ "$DRY_RUN" -eq 1 ]; then
   printf 'Mode: dry run\n'
@@ -497,7 +510,19 @@ if [ -z "$TARGET_DETECTED" ]; then
   exit 0
 fi
 
-TARGET_REPO="$(git -C "$TARGET_DETECTED" rev-parse --show-toplevel)"
+if ! TARGET_REPO="$(git -C "$TARGET_DETECTED" rev-parse --show-toplevel 2>/dev/null)"; then
+  if [ "$DRY_RUN" -eq 1 ] && [ "$BOOTSTRAP_IF_MISSING" -eq 1 ]; then
+    TARGET_REPO="$TARGET_DETECTED"
+    print_section "Project Detection"
+    printf 'Target: %s\n' "$TARGET_REPO"
+    print_section "Project Bootstrap"
+    printf 'Would initialize a git repository and bootstrap Operator Kit into: %s\n' "$TARGET_REPO"
+    printf 'Bootstrap profile: %s\n' "$BOOTSTRAP_PROFILE"
+    exit 0
+  fi
+  printf 'Detected target is not a git repository: %s\n' "$TARGET_DETECTED" >&2
+  exit 1
+fi
 
 print_section "Project Detection"
 printf 'Target: %s\n' "$TARGET_REPO"

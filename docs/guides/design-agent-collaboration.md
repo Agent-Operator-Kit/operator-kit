@@ -68,8 +68,8 @@ Codex review + Claude Code Opus direct edits + design-system/
 Add lanes only when the project needs them:
 
 ```text
-ui|Claude Code|app-ui|claude/ui|claude --model opus --dangerously-skip-permissions --permission-mode bypassPermissions
-design|Claude Code|app-design|claude/design|claude --model opus --dangerously-skip-permissions --permission-mode bypassPermissions
+ui|Claude Code|app-ui|claude/ui|claude --model opus --safe-mode --permission-mode dontAsk
+design|Claude Code|app-design|claude/design|claude --model opus --safe-mode --permission-mode dontAsk
 ```
 
 Use a `design` lane when the project benefits from reviewable mockups or design handoffs before production UI implementation.

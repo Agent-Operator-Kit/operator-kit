@@ -30,6 +30,15 @@ incubation to incubation mode unless the user asks for execution.
 - Conflict detection is based on touched files, contracts, surfaces, branches, worktrees, and shared resources, not on role name alone.
 - Exploration can continue in unblocked lane instances while implementation is blocked on a file, contract, branch, worktree, or shared resource.
 - The operator owns the merge plan and final feature cohesion.
+- In V5, the signed append-only control graph, current lease, and fence are the
+  runtime authority. Roadmap files, chats, tmux panes, prompts, and task files
+  are not graph authority.
+- Use `operator-host.sh` for production host entry and the isolated proof broker
+  for mutations. Never launch a permission-bypass runner or edit graph state.
+- Private authority/proof keys never enter the repo, `OPERATOR_DIR`, environment,
+  CLI arguments, task packets, logs, or handoffs.
+- Treat `OPERATOR_DIR` graph history, bindings, fences, host effect ledgers,
+  evidence, memory, and migration manifests as durable backup/recovery state.
 
 ## Commands
 
@@ -50,6 +59,12 @@ bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
+bash scripts/operator-role-map.sh init|show|validate
+bash scripts/operator-graph.sh status|snapshot|replay check
+bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
+bash scripts/operator-loop.sh status|pause|resume
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-v5-migrate.sh plan
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```
@@ -77,6 +92,9 @@ bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target 
 - Never commit task working files unless the operator explicitly promotes them into durable source or docs.
 - Never commit raw roadmap inbox items, local feedback annotations, or planning views unless explicitly promoted into evergreen docs.
 - Merge worker work only after operator review and validation.
+- Never treat a successful runner, validation, host label, or prompt response as
+  approval of a human gate. Design selection, integration, push/publish/release,
+  credentials, destructive changes, and production effects remain gated.
 
 ## Operator Dispatch Rule
 
