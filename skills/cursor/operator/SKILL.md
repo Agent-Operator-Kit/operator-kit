@@ -62,7 +62,7 @@ changes still require explicit intent, a clear target, preflight, and review.
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
    V5 installs additionally require role-map, graph, scheduler, loop, host,
-   proof-broker, design-flow, and migration scripts, their plain Python
+   proof-broker, design-flow, migration, and provisioning scripts, their plain Python
    helpers, and all eleven `schemas/operator-v5/*.json` files.
 4. Run:
 
@@ -101,6 +101,7 @@ bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
 bash scripts/operator-loop.sh status|pause|resume
 bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
 bash scripts/operator-v5-migrate.sh plan
+bash scripts/operator-v5-provision.sh plan
 ```
 
 ## V5 Control Runtime
@@ -123,6 +124,12 @@ migration required, run the read-only plan, and apply only from a reviewed
 mapping with stopped writers, compatible graph state, broker/keychain
 readiness, and explicit `MIGRATE_V4_TO_V5` authorization. Never reinterpret V4
 files as graph truth or initialize production graph/key state during migration.
+
+Provisioning is a separate operation after setup or migration. Review
+`operator-v5-provision.sh plan`, then apply only with explicit
+`PROVISION_OPERATOR_V5_AUTHORITY` authorization. Private keys remain in macOS
+Keychain; only public authority/binding contracts and signed graph history are
+written to the external workspace.
 
 ## V4 Feature Sessions
 

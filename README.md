@@ -165,6 +165,7 @@ bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
 bash scripts/operator-loop.sh status|pause|resume
 bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
 bash scripts/operator-v5-migrate.sh plan
+bash scripts/operator-v5-provision.sh plan
 bash scripts/operator-sync.sh --target /path/to/project
 bash scripts/operator-upgrade.sh
 ```

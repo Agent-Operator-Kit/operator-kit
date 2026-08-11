@@ -43,6 +43,12 @@ ticks a graph node:
 /operator-goal-context --session <session-id> --scope <node-id>
 ```
 
+If V5 runtime is installed but uninitialized, review
+`bash scripts/operator-v5-provision.sh plan` and run `apply` only after explicit
+`PROVISION_OPERATOR_V5_AUTHORITY` authorization. Private keys remain in macOS
+Keychain; never place them in the repo, external workspace, environment, CLI,
+logs, or handoffs.
+
 Claude subagents and hooks may report evidence or request that the top-level
 session run a tick. They cannot bind or lease a node, reprioritize the graph,
 decide gates, integrate, or cross the bound scope.

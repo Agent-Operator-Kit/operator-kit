@@ -132,6 +132,7 @@ bash "$KIT_ROOT/scripts/operator-sync.sh" \
 v3_repo="$v3_project/code/app"
 grep -q 'OPERATOR_KIT_VERSION="2"' "$v3_repo/operator.config.env"
 test ! -f "$v3_repo/scripts/operator-v5-migrate.sh"
+test ! -f "$v3_repo/scripts/operator-v5-provision.sh"
 
 bash "$KIT_ROOT/scripts/operator-sync.sh" \
   --source "$KIT_ROOT" \
@@ -146,6 +147,7 @@ latest_repo="$latest_project/code/app"
 grep -q 'OPERATOR_KIT_VERSION="5"' "$latest_repo/operator.config.env"
 test -f "$latest_repo/scripts/operator-feature.sh"
 test -f "$latest_repo/scripts/operator-v5-migrate.sh"
+test -f "$latest_repo/scripts/operator-v5-provision.sh"
 test "$(find "$latest_repo/schemas/operator-v5" -type f | wc -l | tr -d ' ')" = 11
 test -f "$latest_project/operator/features/active.md"
 

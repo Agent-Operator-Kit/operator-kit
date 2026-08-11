@@ -171,7 +171,8 @@ missing key, mismatch, malformed response, unavailable broker, timeout, or
 signing failure returns `BROKER_UNAVAILABLE` without graph mutation. RM-0005
 does not provision a credential or provider and never writes user-global
 files. Trust anchor, signed-binding, and proof-provider provisioning remain an
-integration/control-plane responsibility.
+integration/control-plane responsibility; the explicit macOS first-host path is
+provided by `operator-v5-provision.sh`.
 
 ### Supported external design proof provider
 

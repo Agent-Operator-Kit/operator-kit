@@ -66,10 +66,10 @@ for cursor_skill in operator-workflow operator operator-planner operator-feedbac
 done
 test ! -e "$tmp_root/code/app/.cursor/skills/product-manager"
 test -f "$tmp_root/code/app/.cursor/environment.json.example"
-for v5_script in operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh; do
+for v5_script in operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-v5-provision.sh; do
   test -x "$tmp_root/code/app/scripts/$v5_script"
 done
-for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py; do
+for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py operator_v5_provision.py; do
   test -f "$tmp_root/code/app/scripts/$helper"
   test ! -x "$tmp_root/code/app/scripts/$helper"
 done

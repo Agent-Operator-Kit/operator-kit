@@ -66,9 +66,10 @@ The first response should lead with the classification and one recommended
 next action:
 
 - `v5-ready`: run status and recommend continuing or creating a feature session.
-- `v5-runtime-only`: recommend completing the reviewed trusted-host setup;
-  explain that this creates project-specific authority/bindings and requires
-  explicit approval.
+- `v5-runtime-only`: run `operator-v5-provision.sh plan`, recommend correcting
+  any host-policy findings, and explain that `apply` creates project-specific
+  authority/bindings and requires the separate
+  `PROVISION_OPERATOR_V5_AUTHORITY` authorization.
 - `v4-migration-required`: recommend `operator-v5-migrate.sh plan`; never apply
   the migration without the separate authorization token.
 - `legacy-or-partial`: recommend a latest-channel repair from a trusted source,
@@ -134,6 +135,18 @@ After setup or repair, run status, summary, memory, catalog, lane recommendation
 and V5 role-map validation. Confirm that graph status is either deliberately
 initialized or safely `NOT_INITIALIZED`; fresh bootstrap must not create graph
 history, authority, bindings, proof material, or private keys.
+
+For an explicitly authorized V5 production initialization, use:
+
+```bash
+bash scripts/operator-v5-provision.sh plan
+bash scripts/operator-v5-provision.sh apply \
+  --authorize PROVISION_OPERATOR_V5_AUTHORITY
+```
+
+Apply only after the plan is reviewed and all lane invocations satisfy the
+fail-closed host policy. The provisioner keeps private authority/proof material
+in macOS Keychain and emits only public metadata.
 
 Assume Codex Desktop chat is the primary UX unless the user explicitly asks for
 terminal-only, Cursor, or Claude Code instructions. Do not start with a long

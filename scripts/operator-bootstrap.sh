@@ -119,11 +119,11 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-v5-provision.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
 
-for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py; do
+for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py operator_v5_provision.py; do
   copy_plain "$KIT_ROOT/scripts/$helper" "$repo_root/scripts/$helper"
 done
 

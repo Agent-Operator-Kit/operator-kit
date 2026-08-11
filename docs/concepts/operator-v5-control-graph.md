@@ -460,7 +460,9 @@ and `JOURNAL_FULL`.
 
 - Trust-anchor/private-key provisioning, signed binding issuance/rotation,
   proof-broker/keychain operation, and offline journal migration are
-  control-plane/installer responsibilities.
+  control-plane/installer responsibilities. The shipped
+  `operator-v5-provision.sh` covers explicit first-host provisioning on macOS;
+  rotation and offline migration remain separate reviewed operations.
 - RS256 documents provide local authorization, not remote identity federation
   or protection after trust-anchor/runtime compromise.
 - Host/boot/clock changes fail closed and require correction or explicit lease

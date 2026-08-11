@@ -22,6 +22,8 @@
     "scripts/operator_design_provider.py",
     "scripts/operator-v5-migrate.sh",
     "scripts/operator_v5_migrate.py",
+    "scripts/operator-v5-provision.sh",
+    "scripts/operator_v5_provision.py",
     "schemas/operator-v5/"
   ],
   "hostAdapters": [
@@ -46,6 +48,7 @@
     "productionBypassAllowed": false,
     "privateKeysInProjectOrOperatorDirAllowed": false,
     "freshInstallInitializesGraphOrKeys": false,
+    "explicitProvisioningCommandAvailable": true,
     "plainV4UpdateChangesMarker": false,
     "explicitReviewedMigrationRequired": true
   }

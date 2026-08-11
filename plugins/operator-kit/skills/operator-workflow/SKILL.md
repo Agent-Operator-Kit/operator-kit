@@ -97,6 +97,14 @@ CLI, task packets, logs, or handoffs. Treat graph history, fences, bindings,
 host effect ledgers, evidence, and migration manifests as durable
 backup/recovery state.
 
+After setup or migration is complete, production authority initialization is a
+separate control-plane operation. Run `operator-v5-provision.sh plan` first and
+review its host-policy findings. Run `apply` only after the user explicitly
+authorizes `PROVISION_OPERATOR_V5_AUTHORITY`; on macOS it creates private keys
+in Keychain, writes only public authority/binding contracts to `OPERATOR_DIR`,
+and initializes the first graph event through the signed proof protocol. Do not
+substitute direct graph writes, key files, environment secrets, or CLI secrets.
+
 ## Agent-Run Setup
 
 When the user wants an agent to fully set up the system from scratch, follow `docs/guides/agent-run-bootstrap.md` and the prompt template in `templates/prompts/agent-run-bootstrap.md`.
@@ -180,5 +188,6 @@ cannot be safely inferred.
 - Do not let agents share branches.
 - Do not let agents edit the same file at the same time.
 - Keep project-specific secrets out of docs and examples.
-- Do not initialize production graph/key state during setup or migration.
+- Do not initialize production graph/key state during setup or migration; use
+  the separately authorized V5 provisioner after those operations are complete.
 - Do not treat the external V5 workspace as disposable.

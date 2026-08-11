@@ -33,10 +33,10 @@ git -C "$repo" config user.name "Smoke Test"
 bash "$KIT_ROOT/scripts/operator-bootstrap.sh" "$repo" >/dev/null
 grep -q 'OPERATOR_KIT_VERSION="5"' "$repo/operator.config.env" || fail "fresh latest install is not V5"
 
-for script in operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh; do
+for script in operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-v5-provision.sh; do
   test -x "$repo/scripts/$script" || fail "missing executable V5 runtime: $script"
 done
-for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py; do
+for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py operator_v5_provision.py; do
   test -f "$repo/scripts/$helper" || fail "missing plain V5 helper: $helper"
   test ! -x "$repo/scripts/$helper" || fail "plain V5 helper became executable: $helper"
 done

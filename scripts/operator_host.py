@@ -1353,6 +1353,11 @@ def tool_matches(tool: str, binding: Mapping[str, Any], lane: Mapping[str, str])
     return "claude" in owner or runner == "claude-code"
 
 
+def has_exact_option(tokens: Sequence[str], option: str, value: str) -> bool:
+    positions = [index for index, token in enumerate(tokens) if token == option]
+    return len(positions) == 1 and tokens[positions[0] + 1:positions[0] + 2] == [value]
+
+
 def validate_lane_invocation(tool: str, lane: Mapping[str, str]) -> None:
     try:
         tokens = shlex.split(lane.get("invocation", ""))
@@ -1363,12 +1368,10 @@ def validate_lane_invocation(tool: str, lane: Mapping[str, str]) -> None:
          "TRUSTED_POLICY_UNAVAILABLE", "assigned lane invocation violates trusted runner policy",
          lane.get("lane"), 3)
     if tool == "codex":
-        fail("--sandbox" in tokens and tokens[tokens.index("--sandbox") + 1:tokens.index("--sandbox") + 2]
-             == ["workspace-write"], "TRUSTED_POLICY_UNAVAILABLE",
+        fail(has_exact_option(tokens, "--sandbox", "workspace-write"), "TRUSTED_POLICY_UNAVAILABLE",
              "Codex lane invocation must select the restricted workspace sandbox", lane.get("lane"), 3)
     else:
-        fail("--permission-mode" in tokens
-             and tokens[tokens.index("--permission-mode") + 1:tokens.index("--permission-mode") + 2] == ["dontAsk"],
+        fail(has_exact_option(tokens, "--permission-mode", "dontAsk"),
              "TRUSTED_POLICY_UNAVAILABLE", "Claude lane invocation must fail closed on permission prompts",
              lane.get("lane"), 3)
 

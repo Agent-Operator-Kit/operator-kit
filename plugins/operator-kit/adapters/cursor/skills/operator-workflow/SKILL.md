@@ -74,6 +74,12 @@ graph history, bindings, authority/proof keys, or host sessions. A plain V4
 update preserves its `4` marker and artifacts and reports explicit migration
 required; use a reviewed `operator-v5-migrate.sh plan` before apply.
 
+After setup or migration, initialize production authority only as a separate,
+explicitly authorized operation: review `operator-v5-provision.sh plan`, then
+run `apply` only with `PROVISION_OPERATOR_V5_AUTHORITY`. Private keys remain in
+macOS Keychain; the workspace receives public authority/binding contracts and a
+signed initial graph event.
+
 For an empty scoped project folder, first suggest this top-level layout:
 
 ```text

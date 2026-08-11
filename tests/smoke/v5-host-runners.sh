@@ -261,6 +261,16 @@ import importlib.util, sys
 spec = importlib.util.spec_from_file_location("claude_preflight", sys.argv[1])
 host = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(host)
+for tool, invocation in (
+    ("codex", "codex --sandbox workspace-write --sandbox danger-full-access"),
+    ("claude", "claude --permission-mode dontAsk --permission-mode acceptEdits"),
+):
+    try:
+        host.validate_lane_invocation(tool, {"lane": "duplicate-option", "invocation": invocation})
+    except host.HostError as exc:
+        assert exc.code == "TRUSTED_POLICY_UNAVAILABLE"
+    else:
+        raise AssertionError(f"duplicate {tool} policy option was accepted")
 runner = host.resolve_runner_executable("claude")
 try:
     host.runner_preflight("claude", runner)
