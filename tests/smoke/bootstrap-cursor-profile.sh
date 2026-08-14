@@ -26,7 +26,7 @@ bash -n scripts/*.sh
 grep -q 'operator|Cursor IDE|app|main|' operator.config.env
 grep -q 'cursor|Cursor CLI|app-cursor|cursor/operator|cursor agent' operator.config.env
 grep -q 'ui|Claude Code|app-ui|claude/ui|' operator.config.env
-grep -q 'claude --permission-mode dontAsk' operator.config.env
+grep -q 'claude --model fable --permission-mode dontAsk' operator.config.env
 codex_bypass='dangerously-bypass-approvals-and-'"sandbox"
 claude_bypass='dangerously-skip-'"permissions"
 claude_mode='bypass'"Permissions"
