@@ -1,0 +1,814 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Operator Kit Website Design Options</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: oklch(0.105 0.015 240);
+    --bg2: oklch(0.135 0.016 240);
+    --bg3: oklch(0.17 0.018 240);
+    --border: oklch(0.24 0.018 240);
+    --border2: oklch(0.31 0.024 240);
+    --fg: oklch(0.92 0.012 240);
+    --fg2: oklch(0.67 0.017 240);
+    --fg3: oklch(0.46 0.017 240);
+    --accent: oklch(0.72 0.15 50);
+    --accent2: oklch(0.78 0.14 195);
+    --green: oklch(0.78 0.16 145);
+    --font: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 50% 0%, oklch(0.2 0.08 210 / 0.35), transparent 34rem),
+      linear-gradient(oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
+      var(--bg);
+    background-size: auto, 52px 52px, 52px 52px, auto;
+    color: var(--fg);
+    font-family: var(--font);
+    line-height: 1.6;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  code {
+    overflow-wrap: anywhere;
+  }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 3rem;
+    border-bottom: 1px solid var(--border);
+    background: oklch(0.105 0.015 240 / 0.86);
+    backdrop-filter: blur(18px);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--accent);
+    font-size: 0.86rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+  }
+
+  .brand img {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+  }
+
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.3rem;
+    color: var(--fg2);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+
+  .nav a {
+    text-decoration: none;
+  }
+
+  .page {
+    width: min(1220px, calc(100vw - 48px));
+    margin: 0 auto;
+    padding: 4.5rem 0 6rem;
+  }
+
+  .intro {
+    max-width: 1040px;
+    padding-bottom: 2.6rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .kicker,
+  .option-kicker,
+  .label {
+    color: var(--accent);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 1rem 0 0;
+    color: var(--fg);
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    line-height: 1.04;
+    font-weight: 800;
+  }
+
+  .intro p {
+    max-width: 820px;
+    margin: 1.25rem 0 0;
+    color: var(--fg2);
+    font-size: 0.96rem;
+  }
+
+  .reference-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 1.9rem;
+  }
+
+  .reference-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg2);
+    padding: 1rem;
+  }
+
+  .reference-card strong {
+    display: block;
+    color: var(--fg);
+    font-size: 0.84rem;
+  }
+
+  .reference-card span {
+    display: block;
+    margin-top: 0.45rem;
+    color: var(--fg2);
+    font-size: 0.74rem;
+  }
+
+  .option {
+    margin-top: 2.6rem;
+    border: 1px solid var(--border2);
+    border-radius: 12px;
+    background: oklch(0.12 0.018 240 / 0.86);
+    box-shadow: 0 24px 90px oklch(0 0 0 / 0.25);
+    overflow: hidden;
+  }
+
+  .option-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.46fr);
+    gap: 1.6rem;
+    align-items: start;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .option h2 {
+    margin: 0.55rem 0 0;
+    color: var(--fg);
+    font-size: clamp(1.8rem, 3.4vw, 3rem);
+    line-height: 1.1;
+  }
+
+  .option-copy {
+    max-width: 790px;
+    margin: 0.9rem 0 0;
+    color: var(--fg2);
+    font-size: 0.88rem;
+  }
+
+  .choice-card {
+    display: grid;
+    gap: 0.65rem;
+  }
+
+  .choice-card div {
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: var(--bg2);
+    padding: 0.8rem;
+    color: var(--fg2);
+    font-size: 0.74rem;
+  }
+
+  .choice-card strong {
+    color: var(--accent2);
+  }
+
+  .mock {
+    border-top: 1px solid var(--border);
+    padding: 1.3rem;
+  }
+
+  .browser {
+    border: 1px solid var(--border2);
+    border-radius: 10px;
+    background:
+      radial-gradient(circle at 50% 0%, oklch(0.2 0.08 210 / 0.23), transparent 32rem),
+      linear-gradient(oklch(0.15 0.017 240 / 0.42) 1px, transparent 1px),
+      linear-gradient(90deg, oklch(0.15 0.017 240 / 0.42) 1px, transparent 1px),
+      var(--bg);
+    background-size: auto, 44px 44px, 44px 44px, auto;
+    overflow: hidden;
+  }
+
+  .mock-nav {
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0 1.2rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg3);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .mock-logo {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .mock-links {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .mock-section {
+    padding: 2.1rem;
+  }
+
+  .split {
+    display: grid;
+    grid-template-columns: 0.72fr 1.28fr;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .hero-title {
+    color: var(--fg);
+    font-size: clamp(2.4rem, 5vw, 4.6rem);
+    line-height: 1.02;
+    font-weight: 800;
+  }
+
+  .hero-copy {
+    margin-top: 1rem;
+    color: var(--fg2);
+    font-size: 0.85rem;
+  }
+
+  .button-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1.4rem;
+  }
+
+  .button {
+    border: 1px solid var(--border2);
+    border-radius: 4px;
+    padding: 0.65rem 0.9rem;
+    color: var(--fg2);
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  .button.primary {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .diagram-shell {
+    border: 1px solid oklch(0.78 0.14 195 / 0.36);
+    border-radius: 10px;
+    background: oklch(0.12 0.018 240 / 0.72);
+    padding: 0.8rem;
+  }
+
+  .svg-diagram {
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 360px;
+  }
+
+  .node {
+    fill: oklch(0.135 0.016 240);
+    stroke: oklch(0.31 0.024 240);
+    stroke-width: 1.3;
+  }
+
+  .node-hot {
+    fill: oklch(0.17 0.018 240);
+    stroke: oklch(0.72 0.15 50 / 0.82);
+    stroke-width: 1.8;
+  }
+
+  .node-cool {
+    fill: oklch(0.14 0.018 240);
+    stroke: oklch(0.78 0.14 195 / 0.7);
+    stroke-width: 1.6;
+  }
+
+  .node-green {
+    fill: oklch(0.14 0.018 240);
+    stroke: oklch(0.78 0.16 145 / 0.68);
+    stroke-width: 1.5;
+  }
+
+  .node-label {
+    fill: var(--fg);
+    font: 800 13px "JetBrains Mono", monospace;
+  }
+
+  .node-small {
+    fill: var(--fg2);
+    font: 500 10px "JetBrains Mono", monospace;
+  }
+
+  .edge {
+    fill: none;
+    stroke: var(--accent2);
+    stroke-width: 2;
+    marker-end: url(#arrow);
+  }
+
+  .edge-hot {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+    stroke-dasharray: 5 5;
+    marker-end: url(#arrowHot);
+  }
+
+  .chip-row,
+  .field-guide,
+  .metric-row {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .chip-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .field-guide {
+    grid-template-columns: 0.72fr repeat(5, minmax(0, 1fr));
+  }
+
+  .metric-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .chip,
+  .guide,
+  .metric,
+  .trace-card,
+  .layer-card {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg2);
+    padding: 0.85rem;
+  }
+
+  .chip strong,
+  .guide strong,
+  .metric strong,
+  .trace-card strong,
+  .layer-card strong {
+    display: block;
+    color: var(--fg);
+    font-size: 0.8rem;
+  }
+
+  .chip span,
+  .guide span,
+  .metric span,
+  .trace-card span,
+  .layer-card span {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--fg2);
+    font-size: 0.7rem;
+  }
+
+  .guide.step strong {
+    color: var(--accent);
+  }
+
+  .layer-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .layer-card {
+    display: grid;
+    grid-template-columns: 160px minmax(0, 1fr) 180px;
+    gap: 0.9rem;
+    align-items: center;
+    min-height: 82px;
+  }
+
+  .layer-title {
+    color: var(--accent);
+    font-weight: 800;
+  }
+
+  .layer-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+
+  .pill {
+    border: 1px solid var(--border2);
+    border-radius: 999px;
+    padding: 0.28rem 0.5rem;
+    color: var(--fg2);
+    font-size: 0.66rem;
+  }
+
+  .trace-layout {
+    display: grid;
+    grid-template-columns: 0.9fr 1.1fr;
+    gap: 1rem;
+    align-items: stretch;
+  }
+
+  .terminal {
+    border: 1px solid var(--border2);
+    border-radius: 9px;
+    background: oklch(0.095 0.015 240);
+    overflow: hidden;
+  }
+
+  .terminal-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--fg3);
+    font-size: 0.68rem;
+  }
+
+  .terminal pre {
+    margin: 0;
+    padding: 1rem;
+    color: var(--fg2);
+    font: 500 0.75rem/1.75 var(--font);
+    white-space: pre-wrap;
+  }
+
+  .cmd {
+    color: var(--accent2);
+    font-weight: 800;
+  }
+
+  .trace-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .caption {
+    margin-top: 1rem;
+    color: var(--fg3);
+    font-size: 0.72rem;
+  }
+
+  @media (max-width: 980px) {
+    .option-head,
+    .split,
+    .trace-layout,
+    .field-guide {
+      grid-template-columns: 1fr;
+    }
+
+    .reference-grid,
+    .chip-row,
+    .metric-row,
+    .trace-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .layer-card {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 620px) {
+    .topbar {
+      height: auto;
+      min-height: 60px;
+      padding: 0.8rem 1rem;
+      align-items: flex-start;
+    }
+
+    .page {
+      width: min(100vw - 28px, 1220px);
+      padding-top: 3rem;
+    }
+
+    .mock-section {
+      padding: 1rem;
+    }
+
+    .reference-grid,
+    .chip-row,
+    .metric-row,
+    .trace-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#top">
+    <img src="uploads/agent-operator-kit-icon-sky-blue-rounded-transparent-1024.png" alt="">
+    operator-kit
+  </a>
+  <nav class="nav" aria-label="Design options">
+    <a href="#option-1">State graph</a>
+    <a href="#option-2">Runtime layers</a>
+    <a href="#option-3">Trace console</a>
+  </nav>
+</header>
+
+<main id="top" class="page">
+  <section class="intro">
+    <div class="kicker">Design-agent review</div>
+    <h1>Three LangGraph-inspired SVG directions for the Operator Kit site.</h1>
+    <p>
+      These options return to the original dark orange/cyan color scheme, but
+      replace the bitmap diagram with editable SVG parts. The goal is to show
+      how Operator Kit really works: agent hosts enter a stateful operator
+      graph, the project workspace stores durable state, lanes execute isolated
+      work, and a review gate controls integration.
+    </p>
+    <div class="reference-grid">
+      <div class="reference-card"><strong>LangGraph</strong><span>State, nodes, edges, persistence, human control.</span></div>
+      <div class="reference-card"><strong>LangSmith</strong><span>Traceability, evaluations, deployment confidence.</span></div>
+      <div class="reference-card"><strong>Dagster</strong><span>Operational graph and asset/control-plane clarity.</span></div>
+      <div class="reference-card"><strong>Inngest</strong><span>Durable workflows, visible steps, event-driven execution.</span></div>
+    </div>
+  </section>
+
+  <section id="option-1" class="option">
+    <div class="option-head">
+      <div>
+        <div class="option-kicker">Option 1 / closest to LangGraph</div>
+        <h2>Operator State Graph</h2>
+        <p class="option-copy">
+          Treat the homepage diagram like a graph runtime: the agent host adds
+          intent, the project state is loaded, the operator routes through
+          planner/feedback/design modes, lanes run, and the review node decides
+          whether anything reaches main.
+        </p>
+      </div>
+      <div class="choice-card">
+        <div><strong>Why it works:</strong> most faithful to LangGraph's mental model while staying Operator-specific.</div>
+        <div><strong>Use if:</strong> we want visitors to understand Operator as a stateful execution graph.</div>
+        <div><strong>Implementation:</strong> inline SVG plus small HTML cards, no generated text image.</div>
+      </div>
+    </div>
+    <div class="mock">
+      <div class="browser">
+        <div class="mock-nav">
+          <div class="mock-logo">operator-kit</div>
+          <div class="mock-links"><span>Model</span><span>Graph</span><span>Lanes</span><span>Start</span></div>
+        </div>
+        <div class="mock-section split">
+          <div>
+            <div class="label">Agent Operator Kit</div>
+            <div class="hero-title">A state graph for multi-agent code work.</div>
+            <p class="hero-copy">Codex, Cursor, and Claude Code operate through project state, lane routing, task memory, and reviewed integration.</p>
+            <div class="button-row"><div class="button primary">Start with an agent</div><div class="button">View graph model</div></div>
+          </div>
+          <div class="diagram-shell">
+            <svg class="svg-diagram" viewBox="0 0 720 500" role="img" aria-label="Operator Kit state graph diagram">
+              <defs>
+                <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="oklch(0.78 0.14 195)"></path>
+                </marker>
+                <marker id="arrowHot" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill="oklch(0.72 0.15 50)"></path>
+                </marker>
+              </defs>
+              <rect class="node-cool" x="250" y="26" width="220" height="58" rx="9"></rect>
+              <text class="node-label" x="280" y="56">Agent hosts</text>
+              <text class="node-small" x="280" y="72">Codex / Cursor / Claude</text>
+
+              <rect class="node" x="42" y="134" width="170" height="58" rx="9"></rect>
+              <text class="node-label" x="68" y="164">Project state</text>
+              <text class="node-small" x="68" y="180">config, memory, roadmap</text>
+
+              <rect class="node-hot" x="270" y="132" width="180" height="66" rx="10"></rect>
+              <text class="node-label" x="313" y="164">Operator</text>
+              <text class="node-small" x="304" y="181">route + preflight</text>
+
+              <rect class="node" x="512" y="134" width="166" height="58" rx="9"></rect>
+              <text class="node-label" x="538" y="164">Mode router</text>
+              <text class="node-small" x="538" y="180">observe / plan / run</text>
+
+              <rect class="node" x="48" y="260" width="136" height="54" rx="8"></rect>
+              <text class="node-label" x="75" y="291">Feedback</text>
+              <rect class="node" x="214" y="260" width="136" height="54" rx="8"></rect>
+              <text class="node-label" x="252" y="291">Planner</text>
+              <rect class="node" x="380" y="260" width="136" height="54" rx="8"></rect>
+              <text class="node-label" x="414" y="291">Design</text>
+              <rect class="node" x="546" y="260" width="136" height="54" rx="8"></rect>
+              <text class="node-label" x="585" y="291">Lanes</text>
+
+              <rect class="node-cool" x="118" y="390" width="216" height="62" rx="10"></rect>
+              <text class="node-label" x="150" y="422">Shared workspace</text>
+              <text class="node-small" x="150" y="438">tasks, captures, catalog</text>
+
+              <rect class="node-green" x="392" y="390" width="212" height="62" rx="10"></rect>
+              <text class="node-label" x="430" y="422">Review gate</text>
+              <text class="node-small" x="430" y="438">tests, conflicts, approval</text>
+
+              <path class="edge" d="M360 84 V123"></path>
+              <path class="edge" d="M212 163 H260"></path>
+              <path class="edge" d="M450 163 H502"></path>
+              <path class="edge" d="M594 192 V240 H116 V252"></path>
+              <path class="edge" d="M594 192 V240 H282 V252"></path>
+              <path class="edge" d="M594 192 V240 H448 V252"></path>
+              <path class="edge" d="M594 192 V252"></path>
+              <path class="edge-hot" d="M282 314 V380"></path>
+              <path class="edge-hot" d="M448 314 V380"></path>
+              <path class="edge" d="M614 314 V356 H498 V380"></path>
+              <path class="edge" d="M334 421 H382"></path>
+            </svg>
+          </div>
+        </div>
+        <div class="field-guide mock-section">
+          <div class="guide"><strong>What this teaches</strong><span>Operator Kit is not a big autonomous agent. It is a stateful routing graph for project work.</span></div>
+          <div class="guide step"><strong>1 Install</strong><span>Global plugin or adapter assets.</span></div>
+          <div class="guide step"><strong>2 Bind</strong><span>Detect project state.</span></div>
+          <div class="guide step"><strong>3 Route</strong><span>Feedback, planning, design, lanes.</span></div>
+          <div class="guide step"><strong>4 Execute</strong><span>Dispatch isolated lane work.</span></div>
+          <div class="guide step"><strong>5 Review</strong><span>Collect and gate integration.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="option-2" class="option">
+    <div class="option-head">
+      <div>
+        <div class="option-kicker">Option 2 / product architecture</div>
+        <h2>Layered Operator Runtime</h2>
+        <p class="option-copy">
+          This option breaks the generated diagram into product layers instead
+          of one large schematic. It is cleaner for a homepage because each
+          layer explains one job: host, operator runtime, project state, lanes,
+          and review.
+        </p>
+      </div>
+      <div class="choice-card">
+        <div><strong>Why it works:</strong> easiest to scan and strongest for product positioning.</div>
+        <div><strong>Use if:</strong> the homepage needs less diagram density and more immediate clarity.</div>
+        <div><strong>Implementation:</strong> HTML layers plus small SVG arrows, responsive by default.</div>
+      </div>
+    </div>
+    <div class="mock">
+      <div class="browser">
+        <div class="mock-nav">
+          <div class="mock-logo">operator-kit</div>
+          <div class="mock-links"><span>Layers</span><span>Memory</span><span>Review</span></div>
+        </div>
+        <div class="mock-section split">
+          <div>
+            <div class="label">Operator runtime</div>
+            <div class="hero-title">The missing control layer between chat and code.</div>
+            <p class="hero-copy">Install once in the agent host, then let each project own the durable state that makes multi-agent work reviewable.</p>
+          </div>
+          <div class="layer-layout">
+            <div class="layer-card">
+              <div class="layer-title">Agent host</div>
+              <div class="layer-pills"><span class="pill">Codex plugin</span><span class="pill">Cursor rules</span><span class="pill">Claude commands</span></div>
+              <span>Natural language cockpit</span>
+            </div>
+            <div class="layer-card">
+              <div class="layer-title">Operator runtime</div>
+              <div class="layer-pills"><span class="pill">observe</span><span class="pill">active</span><span class="pill">dispatch</span><span class="pill">collect</span></div>
+              <span>Preflight and routing</span>
+            </div>
+            <div class="layer-card">
+              <div class="layer-title">Project state</div>
+              <div class="layer-pills"><span class="pill">system map</span><span class="pill">memory</span><span class="pill">roadmap</span><span class="pill">catalog</span></div>
+              <span>Durable workspace</span>
+            </div>
+            <div class="layer-card">
+              <div class="layer-title">Execution lanes</div>
+              <div class="layer-pills"><span class="pill">API</span><span class="pill">UI</span><span class="pill">Auth</span><span class="pill">LLM</span><span class="pill">Release</span></div>
+              <span>Branches and worktrees</span>
+            </div>
+            <div class="layer-card">
+              <div class="layer-title">Review gate</div>
+              <div class="layer-pills"><span class="pill">tests</span><span class="pill">no conflicts</span><span class="pill">approved</span></div>
+              <span>Stable integration</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-row mock-section">
+          <div class="metric"><strong>Global layer</strong><span>Skills and routing only.</span></div>
+          <div class="metric"><strong>Project layer</strong><span>Real lanes and memory.</span></div>
+          <div class="metric"><strong>Worker layer</strong><span>Task packets and handoffs.</span></div>
+          <div class="metric"><strong>Human layer</strong><span>Review and approval.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="option-3" class="option">
+    <div class="option-head">
+      <div>
+        <div class="option-kicker">Option 3 / trace and control</div>
+        <h2>Observable Agent Loop</h2>
+        <p class="option-copy">
+          This direction copies the strongest product move from observability
+          tools: show the run, the trace, and the checkpoint. It explains how
+          Operator Kit keeps agent work bounded from initial status through
+          collection and review.
+        </p>
+      </div>
+      <div class="choice-card">
+        <div><strong>Why it works:</strong> it makes the workflow tangible without a giant architecture diagram.</div>
+        <div><strong>Use if:</strong> the page should sell confidence, not architecture depth.</div>
+        <div><strong>Implementation:</strong> command surface plus trace cards and state snapshots.</div>
+      </div>
+    </div>
+    <div class="mock">
+      <div class="browser">
+        <div class="mock-nav">
+          <div class="mock-logo">operator-kit</div>
+          <div class="mock-links"><span>Trace</span><span>Tasks</span><span>Review</span></div>
+        </div>
+        <div class="mock-section trace-layout">
+          <div>
+            <div class="label">Human-controlled execution</div>
+            <div class="hero-title">Every agent run leaves a reviewable trace.</div>
+            <p class="hero-copy">Operator Kit turns chat intent into status checks, task packets, lane work, handoffs, memory candidates, and a final integration recommendation.</p>
+            <div class="terminal">
+              <div class="terminal-bar"><span>Codex Desktop</span><span>operator mode</span></div>
+              <pre><span class="cmd">operator observe</span>
+status
+what is blocked?
+
+<span class="cmd">operator active</span>
+create a UI lane task
+
+<span class="cmd">operator dispatch</span>
+send the approved packet
+
+<span class="cmd">collect the handoff</span>
+review changed files</pre>
+            </div>
+          </div>
+          <div class="trace-grid">
+            <div class="trace-card"><strong>01 Status</strong><span>Project config, lanes, git health, roadmap, memory.</span></div>
+            <div class="trace-card"><strong>02 Task packet</strong><span>Goal, owned files, acceptance criteria, validation.</span></div>
+            <div class="trace-card"><strong>03 Lane work</strong><span>Worker branch, worktree, output, validation notes.</span></div>
+            <div class="trace-card"><strong>04 Handoff</strong><span>Summary, changed files, tests, memory candidates.</span></div>
+            <div class="trace-card"><strong>05 Review gate</strong><span>No conflicts, acceptance met, operator approval.</span></div>
+            <div class="trace-card"><strong>06 Memory update</strong><span>Durable facts promoted for future lanes.</span></div>
+          </div>
+        </div>
+        <div class="chip-row mock-section">
+          <div class="chip"><strong>Incubate</strong><span>Frame idea before project.</span></div>
+          <div class="chip"><strong>Design</strong><span>Shape UX and UI work.</span></div>
+          <div class="chip"><strong>Feedback</strong><span>Capture FB-* intake.</span></div>
+          <div class="chip"><strong>Planner</strong><span>Promote RM-* work.</span></div>
+          <div class="chip"><strong>Operator</strong><span>Dispatch and review.</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

@@ -10,17 +10,17 @@
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: oklch(0.105 0.015 240);
-    --bg2: oklch(0.135 0.016 240);
-    --bg3: oklch(0.17 0.018 240);
-    --border: oklch(0.24 0.018 240);
-    --border2: oklch(0.31 0.024 240);
-    --fg: oklch(0.92 0.012 240);
-    --fg2: oklch(0.67 0.017 240);
-    --fg3: oklch(0.46 0.017 240);
-    --accent: oklch(0.72 0.15 50);
-    --accent2: oklch(0.78 0.14 195);
-    --accent-dim: oklch(0.72 0.15 50 / 0.13);
+    --bg: #07110f;
+    --bg2: #0d1815;
+    --bg3: #14231f;
+    --border: #22342f;
+    --border2: #34504a;
+    --fg: #edf5f1;
+    --fg2: #a7b8b1;
+    --fg3: #6f827a;
+    --accent: #2aa6a4;
+    --accent2: #b96f3c;
+    --accent-dim: rgb(42 166 164 / 0.13);
     --font: 'JetBrains Mono', monospace;
   }
 
@@ -38,9 +38,9 @@
   body {
     min-height: 100vh;
     background:
-      radial-gradient(circle at 50% 0%, oklch(0.2 0.08 210 / 0.35), transparent 34rem),
-      linear-gradient(oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
-      linear-gradient(90deg, oklch(0.15 0.017 240 / 0.55) 1px, transparent 1px),
+      radial-gradient(circle at 50% 0%, rgb(42 166 164 / 0.16), transparent 34rem),
+      linear-gradient(rgb(34 52 47 / 0.42) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(34 52 47 / 0.42) 1px, transparent 1px),
       var(--bg);
     background-size: auto, 52px 52px, 52px 52px, auto;
     color: var(--fg);
@@ -67,7 +67,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 0 3rem;
-    background: oklch(0.105 0.015 240 / 0.86);
+    background: rgb(7 17 15 / 0.88);
     border-bottom: 1px solid var(--border);
     backdrop-filter: blur(18px);
   }
@@ -137,7 +137,7 @@
     gap: 0.5rem;
     margin-bottom: 1.35rem;
     padding: 0.42rem 0.65rem;
-    border: 1px solid oklch(0.72 0.15 50 / 0.35);
+    border: 1px solid rgb(42 166 164 / 0.36);
     border-radius: 4px;
     background: var(--accent-dim);
     color: var(--accent);
@@ -201,7 +201,7 @@
   .operator-diagram {
     border: 1px solid var(--border2);
     border-radius: 8px;
-    background: oklch(0.12 0.018 240 / 0.9);
+    background: rgb(13 24 21 / 0.92);
     box-shadow: 0 24px 90px oklch(0 0 0 / 0.26);
     padding: 1rem;
   }
@@ -235,10 +235,10 @@
   }
 
   .diagram-core {
-    border: 1px solid oklch(0.72 0.15 50 / 0.45);
+    border: 1px solid rgb(42 166 164 / 0.48);
     border-radius: 8px;
     background:
-      linear-gradient(135deg, oklch(0.72 0.15 50 / 0.13), transparent),
+      linear-gradient(135deg, rgb(42 166 164 / 0.14), transparent),
       var(--bg2);
     padding: 1.15rem;
   }
@@ -326,7 +326,7 @@
   .workflow-diagram-frame {
     border: 1px solid var(--border2);
     border-radius: 10px;
-    background: oklch(0.12 0.018 240 / 0.78);
+    background: rgb(13 24 21 / 0.82);
     box-shadow: 0 24px 90px oklch(0 0 0 / 0.24);
     padding: 0.75rem;
   }
@@ -336,6 +336,204 @@
     width: 100%;
     height: auto;
     border-radius: 6px;
+  }
+
+  .quickstart-section {
+    padding-top: 4rem;
+  }
+
+  .onepager {
+    border: 1px solid #dfe6e1;
+    border-radius: 8px;
+    background: #f8faf7;
+    color: #15201d;
+    box-shadow: 0 26px 90px oklch(0 0 0 / 0.28);
+    padding: 1.35rem;
+  }
+
+  .onepager-top {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 0.44fr);
+    gap: 1.4rem;
+    align-items: end;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #15201d;
+  }
+
+  .onepager-label,
+  .onepager-card span,
+  .onepager-mini span,
+  .onepager-step span {
+    display: block;
+    color: #b96f3c;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .onepager h2 {
+    max-width: 830px;
+    margin-top: 0.45rem;
+    color: #15201d;
+    font-size: 2.45rem;
+  }
+
+  .onepager-summary {
+    max-width: 760px;
+    margin-top: 0.9rem;
+    color: #53615b;
+    font-size: 0.9rem;
+    line-height: 1.72;
+  }
+
+  .onepager-source {
+    border: 1px solid #d9b58f;
+    border-radius: 8px;
+    background: #f8f1e9;
+    padding: 0.9rem;
+  }
+
+  .onepager-source strong {
+    display: block;
+    color: #15201d;
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .onepager-source code {
+    color: #53615b;
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+
+  .onepager-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .onepager-card {
+    border: 1px solid #dbe4df;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 0.95rem;
+  }
+
+  .onepager-card.cool {
+    border-color: #9ed8d3;
+    background: linear-gradient(135deg, #edf8f7, #ffffff 66%);
+  }
+
+  .onepager-card.warm {
+    border-color: #d9b58f;
+    background: linear-gradient(135deg, #f8f1e9, #ffffff 66%);
+  }
+
+  .onepager-card.green {
+    border-color: #bfd8ca;
+    background: linear-gradient(135deg, #f2f8f4, #ffffff 66%);
+  }
+
+  .onepager-card.wide {
+    grid-column: 1 / -1;
+  }
+
+  .onepager-title {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .onepager-title .onepager-num {
+    width: 1.65rem;
+    height: 1.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #15201d;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    text-transform: none;
+    flex: 0 0 auto;
+  }
+
+  .onepager-card h3 {
+    color: #15201d;
+    font-size: 1rem;
+  }
+
+  .onepager-card p,
+  .onepager-card li,
+  .onepager-mini p,
+  .onepager-step p {
+    color: #53615b;
+    font-size: 0.78rem;
+    line-height: 1.6;
+  }
+
+  .onepager-card ul {
+    display: grid;
+    gap: 0.35rem;
+    list-style: none;
+  }
+
+  .onepager-card li::before {
+    content: "ok";
+    margin-right: 0.45rem;
+    color: #2aa6a4;
+    font-size: 0.62rem;
+    font-weight: 900;
+  }
+
+  .onepager-mini-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .onepager-mini {
+    border: 1px solid #dbe4df;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.84);
+    padding: 0.75rem;
+  }
+
+  .onepager-sequence {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .onepager-step {
+    border: 1px solid #dbe4df;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 0.75rem;
+  }
+
+  .onepager-step strong {
+    display: block;
+    margin: 0.2rem 0 0.4rem;
+    color: #15201d;
+    font-size: 0.88rem;
+  }
+
+  .onepager-prompt {
+    border: 1px solid #dbe4df;
+    border-radius: 8px;
+    background: #f8fbf9;
+    box-shadow: inset 4px 0 0 #2aa6a4;
+    color: #15201d;
+    font-size: 0.78rem;
+    line-height: 1.58;
+    padding: 0.8rem 0.9rem;
+    white-space: pre-wrap;
   }
 
   section {
@@ -653,8 +851,15 @@
       display: none;
     }
 
+    .onepager-top {
+      grid-template-columns: 1fr;
+    }
+
     .model-grid,
-    .lane-principles {
+    .lane-principles,
+    .onepager-grid,
+    .onepager-mini-grid,
+    .onepager-sequence {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
@@ -717,8 +922,19 @@
 
     .model-grid,
     .lane-principles,
+    .onepager-grid,
+    .onepager-mini-grid,
+    .onepager-sequence,
     .lane-map {
       grid-template-columns: 1fr;
+    }
+
+    .onepager {
+      padding: 1rem;
+    }
+
+    .onepager h2 {
+      font-size: 1.85rem;
     }
 
     footer {
@@ -736,6 +952,7 @@
   </a>
   <ul class="nav-links">
     <li><a href="#model">Model</a></li>
+    <li><a href="#use">Use</a></li>
     <li><a href="#agents">Agents</a></li>
     <li><a href="#approach">Approach</a></li>
     <li><a href="#start">Start</a></li>
@@ -799,7 +1016,87 @@
 
   <section class="workflow-diagram-section" aria-label="Agent Operator Kit workflow diagram">
     <div class="workflow-diagram-frame">
-      <img src="uploads/agent-operator-kit-workflow-diagram.png" alt="Agent Operator Kit workflow diagram showing Codex, Cursor, and Claude Code entering the operator workspace, specialist lanes, review gate, and dev staging main branch flow.">
+      <img src="uploads/agent-operator-kit-workflow-diagram-clean.png" alt="Agent Operator Kit workflow diagram showing Codex, Cursor, and Claude Code entering the operator workspace, specialist lanes, review gate, and dev staging main branch flow.">
+    </div>
+  </section>
+
+  <section id="use" class="quickstart-section">
+    <div class="onepager">
+      <div class="onepager-top">
+        <div>
+          <div class="onepager-label">Agent Operator Kit in one page</div>
+          <h2>A project control layer for Codex, Cursor, and Claude Code.</h2>
+          <p class="onepager-summary">
+            You still talk to your coding agent in normal chat. Operator Kit
+            gives that agent project-local setup, lanes, roadmap, memory, task
+            packets, handoffs, and a review loop so multi-agent work stays
+            understandable.
+          </p>
+        </div>
+        <div class="onepager-source">
+          <strong>Fresh machine source</strong>
+          <code>github.com/Agent-Operator-Kit/operator-kit</code>
+        </div>
+      </div>
+
+      <div class="onepager-grid">
+        <div class="onepager-card warm">
+          <div class="onepager-title"><span class="onepager-num">1</span><h3>Install Once In The Agent Host</h3></div>
+          <p>Codex uses the Operator plugin. Cursor uses project rules and adapter assets. On a fresh machine, give the agent the GitHub source and ask it to inspect before changing files.</p>
+        </div>
+
+        <div class="onepager-card cool">
+          <div class="onepager-title"><span class="onepager-num">2</span><h3>Set Up Each Project Explicitly</h3></div>
+          <p>Run setup from the target repo or scoped project root. The project, not the global plugin, owns real lane state, memory, roadmap, tasks, and handoffs.</p>
+        </div>
+
+        <div class="onepager-card green wide">
+          <div class="onepager-title"><span class="onepager-num">3</span><h3>Project Setup Must Report</h3></div>
+          <div class="onepager-mini-grid">
+            <div class="onepager-mini"><span>Layout</span><p><code>code/app</code> plus <code>operator</code>, or detected repo root.</p></div>
+            <div class="onepager-mini"><span>Lanes</span><p>Owner lanes, worktrees, branches, and file boundaries.</p></div>
+            <div class="onepager-mini"><span>Architecture</span><p>Modules, contracts, risks, and dependency edges.</p></div>
+            <div class="onepager-mini"><span>System map</span><p>Generated before planning or dispatch.</p></div>
+            <div class="onepager-mini"><span>Catalog</span><p>Roles, approved patterns, validation recipes, and gates.</p></div>
+            <div class="onepager-mini"><span>Memory</span><p>Project facts, task facts, and retrieval readiness.</p></div>
+            <div class="onepager-mini"><span>Roadmap</span><p>Inbox, RM-* status, blockers, and setup gaps.</p></div>
+            <div class="onepager-mini"><span>Validation</span><p>Build, test, lint, smoke, and review commands.</p></div>
+          </div>
+        </div>
+
+        <div class="onepager-card wide">
+          <div class="onepager-title"><span class="onepager-num">4</span><h3>Use The Agents In This Order</h3></div>
+          <div class="onepager-sequence">
+            <div class="onepager-step"><span>First</span><strong>Incubate</strong><p>Shape rough ideas, thesis, customer, risks, experiments, and promotion briefs.</p></div>
+            <div class="onepager-step"><span>Then</span><strong>Design agent</strong><p>Review product shape, UX, UI systems, and design-ready implementation work.</p></div>
+            <div class="onepager-step"><span>During tests</span><strong>Feedback</strong><p>Capture annotations, screenshots, mobile notes, and FB-* intake without executing.</p></div>
+            <div class="onepager-step"><span>Before build</span><strong>Planner</strong><p>Group feedback, prioritize, create RM-* items, assign lanes, and define acceptance.</p></div>
+            <div class="onepager-step"><span>When ready</span><strong>Operator</strong><p>Dispatch lane work, collect handoffs, review diffs, integrate, and update memory.</p></div>
+          </div>
+        </div>
+
+        <div class="onepager-card cool">
+          <div class="onepager-title"><span class="onepager-num">5</span><h3>Run The Execution Loop</h3></div>
+          <pre class="onepager-prompt">operator observe
+status
+what is blocked?
+
+operator active
+create the confirmed task packet.
+
+operator dispatch
+collect the lane handoff and review it.</pre>
+        </div>
+
+        <div class="onepager-card warm">
+          <div class="onepager-title"><span class="onepager-num">6</span><h3>Update And Turn It Off</h3></div>
+          <ul>
+            <li>Check install health before updating.</li>
+            <li>Preview updates and preserve project-local state.</li>
+            <li>Use <code>operator off</code> when you want normal chat again.</li>
+          </ul>
+        </div>
+      </div>
     </div>
   </section>
 
