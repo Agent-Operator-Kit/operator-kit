@@ -31,6 +31,7 @@ FEEDBACK_RESULT_VERSION = "operator.design-flow-feedback-result/v1"
 SNAPSHOT_VERSION = "operator.control-snapshot/v1"
 GRAPH_VERSION = "operator.control-graph/v1"
 PROPOSALS = ("proposal-a", "proposal-b", "proposal-c")
+PUBLISH_FLOW = "production-publish"
 ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@/+\-]*$")
 BINDING_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._\-]*$")
 HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
@@ -1264,6 +1265,93 @@ def edge(kind: str, source: str, target: str, metadata: Optional[Mapping[str, An
             "metadata": dict(metadata or {})}
 
 
+def promotion_ids(feature_id: str) -> Tuple[str, str]:
+    return f"{feature_id}-production-publish", f"{feature_id}-production-publish-gate"
+
+
+def feature_status(workspace: FeatureWorkspace) -> Tuple[Mapping[str, Any], str]:
+    raw = Path(workspace.path, "status.json").read_bytes()
+    fail(len(raw) <= MAX_INTERFACE_BYTES, "IO_ERROR", "feature status exceeds byte limit", exit_code=3)
+    value = loads(raw, "feature status")
+    fail(isinstance(value, dict), "IO_ERROR", "feature status must be an object", exit_code=3)
+    return value, "sha256:" + hashlib.sha256(raw).hexdigest()
+
+
+def promote_feature(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
+    workspace = feature_workspace(root, args.feature)
+    status, status_hash = feature_status(workspace)
+    fail(status.get("id") == args.feature and status.get("project") == "cadence",
+         "GRAPH_PRECONDITION", "feature status identity is invalid", exit_code=6)
+    value = snapshot(root)
+    nodes = node_index(value)
+    task_id, gate_id = promotion_ids(args.feature)
+    if args.feature in nodes:
+        fail(task_id in nodes and gate_id in nodes, "FLOW_CORRUPT",
+             "feature promotion is partial", exit_code=6)
+        return {"ok": True, "command": "promote", "data": {
+            "featureId": args.feature, "taskNodeId": task_id, "gateNodeId": gate_id,
+            "gateState": nodes[gate_id]["state"], "revision": value["revision"]}}
+    fail("operator-control" in nodes and nodes["operator-control"]["kind"] == "goal",
+         "GRAPH_PRECONDITION", "operator-control goal is missing", exit_code=6)
+    fail(args.lane in nodes and nodes[args.lane]["kind"] == "lane",
+         "GRAPH_PRECONDITION", "promotion lane is missing", exit_code=6)
+    claims = status.get("claims", {})
+    resources = sorted(set(claims.get("resources", []))) if isinstance(claims, dict) else []
+    definition = definition_from_snapshot(value)
+    promotion = {"featureId": args.feature, "featureStatusHash": status_hash,
+                 "laneNodeId": args.lane, "taskNodeId": task_id, "gateNodeId": gate_id,
+                 "operation": PUBLISH_FLOW}
+    definition["nodes"].extend([
+        {"id": args.feature, "kind": "feature", "title": str(status.get("title", args.feature)),
+         "initialState": "planned", "priority": args.priority,
+         "metadata": {"featureSessionId": args.feature, "featurePromotion": promotion}},
+        {"id": task_id, "kind": "task", "title": args.title, "initialState": "pending",
+         "priority": args.priority,
+         "metadata": {"execution": {"idempotent": True, "reclaimable": False},
+                      "featurePromotion": promotion,
+                      "scheduler": {"claims": {"contracts": ["production-publish"],
+                                                   "files": [], "resources": resources}}}},
+        {"id": gate_id, "kind": "human-gate", "title": f"Authorize {args.feature} production publish",
+         "initialState": "pending", "priority": args.priority,
+         "metadata": {"featurePromotion": promotion}},
+    ])
+    definition["edges"].extend([
+        edge("contains", "operator-control", args.feature),
+        edge("contains", args.feature, task_id),
+        edge("contains", args.feature, gate_id),
+        edge("assigned-to", task_id, args.lane),
+        edge("gated-by", task_id, gate_id,
+             {"protectedTransitions": ["active", "completed", "ready"]}),
+    ])
+    graph_mutate(root, "replace-definition", f"feature-promote-{args.feature}-{PUBLISH_FLOW}", value,
+                 {"action": "promote", "featureId": args.feature, "flowId": PUBLISH_FLOW},
+                 definition=definition)
+    current = snapshot(root)
+    current_nodes = node_index(current)
+    return {"ok": True, "command": "promote", "data": {
+        "featureId": args.feature, "taskNodeId": task_id, "gateNodeId": gate_id,
+        "gateState": current_nodes[gate_id]["state"], "revision": current["revision"]}}
+
+
+def authorize_publish(root: OperatorRoot, args: argparse.Namespace) -> Mapping[str, Any]:
+    value = snapshot(root)
+    nodes = node_index(value)
+    task_id, gate_id = promotion_ids(args.feature)
+    fail(args.feature in nodes and task_id in nodes and gate_id in nodes,
+         "GRAPH_PRECONDITION", "feature promotion is missing", exit_code=6)
+    if nodes[gate_id]["state"] == "pending":
+        graph_mutate(root, "gate decide", f"feature-authorize-{args.feature}-{PUBLISH_FLOW}", value,
+                     {"action": "authorize-publish", "featureId": args.feature,
+                      "flowId": PUBLISH_FLOW}, gate_node_id=gate_id, decision="approved")
+        value = snapshot(root)
+        nodes = node_index(value)
+    fail(nodes[gate_id]["state"] == "approved", "GATE_REJECTED",
+         "production publish gate is not approved", exit_code=6)
+    return {"ok": True, "command": "authorize-publish", "data": {
+        "featureId": args.feature, "taskNodeId": task_id, "gateNodeId": gate_id,
+        "gateState": "approved", "revision": value["revision"]}}
+
+
 def flow_prefix(feature_id: str, flow_id: str) -> str:
     readable = re.sub(r"[^A-Za-z0-9._-]+", "-", f"{feature_id}-{flow_id}").strip("-")[:48] or "flow"
     digest = hashlib.sha256((feature_id + "\x00" + flow_id).encode("utf-8")).hexdigest()[:16]
@@ -1847,7 +1935,7 @@ def status_flow(root: OperatorRoot, args: argparse.Namespace, value: Optional[Ma
 
 
 def parser() -> argparse.ArgumentParser:
-    root = JSONArgumentParser(prog="operator-design-flow", description="Three-proposal design and forward improvement flow")
+    root = JSONArgumentParser(prog="operator-design-flow", description="Three-proposal design, feature promotion, and forward improvement flow")
     sub = root.add_subparsers(dest="command", required=True, parser_class=JSONArgumentParser)
 
     def common(command: argparse.ArgumentParser, lane: bool = False) -> None:
@@ -1881,6 +1969,12 @@ def parser() -> argparse.ArgumentParser:
 
     status = sub.add_parser("status")
     common(status)
+    promote = sub.add_parser("promote")
+    common(promote, lane=True)
+    promote.add_argument("--title", default="Publish accepted website to production")
+    promote.add_argument("--priority", type=int, default=900)
+    authorize = sub.add_parser("authorize-publish")
+    common(authorize)
     return root
 
 
@@ -1914,6 +2008,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         with OperatorRoot.open() as operator_root:
             if args.command == "start":
                 payload = start_flow(operator_root, args)
+            elif args.command == "promote":
+                payload = promote_feature(operator_root, args)
+            elif args.command == "authorize-publish":
+                payload = authorize_publish(operator_root, args)
             elif args.command == "select":
                 payload = select_flow(operator_root, args)
             elif args.command == "reject":

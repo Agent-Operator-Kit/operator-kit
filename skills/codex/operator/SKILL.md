@@ -335,7 +335,7 @@ bash scripts/operator-role-map.sh init|show|validate
 bash scripts/operator-graph.sh status|snapshot|replay check
 bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
 bash scripts/operator-loop.sh status|pause|resume
-bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied
+bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied|promote|authorize-publish
 bash scripts/operator-v5-migrate.sh plan
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary

@@ -1949,6 +1949,8 @@ def validate_design_request(value: Any) -> Mapping[str, Any]:
     action = intent.get("action")
     expected_intent_fields = {
         "start": {"action", "featureId", "flowId"},
+        "promote": {"action", "featureId", "flowId"},
+        "authorize-publish": {"action", "featureId", "flowId"},
         "select": {"action", "featureId", "flowId", "proposal"},
         "reject": {"action", "featureId", "flowId"},
         "improve": {"action", "featureId", "flowId", "feedbackRequestId"},
@@ -1966,6 +1968,8 @@ def validate_design_request(value: Any) -> Mapping[str, Any]:
              "design improvement intent is invalid")
     expected_request_ids = {
         "start": f"design-start-{feature_id}-{flow_id}",
+        "promote": f"feature-promote-{feature_id}-{flow_id}",
+        "authorize-publish": f"feature-authorize-{feature_id}-{flow_id}",
         "reject": f"design-reject-gate-{feature_id}-{flow_id}",
         "improve": f"design-improvement-{intent.get('feedbackRequestId', '')}",
     }
@@ -1976,7 +1980,7 @@ def validate_design_request(value: Any) -> Mapping[str, Any]:
          "design mutation request is not bound to the explicit CLI intent")
     graph = graph_module()
     if request["command"] == "replace-definition":
-        fail(action in {"start", "select", "improve"} and request.get("gateNodeId") is None
+        fail(action in {"start", "select", "improve", "promote"} and request.get("gateNodeId") is None
              and request.get("decision") is None and isinstance(request.get("definition"), dict),
              "AUTHORITY_DENIED", "design definition replacement crosses CLI policy")
         try:
@@ -1988,13 +1992,16 @@ def validate_design_request(value: Any) -> Mapping[str, Any]:
         fail(definition == request["definition"] and definition["graphId"] == request["graphId"],
              "AUTHORITY_DENIED", "design definition is not exact or crosses graph identity")
     else:
-        fail(action in {"select", "reject"} and request.get("definition") is None
+        fail(action in {"select", "reject", "authorize-publish"} and request.get("definition") is None
              and valid_id(request.get("gateNodeId"), 128)
-             and request.get("decision") == ("approved" if action == "select" else "rejected"),
+             and request.get("decision") == ("approved" if action in {"select", "authorize-publish"} else "rejected"),
              "AUTHORITY_DENIED", "human gate decision is not bound to explicit select/reject CLI intent")
-        readable = re.sub(r"[^A-Za-z0-9._-]+", "-", f"{feature_id}-{flow_id}").strip("-")[:48] or "flow"
-        digest = hashlib.sha256((feature_id + "\x00" + flow_id).encode("utf-8")).hexdigest()[:16]
-        fail(request["gateNodeId"] == f"design-flow-{readable}-{digest}-selection-gate",
+        expected_gate = f"{feature_id}-production-publish-gate" if action == "authorize-publish" else None
+        if expected_gate is None:
+            readable = re.sub(r"[^A-Za-z0-9._-]+", "-", f"{feature_id}-{flow_id}").strip("-")[:48] or "flow"
+            digest = hashlib.sha256((feature_id + "\x00" + flow_id).encode("utf-8")).hexdigest()[:16]
+            expected_gate = f"design-flow-{readable}-{digest}-selection-gate"
+        fail(request["gateNodeId"] == expected_gate,
              "AUTHORITY_DENIED", "human gate ID does not match the explicit design-flow intent")
     return request
 
@@ -2178,6 +2185,25 @@ def validate_design_delta(store: AnchoredStore, request: Mapping[str, Any], grap
     old_nodes = {node["id"]: node for node in current["nodes"]}
     fail(len(old_nodes) == len(current["nodes"]), "AUTHORITY_DENIED", "current graph node identity is ambiguous")
     if request["command"] == "gate decide":
+        if action == "authorize-publish":
+            task_id = f"{feature_id}-production-publish"
+            gate_id = f"{feature_id}-production-publish-gate"
+            feature_node = old_nodes.get(feature_id)
+            task_node = old_nodes.get(task_id)
+            gate_node = old_nodes.get(gate_id)
+            marker = {"featureId": feature_id, "operation": flow_id,
+                      "taskNodeId": task_id, "gateNodeId": gate_id}
+            fail(flow_id == "production-publish" and request["gateNodeId"] == gate_id
+                 and isinstance(feature_node, dict) and feature_node.get("kind") == "feature"
+                 and isinstance(task_node, dict) and task_node.get("kind") == "task"
+                 and isinstance(gate_node, dict) and gate_node.get("kind") == "human-gate"
+                 and projection["nodeStates"].get(gate_id) == "pending"
+                 and all(task_node.get("metadata", {}).get("featurePromotion", {}).get(key) == value
+                         for key, value in marker.items())
+                 and all(gate_node.get("metadata", {}).get("featurePromotion", {}).get(key) == value
+                         for key, value in marker.items()),
+                 "AUTHORITY_DENIED", "production publish gate is not a canonical promoted feature gate")
+            return
         validate_existing_start_flow(current, projection, feature_id, flow_id)
         gate_id = f"{prefix}-selection-gate"
         fail(len(design_flow_nodes(current, feature_id, flow_id)) == 4
@@ -2198,7 +2224,52 @@ def validate_design_delta(store: AnchoredStore, request: Mapping[str, Any], grap
          "AUTHORITY_DENIED", "design mutation changed preexisting graph definition bytes")
     added_nodes = [node for node in replacement["nodes"] if node["id"] not in current_nodes_by_id]
     added_edges = [edge for edge in replacement["edges"] if edge["id"] not in current_edges_by_id]
-    if action == "start":
+    if action == "promote":
+        task_id = f"{feature_id}-production-publish"
+        gate_id = f"{feature_id}-production-publish-gate"
+        fail(flow_id == "production-publish" and feature_id not in old_nodes
+             and not any(node_id in old_nodes for node_id in (task_id, gate_id))
+             and len(added_nodes) == 3 and len(added_edges) == 5,
+             "AUTHORITY_DENIED", "feature promotion must add exactly one feature, publish task, and gate")
+        added = {node["id"]: node for node in added_nodes}
+        feature_node = added.get(feature_id, {})
+        task_node = added.get(task_id, {})
+        gate_node = added.get(gate_id, {})
+        promotion = task_node.get("metadata", {}).get("featurePromotion", {})
+        fields = {"featureId", "featureStatusHash", "laneNodeId", "taskNodeId", "gateNodeId", "operation"}
+        fail(isinstance(promotion, dict) and set(promotion) == fields
+             and promotion.get("featureId") == feature_id and promotion.get("operation") == flow_id
+             and promotion.get("taskNodeId") == task_id and promotion.get("gateNodeId") == gate_id
+             and promotion.get("laneNodeId") in old_nodes
+             and old_nodes[promotion["laneNodeId"]]["kind"] == "lane"
+             and HASH_RE.fullmatch(promotion.get("featureStatusHash", "")) is not None,
+             "AUTHORITY_DENIED", "feature promotion metadata is invalid")
+        feature_parts = design_feature_parts(store, feature_id)
+        raw_status = store.read_bytes((*feature_parts, "status.json"), 1024 * 1024, private=False)
+        status = loads(raw_status, "feature status")
+        fail(isinstance(status, dict) and status.get("id") == feature_id
+             and "sha256:" + hashlib.sha256(raw_status).hexdigest() == promotion["featureStatusHash"],
+             "AUTHORITY_DENIED", "feature promotion status hash does not bind the held feature session")
+        fail(feature_node == {"id": feature_id, "kind": "feature", "title": status.get("title"),
+             "initialState": "planned", "priority": task_node.get("priority"),
+             "metadata": {"featureSessionId": feature_id, "featurePromotion": promotion}}
+             and task_node.get("kind") == "task" and task_node.get("initialState") == "pending"
+             and task_node.get("metadata", {}).get("execution") == {"idempotent": True, "reclaimable": False}
+             and task_node.get("metadata", {}).get("scheduler", {}).get("claims", {}).get("contracts") == ["production-publish"]
+             and gate_node == {"id": gate_id, "kind": "human-gate",
+                 "title": f"Authorize {feature_id} production publish", "initialState": "pending",
+                 "priority": task_node.get("priority"), "metadata": {"featurePromotion": promotion}},
+             "AUTHORITY_DENIED", "feature promotion nodes are not canonical")
+        expected_edges = [design_edge("contains", "operator-control", feature_id),
+                          design_edge("contains", feature_id, task_id),
+                          design_edge("contains", feature_id, gate_id),
+                          design_edge("assigned-to", task_id, promotion["laneNodeId"]),
+                          design_edge("gated-by", task_id, gate_id,
+                                      {"protectedTransitions": ["active", "completed", "ready"]})]
+        fail(added_edges == sorted(expected_edges, key=lambda item: item["id"]),
+             "AUTHORITY_DENIED", "feature promotion edges are not canonical")
+        expected_nodes = added_nodes
+    elif action == "start":
         fail(not design_flow_nodes(current, feature_id, flow_id)
              and not any(node["id"].startswith(prefix + "-") for node in current["nodes"]),
              "AUTHORITY_DENIED", "design start cannot overlap an existing flow identity")
@@ -2575,7 +2646,7 @@ def design_keychain_path(root_fd: int) -> Optional[Path]:
     try:
         with descriptor_store(root_fd) as store:
             raw = store.read_bytes(("host", "design-proof-keychain.json"), 65536, private=False)
-    except FileNotFoundError:
+    except (FileNotFoundError, KeyError):
         return None
     value = loads(raw, "design proof keychain locator")
     exact(value, {"schemaVersion", "path"}, "design proof keychain locator")
@@ -2602,7 +2673,7 @@ def design_external_signer(root_fd: int) -> Optional[Callable[[Mapping[str, Any]
     try:
         with descriptor_store(root_fd) as store:
             raw = store.read_bytes(("host", "design-proof-signer.json"), 65536, private=False)
-    except FileNotFoundError:
+    except (FileNotFoundError, KeyError):
         return None
     value = loads(raw, "design proof signer locator")
     exact(value, {"schemaVersion", "command"}, "design proof signer locator")
