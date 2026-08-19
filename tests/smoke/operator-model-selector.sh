@@ -28,7 +28,10 @@ OPERATOR_DIR="$operator_dir"
 TMUX_SESSION="model-selector-smoke"
 DEFAULT_BRANCH="main"
 OPERATOR_KIT_VERSION="5.1"
-OPERATOR_LANES="model-strategy"
+OPERATOR_LANES='
+operator|Codex Desktop|operator-kit|main|
+model-strategy|Codex CLI|operator-kit-model-selection|feature/adaptive-model-selection|codex --model gpt-5.6 --reasoning-effort high
+'
 EOF
 
 selector() {
@@ -60,6 +63,75 @@ selector validate --kind catalog "$FIXTURES/catalog.json" >/dev/null
 selector validate --kind policy "$FIXTURES/policy.json" >/dev/null
 selector validate --kind outcome "$tmp_root/outcome.json" >/dev/null
 selector validate --kind outcome "$tmp_root/outcome-unknown.json" >/dev/null
+
+selector suggest-from-history \
+  --tasks "$FIXTURES/tasks.jsonl" \
+  --outcomes "$FIXTURES/outcomes.jsonl" \
+  --catalog "$FIXTURES/catalog.json" >"$tmp_root/suggestion-a.json"
+selector suggest-from-history \
+  --tasks "$FIXTURES/tasks.jsonl" \
+  --outcomes "$FIXTURES/outcomes.jsonl" \
+  --catalog "$FIXTURES/catalog.json" >"$tmp_root/suggestion-b.json"
+cmp -s "$tmp_root/suggestion-a.json" "$tmp_root/suggestion-b.json" || fail "history suggestion is not deterministic"
+selector validate --kind suggestion "$tmp_root/suggestion-a.json" >/dev/null
+
+/usr/bin/python3 - "$tmp_root/suggestion-a.json" <<'PY'
+import json
+import sys
+
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+assert value["schemaVersion"] == "operator.model-selection-suggestion/v1"
+assert value["status"] == "draft_ready"
+assert value["authority"] == {
+    "mode": "advisory",
+    "recommendationOnly": True,
+    "writesFiles": False,
+    "appliesSettings": False,
+    "dispatchesWork": False,
+    "onlineLearning": False,
+    "draftPolicyMode": "off",
+}
+assert value["policyHints"]["mode"] == "off"
+assert value["policyHints"]["candidateShortlists"] == [{
+    "taskClass": "bounded-code",
+    "candidateIds": ["steady-balanced", "baseline-cheap"],
+    "minimumKnownOutcomes": 3,
+    "method": "Observed accepted-outcome rate descending, known sample count descending, median total tokens ascending, then candidate ID.",
+}]
+assert value["policyHints"]["qualityFloors"][0]["suggestedMinimumBps"] == 9000
+lanes = {row["laneId"]: row for row in value["laneObservations"]}
+assert lanes["model-strategy"]["modelHint"] == "gpt-5.6"
+assert lanes["model-strategy"]["reasoningHint"] == "high"
+serialized = json.dumps(value, sort_keys=True)
+assert "codex --model" not in serialized
+observations = {(row["candidateId"], row["taskClass"]): row for row in value["candidateObservations"]}
+assert observations[("steady-balanced", "bounded-code")]["acceptedOutcomeRate"]["rateBps"] == 10000
+assert observations[("steady-balanced", "bounded-code")]["totalTokens"] == {
+    "reported": 3,
+    "unknown": 1,
+    "median": 1500,
+}
+assert observations[("baseline-cheap", "bounded-code")]["retry"]["rateBps"] == 7500
+assert any(row["code"] == "TELEMETRY_INCOMPLETE" for row in value["missingInputs"])
+PY
+
+# Missing default history is an onboarding receipt, not a fabricated policy or an I/O error.
+selector suggest-from-history >"$tmp_root/suggestion-missing.json"
+/usr/bin/python3 - "$tmp_root/suggestion-missing.json" <<'PY'
+import json
+import sys
+
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+assert value["status"] == "needs_input"
+assert value["policyHints"]["mode"] == "off"
+codes = {row["code"] for row in value["missingInputs"] if row["severity"] == "blocking"}
+assert {"TASK_HISTORY_MISSING", "OUTCOME_HISTORY_MISSING"}.issubset(codes)
+assert value["candidateObservations"] == []
+PY
+
+expect_exit 2 "$tmp_root/missing-explicit.out" "$tmp_root/missing-explicit.err" selector \
+  suggest-from-history --tasks "$tmp_root/does-not-exist.jsonl"
+grep -q 'INPUT_IO' "$tmp_root/missing-explicit.err" || fail "explicit missing suggestion history did not fail closed"
 
 /usr/bin/python3 - "$FIXTURES/catalog.json" "$FIXTURES/policy.json" "$tmp_root/task.json" "$tmp_root" <<'PY'
 import copy

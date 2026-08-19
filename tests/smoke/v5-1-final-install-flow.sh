@@ -25,7 +25,7 @@ for obsolete in operator-host.sh operator-proof-broker.sh operator-loop.sh opera
   test ! -e "$repo/scripts/$obsolete"
 done
 test ! -e "$repo/schemas/operator-v5"
-for schema in task-demand model-catalog model-policy model-decision model-outcome; do
+for schema in task-demand model-catalog model-policy model-decision model-outcome model-suggestion; do
   test -f "$repo/schemas/operator-model-selection/v1/$schema.schema.json"
   test ! -x "$repo/schemas/operator-model-selection/v1/$schema.schema.json"
 done
@@ -40,10 +40,27 @@ test ! -e "$model_selection_dir/policy.json"
 
 OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-model-select.sh" \
   setup-guide > "$TMP_ROOT/model-selection-setup-guide.txt"
-grep -q 'optional and currently does nothing' "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'It never applies a model or reasoning' "$TMP_ROOT/model-selection-setup-guide.txt"
 grep -q 'provider/model IDs' "$TMP_ROOT/model-selection-setup-guide.txt"
 grep -q 'quality and confidence' "$TMP_ROOT/model-selection-setup-guide.txt"
 grep -q 'policy mode "off"' "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'suggest-from-history' "$TMP_ROOT/model-selection-setup-guide.txt"
+
+OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-model-select.sh" \
+  suggest-from-history > "$TMP_ROOT/model-selection-suggestion.json"
+/usr/bin/python3 - "$TMP_ROOT/model-selection-suggestion.json" <<'PY'
+import json
+import sys
+
+value = json.load(open(sys.argv[1], encoding="utf-8"))
+assert value["schemaVersion"] == "operator.model-selection-suggestion/v1"
+assert value["status"] == "needs_input"
+assert value["policyHints"]["mode"] == "off"
+assert value["authority"]["writesFiles"] is False
+assert value["authority"]["appliesSettings"] is False
+assert value["authority"]["dispatchesWork"] is False
+assert value["authority"]["onlineLearning"] is False
+PY
 
 /usr/bin/python3 - "$model_selection_dir/catalog.example.json" "$model_selection_dir/policy.example.json" <<'PY'
 import json

@@ -137,6 +137,23 @@ step. Ask the user for reviewed model IDs, exact thinking settings,
 availability/capabilities, task-class estimates, policy limits, and preferences;
 never ask for provider secrets or enable selection implicitly.
 
+When the user asks Operator to propose a starting policy from prior runs or the
+current lane setup, run the read-only command below and summarize its shortlist,
+observations, and missing inputs:
+
+```bash
+bash scripts/operator-model-select.sh suggest-from-history
+```
+
+The command reads only structured task/outcome receipts and the explicit
+`OPERATOR_LANES` configuration. Missing default history is a normal onboarding
+result. Do not mine chats, Markdown handoffs, or arbitrary project files for
+telemetry, and do not invent provider/model identities, availability, reasoning
+settings, quality, risk, budgets, or user preferences. Ask the user to confirm
+review items. Do not write the receipt, create live catalog/policy files, turn
+policy mode on, or apply a suggested model unless the user separately asks for
+those scoped changes.
+
 Assume Codex Desktop chat is the primary UX unless the user explicitly asks for
 terminal-only, Cursor, or Claude Code instructions. Do not start with a long
 shell checklist when the work can be handled from the current chat. After a
@@ -287,9 +304,13 @@ archived and Keychain entries are left untouched.
 
 Advisory model selection is optional and off by default. Installation provides
 only the runtime, schemas, inert examples, and `operator-model-select.sh
-setup-guide`. Do not create live `catalog.json` or `policy.json`, change policy
-mode, or apply a recommendation without explicit user intent and reviewed
-inputs. A recommendation never changes a lane or chat model automatically.
+setup-guide`. `operator-model-select.sh suggest-from-history` may produce a
+deterministic, reviewable starting point from `OPERATOR_LANES` and structured
+task/outcome receipts. It requires three known outcomes per candidate/task
+class before shortlisting, redacts raw lane commands, and leaves policy mode
+`off`. Do not create live `catalog.json` or `policy.json`, change policy mode,
+or apply a recommendation without explicit user intent and reviewed inputs. A
+recommendation never changes a lane or chat model automatically.
 
 ## Core Commands
 

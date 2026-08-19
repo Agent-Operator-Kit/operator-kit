@@ -8,9 +8,10 @@
     "5.1"
   ],
   "compatibleUpdateSourceVersions": [
-    "5.1"
+    "5.1",
+    "5.2"
   ],
-  "pluginVersion": "0.5.2",
+  "pluginVersion": "0.5.3",
   "releaseChannel": "stable",
   "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
@@ -23,13 +24,14 @@
     "scripts/operator-model-select.sh",
     "scripts/operator_model_selector.py",
     "schemas/operator-model-selection/v1/model-catalog.schema.json",
-    "schemas/operator-model-selection/v1/model-policy.schema.json"
+    "schemas/operator-model-selection/v1/model-policy.schema.json",
+    "schemas/operator-model-selection/v1/model-suggestion.schema.json"
   ],
   "hostAdapters": [
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.5.2"
+      "version": "0.5.3"
     },
     {
       "host": "cursor",
@@ -51,6 +53,7 @@
     "modelSelectionOptional": true,
     "modelSelectionAppliesSettings": false,
     "modelSelectionOnlineLearning": false,
+    "modelSelectionHistorySuggestionReadOnly": true,
     "explicitProvisioningCommandAvailable": false,
     "plainLegacyUpdateChangesMarker": false,
     "explicitReviewedMigrationRequired": true,

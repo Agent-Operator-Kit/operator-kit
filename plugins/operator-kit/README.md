@@ -50,12 +50,14 @@ The preserved V3 adapter bundle adds host packages for Cursor and Claude Code un
 APIs.
 
 `v5-compatibility.json` registers the V5.2 local graph and optional model
-selection runtime against plugin `0.5.2` and adapter `0.1.0`
+selection runtime against plugin `0.5.3` and adapter `0.1.0`
 package versions. It sits alongside, and does not relabel,
 `v3-adapter-bundle.json`.
 V5.2 execution remains human-supervised. The local graph advises dependencies
 and bounded parallel work; optional model selection is off by default and
-recommendation-only. Installing the plugin never creates credentials.
+recommendation-only. The `0.5.3` patch can derive a read-only policy suggestion
+from explicit lane configuration and structured previous-run receipts; it does
+not write or enable the policy. Installing the plugin never creates credentials.
 
 The project-local layer owns:
 
@@ -124,7 +126,8 @@ at `0.1.0`; the V4 feature-session package is `0.4.6`; and the first V5
 sharing pilot starts at `0.5.0-preview.1`; first-invocation project detection is
 included in `0.5.0-preview.2`; the signed V5 release is `0.5.0`; and the local
 dependency-graph release is `0.5.1`; optional advisory model selection ships in
-`0.5.2`.
+`0.5.2`; and evidence-backed policy starting points ship in `0.5.3` without
+changing the V5.2 project marker.
 
 Compatibility rule:
 
@@ -137,7 +140,8 @@ Compatibility rule:
   using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
-- V5.2 uses plugin `0.5.2` and project marker `5.2`. V5.1 updates compatibly;
+- V5.2 uses plugin `0.5.3` and project marker `5.2`. V5.1 and earlier V5.2
+  patch levels update compatibly;
   V4 and signed V5 projects first migrate explicitly through
   `operator-v5-1-migrate.sh`.
 

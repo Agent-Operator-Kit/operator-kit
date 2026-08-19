@@ -12,6 +12,7 @@ import copy
 import hashlib
 import json
 import re
+import shlex
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -21,6 +22,9 @@ from typing import Any, Iterable
 SCHEMA_VERSION = "operator.model-selection/v1"
 ALGORITHM_VERSION = "operator.model-selector/v1"
 REPLAY_VERSION = "operator.model-selection-replay/v1"
+SUGGESTION_VERSION = "operator.model-selection-suggestion/v1"
+SUGGESTION_ALGORITHM_VERSION = "operator.model-policy-suggestion/v1"
+MINIMUM_SUGGESTION_OUTCOMES = 3
 TIE_BREAK_ORDER = [
     "expectedTotalTokens",
     "continuity",
@@ -677,12 +681,176 @@ def validate_outcome(value: dict[str, Any]) -> dict[str, Any]:
     return outcome
 
 
+def validate_suggestion(value: dict[str, Any]) -> dict[str, Any]:
+    fields = {
+        "schemaVersion", "suggestionId", "evidenceFingerprint", "algorithmVersion", "status",
+        "projectName", "inputs", "authority", "laneObservations", "taskClassObservations",
+        "candidateObservations", "policyHints", "missingInputs",
+    }
+    suggestion = require_exact(value, fields, "suggestion")
+    fail(suggestion["schemaVersion"] == SUGGESTION_VERSION, "UNSUPPORTED_SCHEMA",
+         f"suggestion schemaVersion must be {SUGGESTION_VERSION}")
+    require_id(suggestion["suggestionId"], "suggestion.suggestionId")
+    require_digest(suggestion["evidenceFingerprint"], "suggestion.evidenceFingerprint")
+    fail(suggestion["algorithmVersion"] == SUGGESTION_ALGORITHM_VERSION, "UNSUPPORTED_ALGORITHM",
+         f"suggestion algorithmVersion must be {SUGGESTION_ALGORITHM_VERSION}")
+    require_enum(suggestion["status"], {"draft_ready", "needs_input"}, "suggestion.status")
+    if suggestion["projectName"] is not None:
+        require_text(suggestion["projectName"], "suggestion.projectName", 256)
+
+    inputs = require_exact(suggestion["inputs"], {"laneMap", "tasks", "outcomes", "catalog"}, "suggestion.inputs")
+    for key in ("laneMap", "tasks", "outcomes", "catalog"):
+        row = require_exact(inputs[key], {"status", "digest", "recordCount"}, f"suggestion.inputs.{key}")
+        require_enum(row["status"], {"reported", "missing"}, f"suggestion.inputs.{key}.status")
+        if row["digest"] is not None:
+            require_digest(row["digest"], f"suggestion.inputs.{key}.digest")
+        require_int(row["recordCount"], f"suggestion.inputs.{key}.recordCount")
+        fail((row["status"] == "reported") == (row["digest"] is not None), "INVALID_VALUE",
+             f"suggestion.inputs.{key} reported status and digest must agree")
+
+    authority = require_exact(
+        suggestion["authority"],
+        {"mode", "recommendationOnly", "writesFiles", "appliesSettings", "dispatchesWork", "onlineLearning", "draftPolicyMode"},
+        "suggestion.authority",
+    )
+    fail(authority == {
+        "mode": "advisory",
+        "recommendationOnly": True,
+        "writesFiles": False,
+        "appliesSettings": False,
+        "dispatchesWork": False,
+        "onlineLearning": False,
+        "draftPolicyMode": "off",
+    }, "INVALID_AUTHORITY", "suggestion authority must remain advisory, read-only, offline, and off")
+
+    fail(isinstance(suggestion["laneObservations"], list) and len(suggestion["laneObservations"]) <= 256,
+         "INVALID_VALUE", "suggestion.laneObservations must be an array")
+    lane_ids = []
+    for index, raw in enumerate(suggestion["laneObservations"]):
+        label = f"suggestion.laneObservations[{index}]"
+        row = require_exact(raw, {"laneId", "owner", "worktree", "branch", "commandDigest", "modelHint", "reasoningHint", "evidenceRef"}, label)
+        lane_ids.append(require_id(row["laneId"], f"{label}.laneId"))
+        for key in ("owner", "worktree", "branch", "evidenceRef"):
+            require_text(row[key], f"{label}.{key}", 1024)
+        require_digest(row["commandDigest"], f"{label}.commandDigest")
+        if row["modelHint"] is not None:
+            require_text(row["modelHint"], f"{label}.modelHint", 256)
+        if row["reasoningHint"] is not None:
+            require_text(row["reasoningHint"], f"{label}.reasoningHint", 256)
+    fail(len(lane_ids) == len(set(lane_ids)), "DUPLICATE_ID", "suggestion lane IDs must be unique")
+
+    fail(isinstance(suggestion["taskClassObservations"], list), "INVALID_VALUE",
+         "suggestion.taskClassObservations must be an array")
+    task_classes = []
+    for index, raw in enumerate(suggestion["taskClassObservations"]):
+        label = f"suggestion.taskClassObservations[{index}]"
+        row = require_exact(raw, {"taskClass", "taskCount", "laneIds", "hostIds", "riskClasses", "observedQualityFloorBps"}, label)
+        task_classes.append(require_id(row["taskClass"], f"{label}.taskClass"))
+        require_int(row["taskCount"], f"{label}.taskCount", 1)
+        for key in ("laneIds", "hostIds", "riskClasses"):
+            require_id_set(row[key], f"{label}.{key}")
+        quality = require_exact(row["observedQualityFloorBps"], {"minimum", "maximum", "values"}, f"{label}.observedQualityFloorBps")
+        require_bps(quality["minimum"], f"{label}.observedQualityFloorBps.minimum")
+        require_bps(quality["maximum"], f"{label}.observedQualityFloorBps.maximum")
+        fail(isinstance(quality["values"], list) and quality["values"], "INVALID_VALUE", f"{label}.observedQualityFloorBps.values must be non-empty")
+        for value_index, quality_value in enumerate(quality["values"]):
+            require_bps(quality_value, f"{label}.observedQualityFloorBps.values[{value_index}]")
+    fail(len(task_classes) == len(set(task_classes)), "DUPLICATE_ID", "suggestion task classes must be unique")
+
+    fail(isinstance(suggestion["candidateObservations"], list), "INVALID_VALUE",
+         "suggestion.candidateObservations must be an array")
+    candidate_keys = []
+    for index, raw in enumerate(suggestion["candidateObservations"]):
+        label = f"suggestion.candidateObservations[{index}]"
+        row = require_exact(raw, {
+            "candidateId", "taskClass", "catalogIdentity", "taskIds", "outcomeIds", "sampleCount",
+            "acceptedOutcomeRate", "validationCounts", "firstAttemptTokens", "totalTokens", "latencyMs",
+            "costMicrounits", "retry", "escalation", "handoff", "humanCorrection",
+        }, label)
+        candidate_id = require_id(row["candidateId"], f"{label}.candidateId")
+        task_class = require_id(row["taskClass"], f"{label}.taskClass")
+        candidate_keys.append((candidate_id, task_class))
+        if row["catalogIdentity"] is not None:
+            identity = require_exact(row["catalogIdentity"], {"providerId", "modelId", "profileId", "reasoningSetting", "enabled", "availability"}, f"{label}.catalogIdentity")
+            require_id(identity["providerId"], f"{label}.catalogIdentity.providerId")
+            require_text(identity["modelId"], f"{label}.catalogIdentity.modelId", 256)
+            require_id(identity["profileId"], f"{label}.catalogIdentity.profileId")
+            validate_reasoning(identity["reasoningSetting"], f"{label}.catalogIdentity.reasoningSetting")
+            require_bool(identity["enabled"], f"{label}.catalogIdentity.enabled")
+            require_enum(identity["availability"], {"available", "unavailable", "unknown"}, f"{label}.catalogIdentity.availability")
+        task_ids = require_id_set(row["taskIds"], f"{label}.taskIds")
+        outcome_ids = require_id_set(row["outcomeIds"], f"{label}.outcomeIds")
+        sample_count = require_int(row["sampleCount"], f"{label}.sampleCount", 1)
+        fail(sample_count == len(outcome_ids), "INVALID_VALUE", f"{label}.sampleCount must equal outcomeIds length")
+        fail(bool(task_ids), "INVALID_VALUE", f"{label}.taskIds must be non-empty")
+        rate = require_exact(row["acceptedOutcomeRate"], {"accepted", "known", "unknown", "rateBps"}, f"{label}.acceptedOutcomeRate")
+        for key in ("accepted", "known", "unknown"):
+            require_int(rate[key], f"{label}.acceptedOutcomeRate.{key}")
+        require_nullable_bps(rate["rateBps"], f"{label}.acceptedOutcomeRate.rateBps")
+        counts = require_exact(row["validationCounts"], {"passed", "failed", "notRun", "unknown"}, f"{label}.validationCounts")
+        for key in counts:
+            require_int(counts[key], f"{label}.validationCounts.{key}")
+        for key in ("firstAttemptTokens", "totalTokens", "latencyMs", "costMicrounits"):
+            metric = require_exact(row[key], {"reported", "unknown", "median"}, f"{label}.{key}")
+            require_int(metric["reported"], f"{label}.{key}.reported")
+            require_int(metric["unknown"], f"{label}.{key}.unknown")
+            require_nullable_int(metric["median"], f"{label}.{key}.median")
+        for key, count_key in (("retry", "totalCount"), ("escalation", "totalCount"), ("handoff", "totalCount")):
+            recovery = require_exact(row[key], {"outcomesWithAny", count_key, "rateBps"}, f"{label}.{key}")
+            require_int(recovery["outcomesWithAny"], f"{label}.{key}.outcomesWithAny")
+            require_int(recovery[count_key], f"{label}.{key}.{count_key}")
+            require_bps(recovery["rateBps"], f"{label}.{key}.rateBps")
+        correction = require_exact(row["humanCorrection"], {"true", "false", "unknown", "rateBps"}, f"{label}.humanCorrection")
+        for key in ("true", "false", "unknown"):
+            require_int(correction[key], f"{label}.humanCorrection.{key}")
+        require_nullable_bps(correction["rateBps"], f"{label}.humanCorrection.rateBps")
+    fail(len(candidate_keys) == len(set(candidate_keys)), "DUPLICATE_ID", "suggestion candidate/task-class pairs must be unique")
+
+    hints = require_exact(suggestion["policyHints"], {
+        "mode", "requiresHumanReview", "taskClasses", "laneIds", "hostIds", "candidateIds", "profileIds",
+        "candidateShortlists", "qualityFloors", "limits",
+    }, "suggestion.policyHints")
+    fail(hints["mode"] == "off", "INVALID_AUTHORITY", "suggestion policyHints.mode must be off")
+    fail(hints["requiresHumanReview"] is True, "INVALID_AUTHORITY", "suggestion policy hints must require human review")
+    for key in ("taskClasses", "laneIds", "hostIds", "candidateIds", "profileIds"):
+        require_id_set(hints[key], f"suggestion.policyHints.{key}")
+    for index, raw in enumerate(hints["candidateShortlists"]):
+        label = f"suggestion.policyHints.candidateShortlists[{index}]"
+        row = require_exact(raw, {"taskClass", "candidateIds", "minimumKnownOutcomes", "method"}, label)
+        require_id(row["taskClass"], f"{label}.taskClass")
+        require_id_set(row["candidateIds"], f"{label}.candidateIds")
+        require_int(row["minimumKnownOutcomes"], f"{label}.minimumKnownOutcomes", 1)
+        require_text(row["method"], f"{label}.method", 1024)
+    for index, raw in enumerate(hints["qualityFloors"]):
+        label = f"suggestion.policyHints.qualityFloors[{index}]"
+        row = require_exact(raw, {"taskClass", "observedValuesBps", "suggestedMinimumBps", "basis"}, label)
+        require_id(row["taskClass"], f"{label}.taskClass")
+        for value_index, quality_value in enumerate(row["observedValuesBps"]):
+            require_bps(quality_value, f"{label}.observedValuesBps[{value_index}]")
+        require_nullable_bps(row["suggestedMinimumBps"], f"{label}.suggestedMinimumBps")
+        require_text(row["basis"], f"{label}.basis", 1024)
+    limits = require_exact(hints["limits"], {"maximumExpectedTokens", "maximumLatencyMs", "maximumCostMicrounits"}, "suggestion.policyHints.limits")
+    for key in limits:
+        require_nullable_int(limits[key], f"suggestion.policyHints.limits.{key}")
+
+    fail(isinstance(suggestion["missingInputs"], list), "INVALID_VALUE", "suggestion.missingInputs must be an array")
+    for index, raw in enumerate(suggestion["missingInputs"]):
+        label = f"suggestion.missingInputs[{index}]"
+        row = require_exact(raw, {"code", "scope", "severity", "message"}, label)
+        require_id(row["code"], f"{label}.code")
+        require_id(row["scope"], f"{label}.scope")
+        require_enum(row["severity"], {"blocking", "review"}, f"{label}.severity")
+        require_text(row["message"], f"{label}.message", 1024)
+    return suggestion
+
+
 VALIDATORS = {
     "task": validate_task,
     "catalog": validate_catalog,
     "policy": validate_policy,
     "decision": validate_decision,
     "outcome": validate_outcome,
+    "suggestion": validate_suggestion,
 }
 
 
@@ -1024,6 +1192,372 @@ def median_integer(values: list[int]) -> int | None:
     return (ordered[middle - 1] + ordered[middle] + 1) // 2
 
 
+def basis_point_rate(numerator: int, denominator: int) -> int | None:
+    return (numerator * 10000) // denominator if denominator else None
+
+
+def command_hint(tokens: list[str], names: set[str]) -> str | None:
+    result = None
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        for name in names:
+            prefix = name + "="
+            if token == name and index + 1 < len(tokens):
+                result = tokens[index + 1]
+                index += 1
+                break
+            if token.startswith(prefix):
+                result = token[len(prefix):]
+                break
+        index += 1
+    if result is None or not valid_text(result, 256):
+        return None
+    return result
+
+
+def parse_lane_map(raw: str) -> list[dict[str, Any]]:
+    lanes = []
+    for line_number, raw_line in enumerate(raw.splitlines(), 1):
+        if not raw_line.strip():
+            continue
+        fields = raw_line.split("|")
+        fail(len(fields) >= 4, "INVALID_LANE_MAP",
+             f"OPERATOR_LANES line {line_number} must have at least four pipe-delimited fields")
+        lane_id, owner, worktree, branch = fields[:4]
+        command = "|".join(fields[4:]) if len(fields) > 4 else ""
+        require_id(lane_id, f"OPERATOR_LANES line {line_number} lane id")
+        for value, label in ((owner, "owner"), (worktree, "worktree"), (branch, "branch")):
+            require_text(value, f"OPERATOR_LANES line {line_number} {label}", 1024)
+        try:
+            tokens = shlex.split(command) if command else []
+        except ValueError:
+            tokens = []
+        lanes.append({
+            "laneId": lane_id,
+            "owner": owner,
+            "worktree": worktree,
+            "branch": branch,
+            "commandDigest": digest(command),
+            "modelHint": command_hint(tokens, {"--model"}),
+            "reasoningHint": command_hint(tokens, {"--reasoning", "--reasoning-effort", "--thinking", "--effort"}),
+            "evidenceRef": f"operator.config.env:OPERATOR_LANES:{lane_id}",
+        })
+    unique_rows(lanes, "laneId", "laneId in OPERATOR_LANES")
+    return sorted(lanes, key=lambda item: item["laneId"])
+
+
+def telemetry_summary(values: list[int | None]) -> dict[str, Any]:
+    reported = [value for value in values if value is not None]
+    return {
+        "reported": len(reported),
+        "unknown": len(values) - len(reported),
+        "median": median_integer(reported),
+    }
+
+
+def reported_token_total(value: dict[str, Any]) -> int | None:
+    return value["totalTokens"] if value["status"] == "reported" else None
+
+
+def reported_measurement(value: dict[str, Any]) -> int | None:
+    return value["value"] if value["status"] == "reported" else None
+
+
+def suggestion_input(status: str, value: Any, record_count: int) -> dict[str, Any]:
+    return {
+        "status": status,
+        "digest": digest(value) if status == "reported" else None,
+        "recordCount": record_count,
+    }
+
+
+def suggest_from_history(project_name: str | None, lane_map: str, tasks: list[dict[str, Any]],
+                         outcomes: list[dict[str, Any]], catalog: dict[str, Any] | None,
+                         task_status: str, outcome_status: str, catalog_status: str) -> dict[str, Any]:
+    for task in tasks:
+        validate_task(task)
+    for outcome in outcomes:
+        validate_outcome(outcome)
+    if catalog is not None:
+        validate_catalog(catalog)
+    lanes = parse_lane_map(lane_map)
+    tasks_by_id = unique_rows(tasks, "taskId", "suggestion taskId")
+    unique_rows(outcomes, "outcomeId", "suggestion outcomeId")
+    candidates_by_id = {
+        candidate["candidateId"]: candidate for candidate in catalog["candidates"]
+    } if catalog is not None else {}
+
+    missing: list[dict[str, str]] = []
+    missing_keys: set[tuple[str, str]] = set()
+
+    def add_missing(code: str, scope: str, severity: str, message: str) -> None:
+        key = (code, scope)
+        if key in missing_keys:
+            return
+        missing_keys.add(key)
+        missing.append({"code": code, "scope": scope, "severity": severity, "message": message})
+
+    if not lanes:
+        add_missing("LANE_SETUP_MISSING", "project", "blocking",
+                    "No durable lanes were available from OPERATOR_LANES.")
+    for lane in lanes:
+        if lane["modelHint"] is None:
+            add_missing("LANE_MODEL_HINT_MISSING", f"lane:{lane['laneId']}", "review",
+                        "The lane command does not contain an explicit --model value; do not infer one.")
+        if lane["reasoningHint"] is None:
+            add_missing("LANE_REASONING_HINT_MISSING", f"lane:{lane['laneId']}", "review",
+                        "The lane command does not contain an explicit reasoning or thinking value; do not infer one.")
+    if task_status == "missing":
+        add_missing("TASK_HISTORY_MISSING", "project", "blocking",
+                    "Add validated task-demand receipts to model-selection/tasks.jsonl or pass --tasks.")
+    elif not tasks:
+        add_missing("TASK_HISTORY_EMPTY", "project", "blocking",
+                    "The supplied task history contains no task-demand receipts.")
+    if outcome_status == "missing":
+        add_missing("OUTCOME_HISTORY_MISSING", "project", "blocking",
+                    "Add validated outcome receipts to model-selection/outcomes.jsonl or pass --outcomes.")
+    elif not outcomes:
+        add_missing("OUTCOME_HISTORY_EMPTY", "project", "blocking",
+                    "The supplied outcome history contains no outcome receipts.")
+    if catalog_status == "missing":
+        add_missing("CATALOG_MISSING", "project", "blocking",
+                    "Provide a reviewed catalog to resolve candidate IDs to exact provider, model, and reasoning settings.")
+
+    configured_lane_ids = {lane["laneId"] for lane in lanes}
+    for task in tasks:
+        lane_id = task["requirements"]["laneId"]
+        if lane_id is not None and lane_id not in configured_lane_ids:
+            add_missing("TASK_LANE_NOT_CONFIGURED", f"lane:{lane_id}", "blocking",
+                        "A historical task references a lane absent from the current OPERATOR_LANES setup.")
+
+    task_class_rows = []
+    for task_class in sorted({task["taskClass"] for task in tasks}):
+        class_tasks = [task for task in tasks if task["taskClass"] == task_class]
+        quality_values = sorted({task["qualityFloorBps"] for task in class_tasks})
+        task_class_rows.append({
+            "taskClass": task_class,
+            "taskCount": len(class_tasks),
+            "laneIds": sorted({task["requirements"]["laneId"] for task in class_tasks if task["requirements"]["laneId"] is not None}),
+            "hostIds": sorted({task["requirements"]["hostId"] for task in class_tasks if task["requirements"]["hostId"] is not None}),
+            "riskClasses": sorted({task["riskClass"] for task in class_tasks}),
+            "observedQualityFloorBps": {
+                "minimum": min(quality_values),
+                "maximum": max(quality_values),
+                "values": quality_values,
+            },
+        })
+
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for outcome in outcomes:
+        task = tasks_by_id.get(outcome["taskId"])
+        if task is None:
+            add_missing("TASK_RECEIPT_MISSING", f"outcome:{outcome['outcomeId']}", "blocking",
+                        "The outcome references a task absent from the supplied task history.")
+            continue
+        execution = outcome["actualExecution"]
+        if execution is None:
+            add_missing("ACTUAL_EXECUTION_MISSING", f"outcome:{outcome['outcomeId']}", "review",
+                        "The outcome has no actual candidate execution and cannot inform a candidate suggestion.")
+            continue
+        candidate_id = execution["candidateId"]
+        grouped.setdefault((candidate_id, task["taskClass"]), []).append(outcome)
+
+    candidate_rows = []
+    for (candidate_id, task_class), candidate_outcomes in sorted(grouped.items()):
+        candidate = candidates_by_id.get(candidate_id)
+        identity = None
+        if candidate is None:
+            add_missing("CANDIDATE_IDENTITY_MISSING", f"candidate:{candidate_id}", "blocking",
+                        "The candidate is absent from the catalog, so provider, model, profile, and reasoning remain unknown.")
+        else:
+            identity = {
+                "providerId": candidate["providerId"],
+                "modelId": candidate["modelId"],
+                "profileId": candidate["profileId"],
+                "reasoningSetting": copy.deepcopy(candidate["reasoningSetting"]),
+                "enabled": candidate["enabled"],
+                "availability": candidate["availability"],
+            }
+            if not candidate["enabled"] or candidate["availability"] != "available":
+                add_missing("CANDIDATE_AVAILABILITY_REVIEW_REQUIRED", f"candidate:{candidate_id}", "blocking",
+                            "Historical evidence exists, but the catalog does not mark this candidate enabled and available.")
+
+        accepted = sum(outcome["acceptance"]["status"] == "accepted" for outcome in candidate_outcomes)
+        acceptance_known = sum(outcome["acceptance"]["status"] != "unknown" for outcome in candidate_outcomes)
+        acceptance_unknown = len(candidate_outcomes) - acceptance_known
+        validation_counts = {
+            "passed": sum(outcome["validation"]["status"] == "passed" for outcome in candidate_outcomes),
+            "failed": sum(outcome["validation"]["status"] == "failed" for outcome in candidate_outcomes),
+            "notRun": sum(outcome["validation"]["status"] == "not_run" for outcome in candidate_outcomes),
+            "unknown": sum(outcome["validation"]["status"] == "unknown" for outcome in candidate_outcomes),
+        }
+        first_attempt_tokens = []
+        for outcome in candidate_outcomes:
+            if outcome["attempts"]:
+                first_attempt_tokens.append(reported_token_total(outcome["attempts"][0]["tokenUsage"]))
+            else:
+                first_attempt_tokens.append(None)
+        total_tokens = [reported_token_total(outcome["totalTokenUsage"]) for outcome in candidate_outcomes]
+        latency = [reported_measurement(outcome["totalLatencyMs"]) for outcome in candidate_outcomes]
+        cost = [reported_measurement(outcome["totalCostMicrounits"]) for outcome in candidate_outcomes]
+        retry_any = sum(outcome["retryCount"] > 0 for outcome in candidate_outcomes)
+        escalation_any = sum(outcome["escalationCount"] > 0 for outcome in candidate_outcomes)
+        handoff_any = sum(outcome["handoffCount"] > 0 for outcome in candidate_outcomes)
+        correction_true = sum(outcome["humanCorrection"] is True for outcome in candidate_outcomes)
+        correction_false = sum(outcome["humanCorrection"] is False for outcome in candidate_outcomes)
+        correction_known = correction_true + correction_false
+        candidate_rows.append({
+            "candidateId": candidate_id,
+            "taskClass": task_class,
+            "catalogIdentity": identity,
+            "taskIds": sorted({outcome["taskId"] for outcome in candidate_outcomes}),
+            "outcomeIds": sorted(outcome["outcomeId"] for outcome in candidate_outcomes),
+            "sampleCount": len(candidate_outcomes),
+            "acceptedOutcomeRate": {
+                "accepted": accepted,
+                "known": acceptance_known,
+                "unknown": acceptance_unknown,
+                "rateBps": basis_point_rate(accepted, acceptance_known),
+            },
+            "validationCounts": validation_counts,
+            "firstAttemptTokens": telemetry_summary(first_attempt_tokens),
+            "totalTokens": telemetry_summary(total_tokens),
+            "latencyMs": telemetry_summary(latency),
+            "costMicrounits": telemetry_summary(cost),
+            "retry": {
+                "outcomesWithAny": retry_any,
+                "totalCount": sum(outcome["retryCount"] for outcome in candidate_outcomes),
+                "rateBps": basis_point_rate(retry_any, len(candidate_outcomes)) or 0,
+            },
+            "escalation": {
+                "outcomesWithAny": escalation_any,
+                "totalCount": sum(outcome["escalationCount"] for outcome in candidate_outcomes),
+                "rateBps": basis_point_rate(escalation_any, len(candidate_outcomes)) or 0,
+            },
+            "handoff": {
+                "outcomesWithAny": handoff_any,
+                "totalCount": sum(outcome["handoffCount"] for outcome in candidate_outcomes),
+                "rateBps": basis_point_rate(handoff_any, len(candidate_outcomes)) or 0,
+            },
+            "humanCorrection": {
+                "true": correction_true,
+                "false": correction_false,
+                "unknown": len(candidate_outcomes) - correction_known,
+                "rateBps": basis_point_rate(correction_true, correction_known),
+            },
+        })
+        if acceptance_unknown:
+            add_missing("ACCEPTANCE_EVIDENCE_INCOMPLETE", f"candidate:{candidate_id}", "review",
+                        "At least one outcome has unknown acceptance and is excluded from the accepted-outcome rate.")
+        if any(value is None for value in total_tokens + latency + cost):
+            add_missing("TELEMETRY_INCOMPLETE", f"candidate:{candidate_id}", "review",
+                        "At least one outcome has unknown token, latency, or cost telemetry; unknown values remain excluded, never zero.")
+
+    shortlists = []
+    for task_class in sorted({row["taskClass"] for row in candidate_rows}):
+        eligible_rows = [
+            row for row in candidate_rows
+            if row["taskClass"] == task_class
+            and row["acceptedOutcomeRate"]["known"] >= MINIMUM_SUGGESTION_OUTCOMES
+            and row["catalogIdentity"] is not None
+            and row["catalogIdentity"]["enabled"] is True
+            and row["catalogIdentity"]["availability"] == "available"
+        ]
+        if eligible_rows:
+            ordered = sorted(eligible_rows, key=lambda row: (
+                -(row["acceptedOutcomeRate"]["rateBps"] if row["acceptedOutcomeRate"]["rateBps"] is not None else -1),
+                -row["acceptedOutcomeRate"]["known"],
+                row["totalTokens"]["median"] if row["totalTokens"]["median"] is not None else sys.maxsize,
+                row["candidateId"],
+            ))
+            shortlists.append({
+                "taskClass": task_class,
+                "candidateIds": [row["candidateId"] for row in ordered],
+                "minimumKnownOutcomes": MINIMUM_SUGGESTION_OUTCOMES,
+                "method": "Observed accepted-outcome rate descending, known sample count descending, median total tokens ascending, then candidate ID.",
+            })
+        else:
+            add_missing("INSUFFICIENT_OUTCOME_SAMPLES", f"taskClass:{task_class}", "review",
+                        f"No catalog-resolved candidate has {MINIMUM_SUGGESTION_OUTCOMES} known outcomes for this task class.")
+
+    if outcomes and not candidate_rows:
+        add_missing("CANDIDATE_EVIDENCE_MISSING", "project", "blocking",
+                    "No supplied outcome could be joined to a task and actual candidate execution.")
+    add_missing("RISK_FLOOR_REVIEW_REQUIRED", "policy", "review",
+                "Observed risk-class labels do not establish their ordering or an acceptable minimum; review the risk policy.")
+    add_missing("DATA_POLICY_REVIEW_REQUIRED", "policy", "review",
+                "Historical receipts do not authorize data classes or credential capabilities; review them explicitly.")
+    add_missing("BUDGET_REVIEW_REQUIRED", "policy", "review",
+                "Review token, latency, and cost limits before creating or changing a live policy.")
+    add_missing("USER_PREFERENCES_REQUIRED", "policy", "review",
+                "Confirm preferred profiles, continuity behavior, pins, and override rules with the user.")
+
+    shortlisted_candidate_ids = sorted({
+        candidate_id for shortlist in shortlists for candidate_id in shortlist["candidateIds"]
+    })
+    policy_hints = {
+        "mode": "off",
+        "requiresHumanReview": True,
+        "taskClasses": sorted({task["taskClass"] for task in tasks}),
+        "laneIds": sorted(configured_lane_ids),
+        "hostIds": sorted({task["requirements"]["hostId"] for task in tasks if task["requirements"]["hostId"] is not None}),
+        "candidateIds": shortlisted_candidate_ids,
+        "profileIds": sorted({
+            row["catalogIdentity"]["profileId"] for row in candidate_rows
+            if row["catalogIdentity"] is not None and row["candidateId"] in shortlisted_candidate_ids
+        }),
+        "candidateShortlists": shortlists,
+        "qualityFloors": [{
+            "taskClass": row["taskClass"],
+            "observedValuesBps": row["observedQualityFloorBps"]["values"],
+            "suggestedMinimumBps": row["observedQualityFloorBps"]["maximum"],
+            "basis": "Retain the highest explicit quality floor observed in historical task-demand receipts; human review is required.",
+        } for row in task_class_rows],
+        "limits": {
+            "maximumExpectedTokens": None,
+            "maximumLatencyMs": None,
+            "maximumCostMicrounits": None,
+        },
+    }
+    inputs = {
+        "laneMap": suggestion_input("reported" if lanes else "missing", lane_map, len(lanes)),
+        "tasks": suggestion_input(task_status, tasks, len(tasks)),
+        "outcomes": suggestion_input(outcome_status, outcomes, len(outcomes)),
+        "catalog": suggestion_input(catalog_status, catalog, len(catalog["candidates"]) if catalog is not None else 0),
+    }
+    evidence_fingerprint = digest({
+        "algorithmVersion": SUGGESTION_ALGORITHM_VERSION,
+        "inputs": inputs,
+    })
+    missing = sorted(missing, key=lambda row: (row["severity"], row["code"], row["scope"]))
+    receipt = {
+        "schemaVersion": SUGGESTION_VERSION,
+        "suggestionId": "suggestion-" + evidence_fingerprint.removeprefix("sha256:")[:32],
+        "evidenceFingerprint": evidence_fingerprint,
+        "algorithmVersion": SUGGESTION_ALGORITHM_VERSION,
+        "status": "needs_input" if any(row["severity"] == "blocking" for row in missing) else "draft_ready",
+        "projectName": project_name,
+        "inputs": inputs,
+        "authority": {
+            "mode": "advisory",
+            "recommendationOnly": True,
+            "writesFiles": False,
+            "appliesSettings": False,
+            "dispatchesWork": False,
+            "onlineLearning": False,
+            "draftPolicyMode": "off",
+        },
+        "laneObservations": lanes,
+        "taskClassObservations": task_class_rows,
+        "candidateObservations": candidate_rows,
+        "policyHints": policy_hints,
+        "missingInputs": missing,
+    }
+    validate_suggestion(receipt)
+    return receipt
+
+
 def arm_metrics(cases: list[dict[str, Any]], arm: str) -> dict[str, Any]:
     selected = 0
     abstained = 0
@@ -1181,9 +1715,11 @@ def parser() -> argparse.ArgumentParser:
     root = SelectorArgumentParser(
         prog="operator-model-select",
         description="Deterministic advisory model selector (no dispatch or graph mutation)",
-        epilog="Exit 0: recommendation/validation/replay; exit 3: valid off or needs_override; exit 2: invalid input/usage/I/O.",
+        epilog="Exit 0: recommendation/validation/replay/suggestion; exit 3: valid off or needs_override; exit 2: invalid input/usage/I/O.",
     )
     root.add_argument("--operator-dir", required=True)
+    root.add_argument("--project-name")
+    root.add_argument("--lane-map", default="")
     commands = root.add_subparsers(dest="command", required=True)
 
     validate = commands.add_parser("validate")
@@ -1201,6 +1737,11 @@ def parser() -> argparse.ArgumentParser:
     replay_parser.add_argument("--catalog")
     replay_parser.add_argument("--policy")
     replay_parser.add_argument("--baseline-candidate")
+
+    suggest_parser = commands.add_parser("suggest-from-history")
+    suggest_parser.add_argument("--tasks")
+    suggest_parser.add_argument("--outcomes")
+    suggest_parser.add_argument("--catalog")
     return root
 
 
@@ -1210,7 +1751,42 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.command == "validate":
         value = load_json(Path(args.file), args.kind)
         VALIDATORS[args.kind](value)
-        emit({"kind": args.kind, "ok": True, "schemaVersion": SCHEMA_VERSION})
+        emit({"kind": args.kind, "ok": True, "schemaVersion": value["schemaVersion"]})
+        return EXIT_OK
+    if args.command == "suggest-from-history":
+        default_root = operator_dir / "model-selection"
+        task_path = Path(args.tasks) if args.tasks else default_root / "tasks.jsonl"
+        outcome_path = Path(args.outcomes) if args.outcomes else default_root / "outcomes.jsonl"
+        catalog_path = Path(args.catalog) if args.catalog else default_root / "catalog.json"
+        if args.tasks or task_path.is_file():
+            tasks = load_jsonl(task_path, "tasks")
+            task_status = "reported"
+        else:
+            tasks = []
+            task_status = "missing"
+        if args.outcomes or outcome_path.is_file():
+            outcomes = load_jsonl(outcome_path, "outcomes")
+            outcome_status = "reported"
+        else:
+            outcomes = []
+            outcome_status = "missing"
+        if args.catalog or catalog_path.is_file():
+            catalog = load_json(catalog_path, "catalog")
+            catalog_status = "reported"
+        else:
+            catalog = None
+            catalog_status = "missing"
+        suggestion = suggest_from_history(
+            args.project_name,
+            args.lane_map,
+            tasks,
+            outcomes,
+            catalog,
+            task_status,
+            outcome_status,
+            catalog_status,
+        )
+        emit(suggestion)
         return EXIT_OK
     catalog_path = Path(args.catalog) if args.catalog else operator_dir / "model-selection" / "catalog.json"
     policy_path = Path(args.policy) if args.policy else operator_dir / "model-selection" / "policy.json"

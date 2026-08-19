@@ -1,6 +1,6 @@
 {
   "name": "operator",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Agent Operator Kit for Codex: a local, human-supervised operator cockpit with feature dependency graphs, bounded parallel planning, and optional advisory model selection.",
   "author": {
     "name": "Agent Operator Kit"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Operator",
     "shortDescription": "Local graphs and optional model guidance",
-    "longDescription": "Version 0.5.2. Operator is the Codex plugin for Agent Operator Kit: a human-supervised cockpit for real projects, including feature-scoped dependency graphs, a capacity-bounded runnable frontier, and optional advisory model selection. On the first Operator prompt it runs a read-only project preflight and recommends the correct setup, repair, migration, or continuation path.\n\nUse it to coordinate feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. Model selection is off by default, applies no settings, and uses only reviewed project-local inputs. V5.2 requires no signing authority, Keychain credentials, proof broker, trusted host, lease, or heartbeat loop.",
+    "longDescription": "Version 0.5.3. Operator is the Codex plugin for Agent Operator Kit: a human-supervised cockpit for real projects, including feature-scoped dependency graphs, a capacity-bounded runnable frontier, and optional advisory model selection. On the first Operator prompt it runs a read-only project preflight and recommends the correct setup, repair, migration, or continuation path.\n\nUse it to coordinate feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. Model selection is off by default, applies no settings, and can suggest a reviewable starting policy from explicit lane setup plus structured prior-run receipts. V5.2 requires no signing authority, Keychain credentials, proof broker, trusted host, lease, or heartbeat loop.",
     "developerName": "Agent Operator Kit",
     "category": "Developer Tools",
     "capabilities": [

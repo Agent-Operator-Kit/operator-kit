@@ -41,6 +41,27 @@ From the installed project, run this read-only checklist at any time:
 bash scripts/operator-model-select.sh setup-guide
 ```
 
+If structured task and outcome receipts already exist, ask for a reviewable
+starting point with:
+
+```bash
+bash scripts/operator-model-select.sh suggest-from-history
+```
+
+The command reads `tasks.jsonl`, `outcomes.jsonl`, and an optional live
+`catalog.json` from this directory by default. It writes nothing. Missing
+defaults are reported as onboarding inputs, while explicitly passed missing or
+invalid files fail closed. Candidate IDs can only be resolved to exact provider,
+model, profile, and reasoning settings through the catalog.
+
+The suggestion uses a minimum of three known-acceptance outcomes per candidate
+and task class before producing an evidence-ranked shortlist. It preserves
+unknown telemetry, redacts lane commands to digests plus explicit model and
+reasoning flags, leaves every policy hint in `off` mode, and lists the remaining
+human decisions. Raw chats, Markdown handoffs, and arbitrary project files are
+not mined by the deterministic command; convert only verified observations into
+the structured contracts.
+
 An exact catalog candidate represents one provider model plus one exact
 reasoning setting. Adding another reasoning setting means adding another stable
 candidate ID. Task demand and policy remain provider-neutral: they use semantic
@@ -94,4 +115,6 @@ continuity, latency, cost, then lexical candidate ID.
 Decision receipts include canonical input digests, a deterministic selection
 fingerprint, constraint evidence, frontier/fallback order, rejection codes, and
 an authority block proving the result is advisory. Outcome receipts are for
-offline evaluation only and never update policy automatically.
+offline evaluation only and never update policy automatically. Suggestion
+receipts use `operator.model-selection-suggestion/v1` and are also advisory,
+read-only, and non-learning.

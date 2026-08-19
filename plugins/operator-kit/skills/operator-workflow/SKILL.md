@@ -100,6 +100,20 @@ use, verified capabilities/context/data constraints, task-class outcome
 estimates, policy floors and limits, and preferences or pins. Never request API
 keys, enable `recommend`, or apply a recommendation implicitly.
 
+If the project has previous structured task/outcome receipts, or the user asks
+Operator to suggest a starting policy from previous runs and lane setup, run:
+
+```bash
+bash scripts/operator-model-select.sh suggest-from-history
+```
+
+Treat its receipt as read-only onboarding evidence. Present the evidence-ranked
+shortlist and every blocking/review input; keep mode `off`. The deterministic
+command does not mine raw chats or handoffs and needs at least three outcomes
+with known acceptance per candidate/task class. Never infer missing provider,
+model, reasoning, availability, risk, data, budget, or preference values, and
+never write live files or enable selection without a separate explicit request.
+
 ## Agent-Run Setup
 
 When the user wants an agent to fully set up the system from scratch, follow `docs/guides/agent-run-bootstrap.md` and the prompt template in `templates/prompts/agent-run-bootstrap.md`.

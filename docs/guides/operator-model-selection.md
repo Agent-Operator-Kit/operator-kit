@@ -33,6 +33,47 @@ example candidate is disabled and unavailable. Installation never creates
 `catalog.json` or `policy.json`, changes `operator.config.env`, generates a
 decision, or invokes the selector.
 
+## Suggest a starting policy from prior runs
+
+Operator can now turn the current `OPERATOR_LANES` setup plus structured task
+and outcome receipts into a reviewable policy-suggestion receipt:
+
+```bash
+bash scripts/operator-model-select.sh suggest-from-history
+```
+
+By default the command looks for:
+
+```text
+OPERATOR_DIR/model-selection/tasks.jsonl
+OPERATOR_DIR/model-selection/outcomes.jsonl
+OPERATOR_DIR/model-selection/catalog.json
+```
+
+Use `--tasks`, `--outcomes`, or `--catalog` to inspect another explicit corpus.
+The command is useful before live files exist: absent defaults produce a
+`needs_input` receipt with precise onboarding gaps instead of an I/O failure.
+An explicitly supplied missing or invalid file still fails closed.
+
+The receipt includes lane observations, task-class demand, candidate outcome
+evidence, and an evidence-ranked candidate shortlist. A candidate needs at
+least three outcomes with known acceptance before it can enter a shortlist.
+Ranking uses observed accepted-outcome rate, known sample count, median total
+tokens, then candidate ID. It is evidence ordering, not a provider claim or an
+execution decision.
+
+Lane commands are never copied into the receipt. The command records a digest
+and extracts only explicit `--model` and reasoning/thinking flags. It does not
+infer provider availability, missing model identities, credentials, risk
+ordering, data permission, budgets, or user preferences. Unknown measurements
+remain unknown and are excluded from medians rather than treated as zero.
+
+Every suggestion keeps policy mode `off`, requires human review, writes no
+files, applies no settings, dispatches no work, and performs no online
+learning. Operator should present the shortlist, observations, and
+`missingInputs` to the user; it must not silently convert the receipt into a
+live catalog or policy.
+
 ## Onboarding guide
 
 Fresh installs and V5.1-to-V5.2 updates point users to one read-only command:
@@ -92,13 +133,16 @@ bash scripts/operator-model-select.sh recommend \
 bash scripts/operator-model-select.sh replay \
   --tasks FILE --outcomes FILE \
   [--catalog FILE] [--policy FILE] [--baseline-candidate ID]
+
+bash scripts/operator-model-select.sh suggest-from-history \
+  [--tasks FILE] [--outcomes FILE] [--catalog FILE]
 ```
 
 When `--catalog` or `--policy` is omitted, the command reads
 `OPERATOR_DIR/model-selection/catalog.json` and `policy.json`. JSON results go
 to stdout and diagnostics go to stderr.
 
-- Exit `0`: valid recommendation, validation, or replay.
+- Exit `0`: valid recommendation, validation, replay, or policy suggestion.
 - Exit `3`: valid `off` or `needs_override` result with no recommendation.
 - Exit `2`: invalid usage, input, references, policy, telemetry, or I/O.
 

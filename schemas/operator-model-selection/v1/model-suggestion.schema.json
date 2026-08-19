@@ -1,0 +1,356 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/model-suggestion.schema.json",
+  "title": "Operator Model Policy Suggestion v1",
+  "description": "A deterministic, advisory, read-only policy starting point derived from explicit lane configuration and structured task/outcome evidence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "suggestionId",
+    "evidenceFingerprint",
+    "algorithmVersion",
+    "status",
+    "projectName",
+    "inputs",
+    "authority",
+    "laneObservations",
+    "taskClassObservations",
+    "candidateObservations",
+    "policyHints",
+    "missingInputs"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "operator.model-selection-suggestion/v1" },
+    "suggestionId": { "$ref": "#/$defs/id" },
+    "evidenceFingerprint": { "$ref": "#/$defs/digest" },
+    "algorithmVersion": { "const": "operator.model-policy-suggestion/v1" },
+    "status": { "enum": ["draft_ready", "needs_input"] },
+    "projectName": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 256 },
+        { "type": "null" }
+      ]
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["laneMap", "tasks", "outcomes", "catalog"],
+      "properties": {
+        "laneMap": { "$ref": "#/$defs/inputEvidence" },
+        "tasks": { "$ref": "#/$defs/inputEvidence" },
+        "outcomes": { "$ref": "#/$defs/inputEvidence" },
+        "catalog": { "$ref": "#/$defs/inputEvidence" }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "recommendationOnly", "writesFiles", "appliesSettings", "dispatchesWork", "onlineLearning", "draftPolicyMode"],
+      "properties": {
+        "mode": { "const": "advisory" },
+        "recommendationOnly": { "const": true },
+        "writesFiles": { "const": false },
+        "appliesSettings": { "const": false },
+        "dispatchesWork": { "const": false },
+        "onlineLearning": { "const": false },
+        "draftPolicyMode": { "const": "off" }
+      }
+    },
+    "laneObservations": {
+      "type": "array",
+      "maxItems": 256,
+      "items": { "$ref": "#/$defs/laneObservation" }
+    },
+    "taskClassObservations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/taskClassObservation" }
+    },
+    "candidateObservations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/candidateObservation" }
+    },
+    "policyHints": { "$ref": "#/$defs/policyHints" },
+    "missingInputs": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/missingInput" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nonNegativeInteger": { "type": "integer", "minimum": 0 },
+    "basisPoints": { "type": "integer", "minimum": 0, "maximum": 10000 },
+    "nullableBasisPoints": {
+      "oneOf": [
+        { "$ref": "#/$defs/basisPoints" },
+        { "type": "null" }
+      ]
+    },
+    "nullableNonNegativeInteger": {
+      "oneOf": [
+        { "$ref": "#/$defs/nonNegativeInteger" },
+        { "type": "null" }
+      ]
+    },
+    "nullableText": {
+      "oneOf": [
+        { "type": "string", "minLength": 1, "maxLength": 256 },
+        { "type": "null" }
+      ]
+    },
+    "idSet": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "inputEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "digest", "recordCount"],
+      "properties": {
+        "status": { "enum": ["reported", "missing"] },
+        "digest": {
+          "oneOf": [
+            { "$ref": "#/$defs/digest" },
+            { "type": "null" }
+          ]
+        },
+        "recordCount": { "$ref": "#/$defs/nonNegativeInteger" }
+      }
+    },
+    "laneObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["laneId", "owner", "worktree", "branch", "commandDigest", "modelHint", "reasoningHint", "evidenceRef"],
+      "properties": {
+        "laneId": { "$ref": "#/$defs/id" },
+        "owner": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "worktree": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "branch": { "type": "string", "minLength": 1, "maxLength": 1024 },
+        "commandDigest": { "$ref": "#/$defs/digest" },
+        "modelHint": { "$ref": "#/$defs/nullableText" },
+        "reasoningHint": { "$ref": "#/$defs/nullableText" },
+        "evidenceRef": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    },
+    "taskClassObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["taskClass", "taskCount", "laneIds", "hostIds", "riskClasses", "observedQualityFloorBps"],
+      "properties": {
+        "taskClass": { "$ref": "#/$defs/id" },
+        "taskCount": { "type": "integer", "minimum": 1 },
+        "laneIds": { "$ref": "#/$defs/idSet" },
+        "hostIds": { "$ref": "#/$defs/idSet" },
+        "riskClasses": { "$ref": "#/$defs/idSet" },
+        "observedQualityFloorBps": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["minimum", "maximum", "values"],
+          "properties": {
+            "minimum": { "$ref": "#/$defs/basisPoints" },
+            "maximum": { "$ref": "#/$defs/basisPoints" },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "$ref": "#/$defs/basisPoints" }
+            }
+          }
+        }
+      }
+    },
+    "reasoningSetting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "parameters"],
+      "properties": {
+        "name": { "$ref": "#/$defs/id" },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string", "maxLength": 256 },
+              { "type": "integer" },
+              { "type": "boolean" },
+              { "type": "null" }
+            ]
+          },
+          "propertyNames": { "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$", "maxLength": 128 }
+        }
+      }
+    },
+    "catalogIdentity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["providerId", "modelId", "profileId", "reasoningSetting", "enabled", "availability"],
+      "properties": {
+        "providerId": { "$ref": "#/$defs/id" },
+        "modelId": { "type": "string", "minLength": 1, "maxLength": 256 },
+        "profileId": { "$ref": "#/$defs/id" },
+        "reasoningSetting": { "$ref": "#/$defs/reasoningSetting" },
+        "enabled": { "type": "boolean" },
+        "availability": { "enum": ["available", "unavailable", "unknown"] }
+      }
+    },
+    "telemetrySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reported", "unknown", "median"],
+      "properties": {
+        "reported": { "$ref": "#/$defs/nonNegativeInteger" },
+        "unknown": { "$ref": "#/$defs/nonNegativeInteger" },
+        "median": { "$ref": "#/$defs/nullableNonNegativeInteger" }
+      }
+    },
+    "recoverySummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcomesWithAny", "totalCount", "rateBps"],
+      "properties": {
+        "outcomesWithAny": { "$ref": "#/$defs/nonNegativeInteger" },
+        "totalCount": { "$ref": "#/$defs/nonNegativeInteger" },
+        "rateBps": { "$ref": "#/$defs/basisPoints" }
+      }
+    },
+    "candidateObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateId", "taskClass", "catalogIdentity", "taskIds", "outcomeIds", "sampleCount",
+        "acceptedOutcomeRate", "validationCounts", "firstAttemptTokens", "totalTokens", "latencyMs",
+        "costMicrounits", "retry", "escalation", "handoff", "humanCorrection"
+      ],
+      "properties": {
+        "candidateId": { "$ref": "#/$defs/id" },
+        "taskClass": { "$ref": "#/$defs/id" },
+        "catalogIdentity": {
+          "oneOf": [
+            { "$ref": "#/$defs/catalogIdentity" },
+            { "type": "null" }
+          ]
+        },
+        "taskIds": { "$ref": "#/$defs/idSet" },
+        "outcomeIds": { "$ref": "#/$defs/idSet" },
+        "sampleCount": { "type": "integer", "minimum": 1 },
+        "acceptedOutcomeRate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["accepted", "known", "unknown", "rateBps"],
+          "properties": {
+            "accepted": { "$ref": "#/$defs/nonNegativeInteger" },
+            "known": { "$ref": "#/$defs/nonNegativeInteger" },
+            "unknown": { "$ref": "#/$defs/nonNegativeInteger" },
+            "rateBps": { "$ref": "#/$defs/nullableBasisPoints" }
+          }
+        },
+        "validationCounts": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["passed", "failed", "notRun", "unknown"],
+          "properties": {
+            "passed": { "$ref": "#/$defs/nonNegativeInteger" },
+            "failed": { "$ref": "#/$defs/nonNegativeInteger" },
+            "notRun": { "$ref": "#/$defs/nonNegativeInteger" },
+            "unknown": { "$ref": "#/$defs/nonNegativeInteger" }
+          }
+        },
+        "firstAttemptTokens": { "$ref": "#/$defs/telemetrySummary" },
+        "totalTokens": { "$ref": "#/$defs/telemetrySummary" },
+        "latencyMs": { "$ref": "#/$defs/telemetrySummary" },
+        "costMicrounits": { "$ref": "#/$defs/telemetrySummary" },
+        "retry": { "$ref": "#/$defs/recoverySummary" },
+        "escalation": { "$ref": "#/$defs/recoverySummary" },
+        "handoff": { "$ref": "#/$defs/recoverySummary" },
+        "humanCorrection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["true", "false", "unknown", "rateBps"],
+          "properties": {
+            "true": { "$ref": "#/$defs/nonNegativeInteger" },
+            "false": { "$ref": "#/$defs/nonNegativeInteger" },
+            "unknown": { "$ref": "#/$defs/nonNegativeInteger" },
+            "rateBps": { "$ref": "#/$defs/nullableBasisPoints" }
+          }
+        }
+      }
+    },
+    "policyHints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "requiresHumanReview", "taskClasses", "laneIds", "hostIds", "candidateIds", "profileIds", "candidateShortlists", "qualityFloors", "limits"],
+      "properties": {
+        "mode": { "const": "off" },
+        "requiresHumanReview": { "const": true },
+        "taskClasses": { "$ref": "#/$defs/idSet" },
+        "laneIds": { "$ref": "#/$defs/idSet" },
+        "hostIds": { "$ref": "#/$defs/idSet" },
+        "candidateIds": { "$ref": "#/$defs/idSet" },
+        "profileIds": { "$ref": "#/$defs/idSet" },
+        "candidateShortlists": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["taskClass", "candidateIds", "minimumKnownOutcomes", "method"],
+            "properties": {
+              "taskClass": { "$ref": "#/$defs/id" },
+              "candidateIds": { "$ref": "#/$defs/idSet" },
+              "minimumKnownOutcomes": { "type": "integer", "minimum": 1 },
+              "method": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          }
+        },
+        "qualityFloors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["taskClass", "observedValuesBps", "suggestedMinimumBps", "basis"],
+            "properties": {
+              "taskClass": { "$ref": "#/$defs/id" },
+              "observedValuesBps": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/basisPoints" }
+              },
+              "suggestedMinimumBps": { "$ref": "#/$defs/nullableBasisPoints" },
+              "basis": { "type": "string", "minLength": 1, "maxLength": 1024 }
+            }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["maximumExpectedTokens", "maximumLatencyMs", "maximumCostMicrounits"],
+          "properties": {
+            "maximumExpectedTokens": { "$ref": "#/$defs/nullableNonNegativeInteger" },
+            "maximumLatencyMs": { "$ref": "#/$defs/nullableNonNegativeInteger" },
+            "maximumCostMicrounits": { "$ref": "#/$defs/nullableNonNegativeInteger" }
+          }
+        }
+      }
+    },
+    "missingInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "scope", "severity", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/id" },
+        "scope": { "$ref": "#/$defs/id" },
+        "severity": { "enum": ["blocking", "review"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 1024 }
+      }
+    }
+  }
+}

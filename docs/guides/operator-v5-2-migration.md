@@ -51,6 +51,21 @@ Before opting in, the user must review and provide:
 Keep secrets outside Operator. The catalog may name a credential capability but
 must never contain an API key or token.
 
+For existing V5.2 projects, Operator can first inspect the current lane map and
+any structured previous-run receipts:
+
+```bash
+bash scripts/operator-model-select.sh suggest-from-history
+```
+
+The command writes nothing and keeps the draft policy mode `off`. If the
+default `tasks.jsonl`, `outcomes.jsonl`, or live catalog is absent, it returns a
+`needs_input` onboarding receipt. With sufficient evidence, it produces a
+candidate shortlist and preserves observed task quality floors as reviewable
+hints. The user must still confirm provider/model identities, reasoning,
+availability, risk/data rules, budgets, and preferences. Operator does not mine
+raw chats or handoffs for telemetry.
+
 ## Opt in
 
 Copy the inert examples to `catalog.json` and `policy.json`, replace every
