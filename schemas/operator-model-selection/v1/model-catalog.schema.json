@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/model-catalog.schema.json",
+  "title": "Operator Model Selection Catalog v1",
+  "description": "Project-local exact model and reasoning candidates with provider-neutral compatibility and estimates.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "catalogId",
+    "revision",
+    "observedAt",
+    "validUntil",
+    "profiles",
+    "candidates"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "operator.model-selection/v1"
+    },
+    "catalogId": {
+      "$ref": "#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "observedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "validUntil": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "profileId",
+          "description"
+        ],
+        "properties": {
+          "profileId": {
+            "$ref": "#/$defs/id"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          }
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 512,
+      "items": {
+        "$ref": "#/$defs/candidate"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "nullableId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "idSet": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "nullableNonNegativeInteger": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableBasisPoints": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10000
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reasoningSetting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "parameters"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "tools",
+        "modalities",
+        "contextWindowTokens",
+        "dataClasses",
+        "laneIds",
+        "hostIds",
+        "maximumRiskClass"
+      ],
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/idSet"
+        },
+        "tools": {
+          "$ref": "#/$defs/idSet"
+        },
+        "modalities": {
+          "$ref": "#/$defs/idSet"
+        },
+        "contextWindowTokens": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "dataClasses": {
+          "$ref": "#/$defs/idSet"
+        },
+        "laneIds": {
+          "$ref": "#/$defs/idSet"
+        },
+        "hostIds": {
+          "$ref": "#/$defs/idSet"
+        },
+        "maximumRiskClass": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "estimate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskClass",
+        "recoveryAssumptionId",
+        "qualityBps",
+        "confidenceBps",
+        "firstAttemptTokens",
+        "retryProbabilityBps",
+        "retryTokens",
+        "escalationProbabilityBps",
+        "escalationTargetCandidateId",
+        "escalationTokens",
+        "latencyMs",
+        "costMicrounits"
+      ],
+      "properties": {
+        "taskClass": {
+          "$ref": "#/$defs/id"
+        },
+        "recoveryAssumptionId": {
+          "$ref": "#/$defs/id"
+        },
+        "qualityBps": {
+          "$ref": "#/$defs/nullableBasisPoints"
+        },
+        "confidenceBps": {
+          "$ref": "#/$defs/nullableBasisPoints"
+        },
+        "firstAttemptTokens": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "retryProbabilityBps": {
+          "$ref": "#/$defs/nullableBasisPoints"
+        },
+        "retryTokens": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "escalationProbabilityBps": {
+          "$ref": "#/$defs/nullableBasisPoints"
+        },
+        "escalationTargetCandidateId": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "escalationTokens": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "latencyMs": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "costMicrounits": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateId",
+        "providerId",
+        "modelId",
+        "enabled",
+        "profileId",
+        "reasoningSetting",
+        "availability",
+        "credentialCapability",
+        "compatibility",
+        "estimates"
+      ],
+      "properties": {
+        "candidateId": {
+          "$ref": "#/$defs/id"
+        },
+        "providerId": {
+          "$ref": "#/$defs/id"
+        },
+        "modelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "profileId": {
+          "$ref": "#/$defs/id"
+        },
+        "reasoningSetting": {
+          "$ref": "#/$defs/reasoningSetting"
+        },
+        "availability": {
+          "enum": [
+            "available",
+            "unavailable",
+            "unknown"
+          ]
+        },
+        "credentialCapability": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "compatibility": {
+          "$ref": "#/$defs/compatibility"
+        },
+        "estimates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/estimate"
+          }
+        }
+      }
+    }
+  }
+}

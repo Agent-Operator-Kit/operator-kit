@@ -14,6 +14,7 @@ By default, project-specific files are preserved:
   CLAUDE.md
   .claude/*
   .cursor/*
+  OPERATOR_DIR/model-selection/*
 
 Evergreen scripts are refreshed from the kit source.
 
@@ -324,7 +325,7 @@ fi
 if [ "$DRY_RUN" -eq 0 ]; then
   mkdir -p "$TARGET_REPO/scripts"
 fi
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   if [ ! -f "$SOURCE_PATH/scripts/$script" ]; then
     record unchanged "scripts/$script unavailable in selected channel"
     continue
@@ -332,13 +333,22 @@ for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.
   copy_refresh_executable "$SOURCE_PATH/scripts/$script" "$TARGET_REPO/scripts/$script" "scripts/$script"
 done
 
-for helper in operator_local_graph.py operator_v5_1_migrate.py; do
+for helper in operator_local_graph.py operator_v5_1_migrate.py operator_model_selector.py; do
   if [ ! -f "$SOURCE_PATH/scripts/$helper" ]; then
     record unchanged "scripts/$helper unavailable in selected channel"
     continue
   fi
   copy_refresh_plain "$SOURCE_PATH/scripts/$helper" "$TARGET_REPO/scripts/$helper" "scripts/$helper"
 done
+
+if [ -d "$SOURCE_PATH/schemas/operator-model-selection/v1" ]; then
+  copy_refresh_plain_directory \
+    "$SOURCE_PATH/schemas/operator-model-selection/v1" \
+    "$TARGET_REPO/schemas/operator-model-selection/v1" \
+    "schemas/operator-model-selection/v1"
+else
+  record unchanged "schemas/operator-model-selection/v1 unavailable in selected channel"
+fi
 
 install_missing_plain "$SOURCE_PATH/templates/repo/AGENTS.md" "$TARGET_REPO/AGENTS.md" "AGENTS.md"
 install_missing_plain "$SOURCE_PATH/templates/repo/CODEX.md" "$TARGET_REPO/CODEX.md" "CODEX.md"
@@ -369,6 +379,16 @@ if [ "$DRY_RUN" -eq 0 ]; then
   fi
 fi
 install_missing_plain "$SOURCE_PATH/templates/operator-workspace/README.md" "$OPERATOR_DIR/README.md" "OPERATOR_DIR/README.md"
+if [ -d "$SOURCE_PATH/templates/operator-workspace/model-selection" ]; then
+  for model_selection_file in README.md catalog.example.json policy.example.json; do
+    install_missing_plain \
+      "$SOURCE_PATH/templates/operator-workspace/model-selection/$model_selection_file" \
+      "$OPERATOR_DIR/model-selection/$model_selection_file" \
+      "OPERATOR_DIR/model-selection/$model_selection_file"
+  done
+else
+  record unchanged "OPERATOR_DIR/model-selection starter files unavailable in selected channel"
+fi
 install_missing_plain "$SOURCE_PATH/templates/operator-workspace/catalog/README.md" "$OPERATOR_DIR/catalog/README.md" "OPERATOR_DIR/catalog/README.md"
 install_missing_plain "$SOURCE_PATH/templates/operator-workspace/catalog/roles/_template.md" "$OPERATOR_DIR/catalog/roles/_template.md" "OPERATOR_DIR/catalog/roles/_template.md"
 for role_template in api-contracts auth-permissions data-storage deployment-recovery design-system evals-testing high-risk-operations knowledge-base llm-runtime mobile-app mobile-release observability provider-integration web-ui; do

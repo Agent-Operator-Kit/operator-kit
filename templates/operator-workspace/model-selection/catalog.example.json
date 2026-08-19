@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "operator.model-selection/v1",
+  "catalogId": "example-disabled-catalog",
+  "revision": 1,
+  "observedAt": "2026-01-01T00:00:00Z",
+  "validUntil": "2026-01-01T00:00:00Z",
+  "profiles": [
+    {
+      "profileId": "balanced",
+      "description": "Example semantic profile; replace with reviewed project vocabulary."
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "example-disabled-balanced",
+      "providerId": "example-provider",
+      "modelId": "example-model",
+      "enabled": false,
+      "profileId": "balanced",
+      "reasoningSetting": {
+        "name": "example-reasoning",
+        "parameters": {
+          "effort": "example"
+        }
+      },
+      "availability": "unavailable",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": [
+          "text-generation"
+        ],
+        "tools": [],
+        "modalities": [
+          "text"
+        ],
+        "contextWindowTokens": 1,
+        "dataClasses": [
+          "public"
+        ],
+        "laneIds": [],
+        "hostIds": [],
+        "maximumRiskClass": "low"
+      },
+      "estimates": [
+        {
+          "taskClass": "bounded-code",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": null,
+          "confidenceBps": null,
+          "firstAttemptTokens": null,
+          "retryProbabilityBps": null,
+          "retryTokens": null,
+          "escalationProbabilityBps": null,
+          "escalationTargetCandidateId": null,
+          "escalationTokens": null,
+          "latencyMs": null,
+          "costMicrounits": null
+        }
+      ]
+    }
+  ]
+}

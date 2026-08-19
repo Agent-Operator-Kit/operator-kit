@@ -1,0 +1,346 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/model-policy.schema.json",
+  "title": "Operator Model Selection Policy v1",
+  "description": "Provider-neutral hard constraints, floors, and deterministic advisory ordering.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "policyId",
+    "revision",
+    "algorithmVersion",
+    "mode",
+    "allowedProfileIds",
+    "riskClassOrder",
+    "qualityFloors",
+    "riskFloors",
+    "minimumConfidenceBps",
+    "contextSafetyMarginTokens",
+    "hardConstraints",
+    "requiredEstimateFields",
+    "dataPolicy",
+    "overridePolicy",
+    "recovery",
+    "limits",
+    "tieBreakOrder",
+    "authority"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "operator.model-selection/v1"
+    },
+    "policyId": {
+      "$ref": "#/$defs/id"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "algorithmVersion": {
+      "const": "operator.model-selector/v1"
+    },
+    "mode": {
+      "enum": [
+        "off",
+        "recommend",
+        "policy-auto"
+      ]
+    },
+    "allowedProfileIds": {
+      "$ref": "#/$defs/idSet"
+    },
+    "riskClassOrder": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "qualityFloors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defaultBps",
+        "byTaskClass"
+      ],
+      "properties": {
+        "defaultBps": {
+          "$ref": "#/$defs/basisPoints"
+        },
+        "byTaskClass": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "taskClass",
+              "minimumBps"
+            ],
+            "properties": {
+              "taskClass": {
+                "$ref": "#/$defs/id"
+              },
+              "minimumBps": {
+                "$ref": "#/$defs/basisPoints"
+              }
+            }
+          }
+        }
+      }
+    },
+    "riskFloors": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "defaultClass",
+        "byTaskClass"
+      ],
+      "properties": {
+        "defaultClass": {
+          "$ref": "#/$defs/id"
+        },
+        "byTaskClass": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "taskClass",
+              "minimumClass"
+            ],
+            "properties": {
+              "taskClass": {
+                "$ref": "#/$defs/id"
+              },
+              "minimumClass": {
+                "$ref": "#/$defs/id"
+              }
+            }
+          }
+        }
+      }
+    },
+    "minimumConfidenceBps": {
+      "$ref": "#/$defs/basisPoints"
+    },
+    "contextSafetyMarginTokens": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "hardConstraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "availability",
+        "capabilities",
+        "tools",
+        "modalities",
+        "context",
+        "dataClasses",
+        "lane",
+        "host",
+        "riskFloor",
+        "qualityFloor",
+        "userOverride",
+        "budgets"
+      ],
+      "properties": {
+        "availability": {
+          "const": true
+        },
+        "capabilities": {
+          "const": true
+        },
+        "tools": {
+          "const": true
+        },
+        "modalities": {
+          "const": true
+        },
+        "context": {
+          "const": true
+        },
+        "dataClasses": {
+          "const": true
+        },
+        "lane": {
+          "const": true
+        },
+        "host": {
+          "const": true
+        },
+        "riskFloor": {
+          "const": true
+        },
+        "qualityFloor": {
+          "const": true
+        },
+        "userOverride": {
+          "const": true
+        },
+        "budgets": {
+          "const": true
+        }
+      }
+    },
+    "requiredEstimateFields": {
+      "const": [
+        "qualityBps",
+        "confidenceBps",
+        "firstAttemptTokens",
+        "retryProbabilityBps",
+        "retryTokens",
+        "escalationProbabilityBps",
+        "escalationTokens",
+        "latencyMs",
+        "costMicrounits"
+      ]
+    },
+    "dataPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowedDataClasses",
+        "requireCandidateDeclaration"
+      ],
+      "properties": {
+        "allowedDataClasses": {
+          "$ref": "#/$defs/idSet"
+        },
+        "requireCandidateDeclaration": {
+          "const": true
+        }
+      }
+    },
+    "overridePolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowCandidatePin",
+        "requireReason",
+        "enforceHardConstraints"
+      ],
+      "properties": {
+        "allowCandidatePin": {
+          "type": "boolean"
+        },
+        "requireReason": {
+          "const": true
+        },
+        "enforceHardConstraints": {
+          "const": true
+        }
+      }
+    },
+    "recovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assumptionId",
+        "maximumRetries",
+        "includeEscalation"
+      ],
+      "properties": {
+        "assumptionId": {
+          "$ref": "#/$defs/id"
+        },
+        "maximumRetries": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "includeEscalation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumExpectedTokens",
+        "maximumLatencyMs",
+        "maximumCostMicrounits"
+      ],
+      "properties": {
+        "maximumExpectedTokens": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "maximumLatencyMs": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "maximumCostMicrounits": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        }
+      }
+    },
+    "tieBreakOrder": {
+      "const": [
+        "expectedTotalTokens",
+        "continuity",
+        "latencyMs",
+        "costMicrounits",
+        "candidateId"
+      ]
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recommendationOnly",
+        "policyAutoDryRunOnly",
+        "onlineLearning"
+      ],
+      "properties": {
+        "recommendationOnly": {
+          "const": true
+        },
+        "policyAutoDryRunOnly": {
+          "const": true
+        },
+        "onlineLearning": {
+          "const": false
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "idSet": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "basisPoints": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nullableNonNegativeInteger": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

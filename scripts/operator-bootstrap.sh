@@ -118,13 +118,17 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
 
-for helper in operator_local_graph.py operator_v5_1_migrate.py; do
+for helper in operator_local_graph.py operator_v5_1_migrate.py operator_model_selector.py; do
   copy_plain "$KIT_ROOT/scripts/$helper" "$repo_root/scripts/$helper"
 done
+
+copy_plain_directory \
+  "$KIT_ROOT/schemas/operator-model-selection/v1" \
+  "$repo_root/schemas/operator-model-selection/v1"
 
 if [ ! -f "$repo_root/operator.config.env" ]; then
   if [ "$BOOTSTRAP_PROFILE" = "cursor" ]; then
@@ -201,6 +205,14 @@ fi
 if [ ! -f "$project_root/operator/README.md" ]; then
   copy_plain "$KIT_ROOT/templates/operator-workspace/README.md" "$project_root/operator/README.md"
 fi
+
+for model_selection_file in README.md catalog.example.json policy.example.json; do
+  if [ ! -f "$project_root/operator/model-selection/$model_selection_file" ]; then
+    copy_plain \
+      "$KIT_ROOT/templates/operator-workspace/model-selection/$model_selection_file" \
+      "$project_root/operator/model-selection/$model_selection_file"
+  fi
+done
 
 for roadmap_file in \
   "catalog/README.md" \

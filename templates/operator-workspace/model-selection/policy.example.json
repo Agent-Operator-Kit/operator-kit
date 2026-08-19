@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "operator.model-selection/v1",
+  "policyId": "example-disabled-policy",
+  "revision": 1,
+  "algorithmVersion": "operator.model-selector/v1",
+  "mode": "off",
+  "allowedProfileIds": [
+    "balanced"
+  ],
+  "riskClassOrder": [
+    "low",
+    "medium",
+    "high",
+    "critical"
+  ],
+  "qualityFloors": {
+    "defaultBps": 9000,
+    "byTaskClass": [
+      {
+        "taskClass": "bounded-code",
+        "minimumBps": 9000
+      }
+    ]
+  },
+  "riskFloors": {
+    "defaultClass": "low",
+    "byTaskClass": [
+      {
+        "taskClass": "bounded-code",
+        "minimumClass": "medium"
+      }
+    ]
+  },
+  "minimumConfidenceBps": 8000,
+  "contextSafetyMarginTokens": 4096,
+  "hardConstraints": {
+    "availability": true,
+    "capabilities": true,
+    "tools": true,
+    "modalities": true,
+    "context": true,
+    "dataClasses": true,
+    "lane": true,
+    "host": true,
+    "riskFloor": true,
+    "qualityFloor": true,
+    "userOverride": true,
+    "budgets": true
+  },
+  "requiredEstimateFields": [
+    "qualityBps",
+    "confidenceBps",
+    "firstAttemptTokens",
+    "retryProbabilityBps",
+    "retryTokens",
+    "escalationProbabilityBps",
+    "escalationTokens",
+    "latencyMs",
+    "costMicrounits"
+  ],
+  "dataPolicy": {
+    "allowedDataClasses": [
+      "public"
+    ],
+    "requireCandidateDeclaration": true
+  },
+  "overridePolicy": {
+    "allowCandidatePin": true,
+    "requireReason": true,
+    "enforceHardConstraints": true
+  },
+  "recovery": {
+    "assumptionId": "single-retry-single-escalation/v1",
+    "maximumRetries": 1,
+    "includeEscalation": true
+  },
+  "limits": {
+    "maximumExpectedTokens": null,
+    "maximumLatencyMs": null,
+    "maximumCostMicrounits": null
+  },
+  "tieBreakOrder": [
+    "expectedTotalTokens",
+    "continuity",
+    "latencyMs",
+    "costMicrounits",
+    "candidateId"
+  ],
+  "authority": {
+    "recommendationOnly": true,
+    "policyAutoDryRunOnly": true,
+    "onlineLearning": false
+  }
+}

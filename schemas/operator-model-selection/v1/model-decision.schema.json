@@ -1,0 +1,461 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/model-decision.schema.json",
+  "title": "Operator Model Selection Decision v1",
+  "description": "Deterministic evidence and advisory recommendation for one task.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "decisionId",
+    "selectionFingerprint",
+    "algorithmVersion",
+    "generatedAt",
+    "taskId",
+    "status",
+    "inputEvidence",
+    "demandEvidence",
+    "recommendation",
+    "eligibleCandidateIds",
+    "rejectedCandidates",
+    "paretoFrontierCandidateIds",
+    "fallbackCandidateIds",
+    "tieBreakOrder",
+    "tieBreakTrace",
+    "overrideEvidence",
+    "reasons",
+    "authority"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "operator.model-selection/v1"
+    },
+    "decisionId": {
+      "$ref": "#/$defs/id"
+    },
+    "selectionFingerprint": {
+      "$ref": "#/$defs/digest"
+    },
+    "algorithmVersion": {
+      "const": "operator.model-selector/v1"
+    },
+    "generatedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "taskId": {
+      "$ref": "#/$defs/id"
+    },
+    "status": {
+      "enum": [
+        "recommended",
+        "off",
+        "needs_override"
+      ]
+    },
+    "inputEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskDemandDigest",
+        "catalogId",
+        "catalogRevision",
+        "catalogDigest",
+        "policyId",
+        "policyRevision",
+        "policyDigest"
+      ],
+      "properties": {
+        "taskDemandDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "catalogId": {
+          "$ref": "#/$defs/id"
+        },
+        "catalogRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "catalogDigest": {
+          "$ref": "#/$defs/digest"
+        },
+        "policyId": {
+          "$ref": "#/$defs/id"
+        },
+        "policyRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "policyDigest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "demandEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "taskClass",
+        "effectiveRiskClass",
+        "effectiveQualityFloorBps"
+      ],
+      "properties": {
+        "taskClass": {
+          "$ref": "#/$defs/id"
+        },
+        "effectiveRiskClass": {
+          "$ref": "#/$defs/id"
+        },
+        "effectiveQualityFloorBps": {
+          "$ref": "#/$defs/basisPoints"
+        }
+      }
+    },
+    "recommendation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/recommendation"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "eligibleCandidateIds": {
+      "$ref": "#/$defs/idSet"
+    },
+    "rejectedCandidates": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidateId",
+          "reasonCodes"
+        ],
+        "properties": {
+          "candidateId": {
+            "$ref": "#/$defs/id"
+          },
+          "reasonCodes": {
+            "$ref": "#/$defs/idSet"
+          }
+        }
+      }
+    },
+    "paretoFrontierCandidateIds": {
+      "$ref": "#/$defs/idSet"
+    },
+    "fallbackCandidateIds": {
+      "$ref": "#/$defs/idSet"
+    },
+    "tieBreakOrder": {
+      "const": [
+        "expectedTotalTokens",
+        "continuity",
+        "latencyMs",
+        "costMicrounits",
+        "candidateId"
+      ]
+    },
+    "tieBreakTrace": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "candidateId",
+          "expectedTotalTokens",
+          "continuityRank",
+          "latencyMs",
+          "costMicrounits"
+        ],
+        "properties": {
+          "candidateId": {
+            "$ref": "#/$defs/id"
+          },
+          "expectedTotalTokens": {
+            "$ref": "#/$defs/nonNegativeInteger"
+          },
+          "continuityRank": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2
+          },
+          "latencyMs": {
+            "$ref": "#/$defs/nonNegativeInteger"
+          },
+          "costMicrounits": {
+            "$ref": "#/$defs/nonNegativeInteger"
+          }
+        }
+      }
+    },
+    "overrideEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requestedCandidateId",
+        "honored",
+        "reasonCode"
+      ],
+      "properties": {
+        "requestedCandidateId": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "honored": {
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasonCode": {
+          "$ref": "#/$defs/nullableId"
+        }
+      }
+    },
+    "reasons": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "dispatchPerformed",
+        "graphMutated",
+        "executionSettingsChanged"
+      ],
+      "properties": {
+        "mode": {
+          "const": "advisory"
+        },
+        "dispatchPerformed": {
+          "const": false
+        },
+        "graphMutated": {
+          "const": false
+        },
+        "executionSettingsChanged": {
+          "const": false
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "recommended"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "recommendation": {
+            "$ref": "#/$defs/recommendation"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "recommendation": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "nullableId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "idSet": {
+      "type": "array",
+      "maxItems": 512,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "basisPoints": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "reasoningSetting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "parameters"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "parameters": {
+          "type": "object",
+          "maxProperties": 32,
+          "propertyNames": {
+            "$ref": "#/$defs/id"
+          },
+          "additionalProperties": {
+            "oneOf": [
+              {
+                "type": "string",
+                "maxLength": 256
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "expectedMetrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "qualityBps",
+        "confidenceBps",
+        "firstAttemptTokens",
+        "retryProbabilityBps",
+        "retryTokens",
+        "retryRiskTokens",
+        "escalationProbabilityBps",
+        "escalationTokens",
+        "escalationRiskTokens",
+        "expectedTotalTokens",
+        "latencyMs",
+        "costMicrounits"
+      ],
+      "properties": {
+        "qualityBps": {
+          "$ref": "#/$defs/basisPoints"
+        },
+        "confidenceBps": {
+          "$ref": "#/$defs/basisPoints"
+        },
+        "firstAttemptTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "retryProbabilityBps": {
+          "$ref": "#/$defs/basisPoints"
+        },
+        "retryTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "retryRiskTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "escalationProbabilityBps": {
+          "$ref": "#/$defs/basisPoints"
+        },
+        "escalationTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "escalationRiskTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "expectedTotalTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "latencyMs": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "costMicrounits": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        }
+      }
+    },
+    "recommendation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateId",
+        "profileId",
+        "providerId",
+        "modelId",
+        "reasoningSetting",
+        "expected",
+        "continuityRank"
+      ],
+      "properties": {
+        "candidateId": {
+          "$ref": "#/$defs/id"
+        },
+        "profileId": {
+          "$ref": "#/$defs/id"
+        },
+        "providerId": {
+          "$ref": "#/$defs/id"
+        },
+        "modelId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "reasoningSetting": {
+          "$ref": "#/$defs/reasoningSetting"
+        },
+        "expected": {
+          "$ref": "#/$defs/expectedMetrics"
+        },
+        "continuityRank": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      }
+    }
+  }
+}

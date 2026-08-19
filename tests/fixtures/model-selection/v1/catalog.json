@@ -1,0 +1,228 @@
+{
+  "schemaVersion": "operator.model-selection/v1",
+  "catalogId": "synthetic-model-catalog",
+  "revision": 1,
+  "observedAt": "2026-08-01T00:00:00Z",
+  "validUntil": "2026-12-31T23:59:59Z",
+  "profiles": [
+    {
+      "profileId": "fast",
+      "description": "Synthetic low first-attempt token profile for replay baselines."
+    },
+    {
+      "profileId": "balanced",
+      "description": "Synthetic balanced quality and recovery profile."
+    },
+    {
+      "profileId": "deep",
+      "description": "Synthetic profile used for deterministic tie tests."
+    }
+  ],
+  "candidates": [
+    {
+      "candidateId": "baseline-cheap",
+      "providerId": "synthetic-provider-a",
+      "modelId": "synthetic/cheap-v1",
+      "enabled": true,
+      "profileId": "fast",
+      "reasoningSetting": {
+        "name": "bounded",
+        "parameters": {
+          "budget": "small"
+        }
+      },
+      "availability": "available",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": ["text-generation", "structured-output"],
+        "tools": ["shell"],
+        "modalities": ["text"],
+        "contextWindowTokens": 20000,
+        "dataClasses": ["public", "internal"],
+        "laneIds": ["model-strategy"],
+        "hostIds": ["codex-desktop"],
+        "maximumRiskClass": "high"
+      },
+      "estimates": [
+        {
+          "taskClass": "bounded-code",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": 8700,
+          "confidenceBps": 9000,
+          "firstAttemptTokens": 800,
+          "retryProbabilityBps": 5000,
+          "retryTokens": 600,
+          "escalationProbabilityBps": 3000,
+          "escalationTargetCandidateId": "steady-balanced",
+          "escalationTokens": 3000,
+          "latencyMs": 800,
+          "costMicrounits": 50
+        }
+      ]
+    },
+    {
+      "candidateId": "steady-balanced",
+      "providerId": "synthetic-provider-b",
+      "modelId": "synthetic/balanced-v2",
+      "enabled": true,
+      "profileId": "balanced",
+      "reasoningSetting": {
+        "name": "bounded",
+        "parameters": {
+          "budget": "medium"
+        }
+      },
+      "availability": "available",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": ["text-generation", "structured-output"],
+        "tools": ["shell"],
+        "modalities": ["text"],
+        "contextWindowTokens": 24000,
+        "dataClasses": ["public", "internal"],
+        "laneIds": ["model-strategy"],
+        "hostIds": ["codex-desktop"],
+        "maximumRiskClass": "critical"
+      },
+      "estimates": [
+        {
+          "taskClass": "bounded-code",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": 9200,
+          "confidenceBps": 9000,
+          "firstAttemptTokens": 1200,
+          "retryProbabilityBps": 1000,
+          "retryTokens": 500,
+          "escalationProbabilityBps": 500,
+          "escalationTargetCandidateId": "tie-a",
+          "escalationTokens": 1500,
+          "latencyMs": 1000,
+          "costMicrounits": 80
+        }
+      ]
+    },
+    {
+      "candidateId": "dominated-balanced",
+      "providerId": "synthetic-provider-c",
+      "modelId": "synthetic/dominated-v1",
+      "enabled": true,
+      "profileId": "balanced",
+      "reasoningSetting": {
+        "name": "bounded",
+        "parameters": {
+          "budget": "medium"
+        }
+      },
+      "availability": "available",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": ["text-generation", "structured-output"],
+        "tools": ["shell"],
+        "modalities": ["text"],
+        "contextWindowTokens": 24000,
+        "dataClasses": ["public", "internal"],
+        "laneIds": ["model-strategy"],
+        "hostIds": ["codex-desktop"],
+        "maximumRiskClass": "critical"
+      },
+      "estimates": [
+        {
+          "taskClass": "bounded-code",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": 9000,
+          "confidenceBps": 9000,
+          "firstAttemptTokens": 1600,
+          "retryProbabilityBps": 1000,
+          "retryTokens": 1000,
+          "escalationProbabilityBps": 1000,
+          "escalationTargetCandidateId": "steady-balanced",
+          "escalationTokens": 2000,
+          "latencyMs": 1600,
+          "costMicrounits": 100
+        }
+      ]
+    },
+    {
+      "candidateId": "tie-a",
+      "providerId": "synthetic-provider-d",
+      "modelId": "synthetic/tie-a-v1",
+      "enabled": true,
+      "profileId": "deep",
+      "reasoningSetting": {
+        "name": "bounded",
+        "parameters": {
+          "budget": "large"
+        }
+      },
+      "availability": "available",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": ["text-generation", "structured-output"],
+        "tools": ["shell"],
+        "modalities": ["text"],
+        "contextWindowTokens": 24000,
+        "dataClasses": ["public", "internal"],
+        "laneIds": ["model-strategy"],
+        "hostIds": ["codex-desktop"],
+        "maximumRiskClass": "critical"
+      },
+      "estimates": [
+        {
+          "taskClass": "tie-work",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": 9300,
+          "confidenceBps": 9000,
+          "firstAttemptTokens": 1500,
+          "retryProbabilityBps": 0,
+          "retryTokens": 0,
+          "escalationProbabilityBps": 0,
+          "escalationTargetCandidateId": null,
+          "escalationTokens": 0,
+          "latencyMs": 1200,
+          "costMicrounits": 90
+        }
+      ]
+    },
+    {
+      "candidateId": "tie-b",
+      "providerId": "synthetic-provider-e",
+      "modelId": "synthetic/tie-b-v1",
+      "enabled": true,
+      "profileId": "deep",
+      "reasoningSetting": {
+        "name": "bounded",
+        "parameters": {
+          "budget": "large"
+        }
+      },
+      "availability": "available",
+      "credentialCapability": null,
+      "compatibility": {
+        "capabilities": ["text-generation", "structured-output"],
+        "tools": ["shell"],
+        "modalities": ["text"],
+        "contextWindowTokens": 24000,
+        "dataClasses": ["public", "internal"],
+        "laneIds": ["model-strategy"],
+        "hostIds": ["codex-desktop"],
+        "maximumRiskClass": "critical"
+      },
+      "estimates": [
+        {
+          "taskClass": "tie-work",
+          "recoveryAssumptionId": "single-retry-single-escalation/v1",
+          "qualityBps": 9300,
+          "confidenceBps": 9000,
+          "firstAttemptTokens": 1500,
+          "retryProbabilityBps": 0,
+          "retryTokens": 0,
+          "escalationProbabilityBps": 0,
+          "escalationTargetCandidateId": null,
+          "escalationTokens": 0,
+          "latencyMs": 1200,
+          "costMicrounits": 90
+        }
+      ]
+    }
+  ]
+}

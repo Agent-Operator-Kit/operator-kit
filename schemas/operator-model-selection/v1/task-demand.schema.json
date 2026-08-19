@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/task-demand.schema.json",
+  "title": "Operator Model Selection Task Demand v1",
+  "description": "Provider-neutral demand and hard constraints for one advisory model-selection decision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "taskId",
+    "featureId",
+    "graphNodeId",
+    "requestedAt",
+    "taskClass",
+    "phase",
+    "riskClass",
+    "qualityFloorBps",
+    "signals",
+    "requirements",
+    "constraints",
+    "limits"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "operator.model-selection/v1"
+    },
+    "taskId": {
+      "$ref": "#/$defs/id"
+    },
+    "featureId": {
+      "$ref": "#/$defs/nullableId"
+    },
+    "graphNodeId": {
+      "$ref": "#/$defs/nullableId"
+    },
+    "requestedAt": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "taskClass": {
+      "$ref": "#/$defs/id"
+    },
+    "phase": {
+      "$ref": "#/$defs/id"
+    },
+    "riskClass": {
+      "$ref": "#/$defs/id"
+    },
+    "qualityFloorBps": {
+      "$ref": "#/$defs/basisPoints"
+    },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ambiguity",
+        "novelty",
+        "reasoningDepth",
+        "implementationSurface",
+        "dependencyCount",
+        "reversibility",
+        "validationStrength"
+      ],
+      "properties": {
+        "ambiguity": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "novelty": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "reasoningDepth": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "implementationSurface": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "dependencyCount": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "reversibility": {
+          "$ref": "#/$defs/demandBand"
+        },
+        "validationStrength": {
+          "$ref": "#/$defs/demandBand"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capabilities",
+        "tools",
+        "modalities",
+        "minimumContextTokens",
+        "dataClasses",
+        "laneId",
+        "hostId"
+      ],
+      "properties": {
+        "capabilities": {
+          "$ref": "#/$defs/idSet"
+        },
+        "tools": {
+          "$ref": "#/$defs/idSet"
+        },
+        "modalities": {
+          "$ref": "#/$defs/idSet"
+        },
+        "minimumContextTokens": {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        "dataClasses": {
+          "$ref": "#/$defs/idSet"
+        },
+        "laneId": {
+          "$ref": "#/$defs/nullableId"
+        },
+        "hostId": {
+          "$ref": "#/$defs/nullableId"
+        }
+      }
+    },
+    "constraints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allowedProfileIds",
+        "excludedCandidateIds",
+        "continuity",
+        "override"
+      ],
+      "properties": {
+        "allowedProfileIds": {
+          "$ref": "#/$defs/idSet"
+        },
+        "excludedCandidateIds": {
+          "$ref": "#/$defs/idSet"
+        },
+        "continuity": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidateId",
+                "profileId"
+              ],
+              "properties": {
+                "candidateId": {
+                  "$ref": "#/$defs/nullableId"
+                },
+                "profileId": {
+                  "$ref": "#/$defs/nullableId"
+                }
+              }
+            }
+          ]
+        },
+        "override": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidateId",
+                "reason"
+              ],
+              "properties": {
+                "candidateId": {
+                  "$ref": "#/$defs/id"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 512
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maximumExpectedTokens",
+        "maximumLatencyMs",
+        "maximumCostMicrounits"
+      ],
+      "properties": {
+        "maximumExpectedTokens": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "maximumLatencyMs": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "maximumCostMicrounits": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "nullableId": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/id"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "idSet": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/id"
+      }
+    },
+    "basisPoints": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10000
+    },
+    "demandBand": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nullableNonNegativeInteger": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/nonNegativeInteger"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

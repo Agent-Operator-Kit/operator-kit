@@ -1,0 +1,369 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentoperatorkit.dev/schemas/operator-model-selection/v1/model-outcome.schema.json",
+  "title": "Operator Model Selection Outcome v1",
+  "description": "Observed acceptance, validation, recovery, latency, cost, and token evidence for offline evaluation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "outcomeId",
+    "recordedAt",
+    "taskId",
+    "decisionId",
+    "catalogId",
+    "catalogRevision",
+    "policyId",
+    "policyRevision",
+    "recommendationDisposition",
+    "actualExecution",
+    "acceptance",
+    "validation",
+    "attempts",
+    "retryCount",
+    "escalationCount",
+    "handoffCount",
+    "humanCorrection",
+    "totalTokenUsage",
+    "totalLatencyMs",
+    "totalCostMicrounits",
+    "terminalReason",
+    "evidenceRefs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "operator.model-selection/v1"
+    },
+    "outcomeId": {
+      "$ref": "#/$defs/id"
+    },
+    "recordedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "taskId": {
+      "$ref": "#/$defs/id"
+    },
+    "decisionId": {
+      "$ref": "#/$defs/id"
+    },
+    "catalogId": {
+      "$ref": "#/$defs/id"
+    },
+    "catalogRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "policyId": {
+      "$ref": "#/$defs/id"
+    },
+    "policyRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "recommendationDisposition": {
+      "enum": [
+        "followed",
+        "overridden",
+        "not_run",
+        "unknown"
+      ]
+    },
+    "actualExecution": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/execution"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "acceptance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "reason"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "reason": {
+          "$ref": "#/$defs/nullableText"
+        }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "checks"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_run",
+            "unknown"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "checkId",
+              "status"
+            ],
+            "properties": {
+              "checkId": {
+                "$ref": "#/$defs/id"
+              },
+              "status": {
+                "enum": [
+                  "passed",
+                  "failed",
+                  "not_run",
+                  "unknown"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "attempts": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/attempt"
+      }
+    },
+    "retryCount": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "escalationCount": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "handoffCount": {
+      "$ref": "#/$defs/nonNegativeInteger"
+    },
+    "humanCorrection": {
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "totalTokenUsage": {
+      "$ref": "#/$defs/tokenUsage"
+    },
+    "totalLatencyMs": {
+      "$ref": "#/$defs/measurement"
+    },
+    "totalCostMicrounits": {
+      "$ref": "#/$defs/measurement"
+    },
+    "terminalReason": {
+      "$ref": "#/$defs/id"
+    },
+    "evidenceRefs": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@/+\\-]*$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "maxLength": 64
+    },
+    "nullableText": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nonNegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidateId"
+      ],
+      "properties": {
+        "candidateId": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "tokenUsage": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "inputTokens",
+            "outputTokens",
+            "cachedTokens",
+            "reasoningTokens",
+            "totalTokens"
+          ],
+          "properties": {
+            "status": {
+              "const": "reported"
+            },
+            "inputTokens": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            },
+            "outputTokens": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            },
+            "cachedTokens": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            },
+            "reasoningTokens": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            },
+            "totalTokens": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        }
+      ]
+    },
+    "measurement": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "value"
+          ],
+          "properties": {
+            "status": {
+              "const": "reported"
+            },
+            "value": {
+              "$ref": "#/$defs/nonNegativeInteger"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reason"
+          ],
+          "properties": {
+            "status": {
+              "const": "unknown"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512
+            }
+          }
+        }
+      ]
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attemptId",
+        "index",
+        "execution",
+        "result",
+        "tokenUsage",
+        "latencyMs",
+        "costMicrounits"
+      ],
+      "properties": {
+        "attemptId": {
+          "$ref": "#/$defs/id"
+        },
+        "index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "execution": {
+          "$ref": "#/$defs/execution"
+        },
+        "result": {
+          "enum": [
+            "accepted",
+            "rejected",
+            "error",
+            "abandoned",
+            "unknown"
+          ]
+        },
+        "tokenUsage": {
+          "$ref": "#/$defs/tokenUsage"
+        },
+        "latencyMs": {
+          "$ref": "#/$defs/measurement"
+        },
+        "costMicrounits": {
+          "$ref": "#/$defs/measurement"
+        }
+      }
+    }
+  }
+}

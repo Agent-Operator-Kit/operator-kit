@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "operator.model-selection/v1",
+  "policyId": "synthetic-advisory-policy",
+  "revision": 1,
+  "algorithmVersion": "operator.model-selector/v1",
+  "mode": "recommend",
+  "allowedProfileIds": ["fast", "balanced", "deep"],
+  "riskClassOrder": ["low", "medium", "high", "critical"],
+  "qualityFloors": {
+    "defaultBps": 8500,
+    "byTaskClass": [
+      {
+        "taskClass": "bounded-code",
+        "minimumBps": 8500
+      },
+      {
+        "taskClass": "tie-work",
+        "minimumBps": 9000
+      }
+    ]
+  },
+  "riskFloors": {
+    "defaultClass": "low",
+    "byTaskClass": [
+      {
+        "taskClass": "bounded-code",
+        "minimumClass": "medium"
+      },
+      {
+        "taskClass": "tie-work",
+        "minimumClass": "medium"
+      }
+    ]
+  },
+  "minimumConfidenceBps": 7000,
+  "contextSafetyMarginTokens": 1000,
+  "hardConstraints": {
+    "availability": true,
+    "capabilities": true,
+    "tools": true,
+    "modalities": true,
+    "context": true,
+    "dataClasses": true,
+    "lane": true,
+    "host": true,
+    "riskFloor": true,
+    "qualityFloor": true,
+    "userOverride": true,
+    "budgets": true
+  },
+  "requiredEstimateFields": [
+    "qualityBps",
+    "confidenceBps",
+    "firstAttemptTokens",
+    "retryProbabilityBps",
+    "retryTokens",
+    "escalationProbabilityBps",
+    "escalationTokens",
+    "latencyMs",
+    "costMicrounits"
+  ],
+  "dataPolicy": {
+    "allowedDataClasses": ["public", "internal"],
+    "requireCandidateDeclaration": true
+  },
+  "overridePolicy": {
+    "allowCandidatePin": true,
+    "requireReason": true,
+    "enforceHardConstraints": true
+  },
+  "recovery": {
+    "assumptionId": "single-retry-single-escalation/v1",
+    "maximumRetries": 1,
+    "includeEscalation": true
+  },
+  "limits": {
+    "maximumExpectedTokens": null,
+    "maximumLatencyMs": null,
+    "maximumCostMicrounits": null
+  },
+  "tieBreakOrder": [
+    "expectedTotalTokens",
+    "continuity",
+    "latencyMs",
+    "costMicrounits",
+    "candidateId"
+  ],
+  "authority": {
+    "recommendationOnly": true,
+    "policyAutoDryRunOnly": true,
+    "onlineLearning": false
+  }
+}
