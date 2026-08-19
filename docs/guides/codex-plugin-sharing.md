@@ -72,10 +72,11 @@ bash scripts/operator-sync.sh \
   --skip-skills
 ```
 
-Fresh V5.1 setup installs the local dependency-graph runtime. It creates no
+Fresh V5.2 setup installs the local dependency-graph runtime and optional,
+off-by-default model selector. It creates no
 credentials and requires no Keychain setup.
 
-`--channel latest` is required for V5.1 while the default `stable` channel still
+`--channel latest` is required for V5.2 while the default `stable` channel still
 points to the V2.1 release line.
 
 ## Workspace Preview And Sharing

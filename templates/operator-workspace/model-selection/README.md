@@ -7,7 +7,7 @@ source.
 
 ## Safety boundary
 
-Advisory model selection does not dispatch work, mutate the V5.1 dependency
+Advisory model selection does not dispatch work, mutate the local dependency
 graph, change lane ownership, alter task packets, or apply a model/reasoning
 setting. The human or Operator remains responsible for any execution choice.
 `policy-auto` is dry-run only in v1.
@@ -34,6 +34,12 @@ all of the following:
    declarations.
 5. Set policy mode to `recommend` only after the catalog and policy are
    reviewed together.
+
+From the installed project, run this read-only checklist at any time:
+
+```bash
+bash scripts/operator-model-select.sh setup-guide
+```
 
 An exact catalog candidate represents one provider model plus one exact
 reasoning setting. Adding another reasoning setting means adding another stable

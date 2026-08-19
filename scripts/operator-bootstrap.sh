@@ -11,7 +11,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
-Installs Agent Operator Kit V5.1 scripts/templates into an existing git repository.
+Installs Agent Operator Kit V5.2 scripts/templates into an existing git repository.
 
 Profiles:
   default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
@@ -139,7 +139,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="5.1"
+OPERATOR_KIT_VERSION="5.2"
 
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
@@ -155,7 +155,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="5.1"
+OPERATOR_KIT_VERSION="5.2"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
@@ -266,7 +266,7 @@ OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operat
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-role-map.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-system-map.sh" refresh >/dev/null
 
-# V5.1 keeps dependency graphs inside their feature-session folders. These
+# V5.2 keeps V5.1 dependency graphs inside their feature-session folders. These
 # directories only hold migration records and optional signed-V5 archives.
 for runtime_dir in archive migrations; do
   mkdir -p "$project_root/operator/$runtime_dir"
@@ -281,5 +281,6 @@ printf 'Next:\n'
 printf '  cd %s\n' "$repo_root"
 printf '  edit operator.config.env\n'
 printf '  bash scripts/operator-recommend-lanes.sh\n'
+printf '  bash scripts/operator-model-select.sh setup-guide  # optional\n'
 printf '  bash scripts/operator-tmux.sh start\n'
 printf '  bash scripts/operator-status.sh\n'

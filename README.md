@@ -48,13 +48,14 @@ and lets the operator spawn feature-specific lane instances from reusable role
 templates. Conflicts are checked by files, contracts, surfaces, branches,
 worktrees, and shared resources rather than by role name alone.
 
-The `latest` channel installs Operator Kit V5.1. Its model is documented in
-[`docs/concepts/operator-v5.md`](docs/concepts/operator-v5.md). V5.1 adds a
+The `latest` channel installs Operator Kit V5.2. Its model is documented in
+[`docs/concepts/operator-v5.md`](docs/concepts/operator-v5.md). V5.2 keeps the
 feature-scoped dependency graph and deterministic, capacity-bounded runnable
-frontier while keeping execution human-supervised. It requires no signing
+frontier, then adds optional advisory model selection. It requires no signing
 authority, Keychain credentials, proof broker, trusted host, lease, or heartbeat
-loop. Fresh installs receive `OPERATOR_KIT_VERSION="5.1"`. Existing V4 and
-signed V5 projects keep their marker until the explicit V5.1 migration.
+loop. Fresh installs receive `OPERATOR_KIT_VERSION="5.2"`; model selection stays
+off until the user supplies and reviews project-local inputs. Existing V4 and
+signed V5 projects still complete the explicit V5.1 graph migration first.
 
 V1 remains available at the `v1` git tag:
 
@@ -194,12 +195,12 @@ bash scripts/operator-sync.sh --channel stable --target /path/to/project
 # V3 plugin-based adapter release, after the v3 tag is published
 bash scripts/operator-sync.sh --channel v3 --target /path/to/project
 
-# Latest source: V5.1 local dependency graph
+# Latest source: V5.2 local graph + optional model selection
 bash scripts/operator-sync.sh --channel latest --target /path/to/project
 ```
 
 `stable` is an alias for `v2.1` so existing users can keep updating the
-current released Operator Kit without being forced onto V5.1. A plain latest
+current released Operator Kit without being forced onto V5.2. A plain latest
 update never silently migrates a V4 or signed V5 project; follow the
 [V5.1 migration guide](docs/guides/operator-v5-1-migration.md).
 
@@ -284,8 +285,11 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 
 - [Operator model](docs/concepts/operator-model.md)
 - [Operator V4 feature sessions](docs/concepts/operator-v4-feature-sessions.md)
-- [Operator V5.1 architecture](docs/concepts/operator-v5.md)
+- [Operator V5.2 architecture](docs/concepts/operator-v5.md)
 - [V4 or signed V5 to V5.1 migration](docs/guides/operator-v5-1-migration.md)
+- [V5.1 to V5.2 compatible update](docs/guides/operator-v5-2-migration.md)
+- [Advisory model selection](docs/guides/operator-model-selection.md)
+- [V5.2 release notes](docs/releases/v5.2.md)
 - [V5.1 release notes](docs/releases/v5.1.md)
 - [V3 host adapter packaging](docs/guides/v3-host-adapters.md)
 - [V3 install flow](docs/guides/v3-install-flow.md)
@@ -306,8 +310,10 @@ bash scripts/operator-sync.sh --target /path/to/project-root --bootstrap-if-miss
 - Do not let two lanes edit the same files at the same time.
 - In V4, bind execution chats to a feature session and check conflicts by
   files, contracts, surfaces, branches, worktrees, and shared resources.
-- In V5.1, use the local graph to plan dependencies and bounded parallel work;
+- In V5.2, use the local graph to plan dependencies and bounded parallel work;
   it is advisory and never replaces explicit operator dispatch or human review.
+- Keep model selection off until the catalog and policy are reviewed; a
+  recommendation never changes a lane or chat model by itself.
 - Back up `OPERATOR_DIR` as durable state. Feature graphs, handoffs, roadmap,
   migration archives, and memory are not disposable.
 - Keep generated operator state under `OPERATOR_DIR`.

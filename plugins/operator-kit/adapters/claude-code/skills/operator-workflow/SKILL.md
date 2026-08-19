@@ -34,11 +34,16 @@ or:
 /operator-status
 ```
 
-For Operator V5.1, Claude receives an ordinary feature-scoped task packet. The
+For Operator V5.2, Claude receives an ordinary feature-scoped task packet. The
 local dependency graph tells the operator when the task is ready and whether it
 conflicts with other work. It requires no host binding, lease, proof key, or
 Keychain access. Claude's result remains evidence for operator review, not
 integration or human approval.
+
+Optional model selection remains recommendation-only. During onboarding or a
+V5.1 update, use `operator-model-select.sh setup-guide` to collect reviewed
+model/thinking combinations, capabilities, estimates, policy limits, and user
+preferences. Never collect API keys or apply recommendations automatically.
 
 You can also ask:
 

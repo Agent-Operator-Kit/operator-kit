@@ -14,7 +14,7 @@
    dispatches it and keeps monitoring the feature track.
 9. Operator integrates approved changes into the stable branch.
 
-In V5.1, `operator-graph.sh frontier` can advise which dependency-ready tasks
+In V5.2, `operator-graph.sh frontier` can advise which dependency-ready tasks
 are safe to run together within a bounded capacity. It does not dispatch work
 or grant authority. A successful worker result still cannot substitute for
 operator review or an explicit human decision.

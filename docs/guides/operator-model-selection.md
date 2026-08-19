@@ -1,9 +1,9 @@
 # Advisory model selection
 
 Operator Kit includes an optional, standalone model selector for evaluating one
-task against a project-local catalog and policy. Installation only makes the
+task against a project-local catalog and policy. V5.2 installation only makes the
 command, contracts, and inert examples available. It does not enable model
-selection or connect it to task creation, the V5.1 graph, dispatch, lanes,
+selection or connect it to task creation, the local graph, dispatch, lanes,
 chats, provider settings, or model execution.
 
 The selector has advisory authority only. A human or Operator must decide
@@ -32,6 +32,21 @@ The examples are intentionally inert: the policy mode is `off`, and the
 example candidate is disabled and unavailable. Installation never creates
 `catalog.json` or `policy.json`, changes `operator.config.env`, generates a
 decision, or invokes the selector.
+
+## Onboarding guide
+
+Fresh installs and V5.1-to-V5.2 updates point users to one read-only command:
+
+```bash
+bash scripts/operator-model-select.sh setup-guide
+```
+
+It lists the project-local files and the inputs a user must provide before
+opting in: exact provider/model plus reasoning combinations, verified
+availability and compatibility, task-class outcome estimates, policy floors and
+limits, and user preferences or pins. The command writes nothing and never asks
+for API keys. Credentials stay in the provider's normal secure configuration;
+the catalog may contain only a non-secret capability name.
 
 ## Safe setup
 

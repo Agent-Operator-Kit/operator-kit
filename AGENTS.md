@@ -39,11 +39,11 @@ incubation to incubation mode unless the user asks for execution.
 - Conflict detection is based on touched files, contracts, surfaces, branches, worktrees, and shared resources, not on role name alone.
 - Exploration can continue in unblocked lane instances while implementation is blocked on a file, contract, branch, worktree, or shared resource.
 - The operator owns the merge plan and final feature cohesion.
-- In V5.1, use one local dependency graph per feature session to identify ready,
+- In V5.2, use one local dependency graph per feature session to identify ready,
   non-conflicting work within an explicit capacity.
 - The graph is advisory. The operator and human remain authoritative for
   dispatch, integration, push, release, credentials, and destructive work.
-- V5.1 requires no signing authority, Keychain, proof broker, trusted host,
+- V5.2 requires no signing authority, Keychain, proof broker, trusted host,
   lease, or fence.
 
 ## Commands

@@ -11,7 +11,7 @@ Default Claude-owned areas often include:
 
 Claude should not silently rewrite backend contracts, shared domain models, or release configuration unless explicitly assigned.
 
-In Operator Kit V5.1, Claude executes only a task packet assigned to its lane
+In Operator Kit V5.2, Claude executes only a task packet assigned to its lane
 and feature session. The local dependency graph is an operator planning index,
 not execution authority. A result is evidence for operator review; it is not
 integration, publish, release, or human approval.

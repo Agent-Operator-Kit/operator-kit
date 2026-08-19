@@ -1,6 +1,6 @@
-# Operator Kit V5.1 Architecture
+# Operator Kit V5.2 Architecture
 
-Operator V5.1 is a local, human-supervised execution planner. It keeps the
+Operator V5.2 is a local, human-supervised execution planner. It keeps the
 useful part of the V5 design—a typed dependency graph and deterministic
 runnable frontier—without turning local development into a cryptographic
 control plane.
@@ -43,9 +43,21 @@ Candidates are ordered by descending priority and stable feature/node ID. The
 default capacity is four and can be bounded explicitly. Cross-feature claims
 prevent unsafe parallelism while disjoint work remains parallel-runnable.
 
+## Optional Model Selection
+
+V5.2 can evaluate one task against a reviewed project-local model catalog and
+policy. Each candidate is one exact provider model plus one exact reasoning
+setting. Operator filters hard constraints and quality evidence first, then
+compares expected total tokens, retry/escalation risk, latency, and cost.
+
+This capability is off by default and advisory only. Installation creates no
+live catalog or policy and never applies a model setting to a lane or chat. Run
+`operator-model-select.sh setup-guide` to see the user inputs required before
+opting in.
+
 ## Deliberately Absent
 
-V5.1 does not require or install:
+V5.2 does not require or install:
 
 - signing authorities or actor bindings;
 - Keychain or Secret Service entries;

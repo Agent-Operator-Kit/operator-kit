@@ -67,11 +67,17 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
 8. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
 
-For fresh `latest` setup, install V5.1 with the local feature dependency graph
+For fresh `latest` setup, install V5.2 with the local feature dependency graph
 and derive the role map from `OPERATOR_LANES`. No authority, proof keys,
 Keychain, host session, lease, or loop setup is required. A plain V4 or signed
 V5 update preserves its marker and reports migration required; review
 `operator-v5-1-migrate.sh plan` before apply.
+
+V5.2 also installs optional advisory model selection, still off by default.
+During setup or compatible V5.1 update, run `operator-model-select.sh
+setup-guide` and ask the user for reviewed model IDs, exact thinking settings,
+capabilities/context/data constraints, task-class estimates, policy limits, and
+preferences. Never request API keys or enable/apply recommendations implicitly.
 
 For an empty scoped project folder, first suggest this top-level layout:
 
@@ -178,7 +184,7 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Ask before destructive cleanup, credential/provider-console changes,
   production deploys, release submissions, regulated or safety-critical
   behavior, or product decisions that cannot be safely inferred.
-- V5.1 dependency graphs are advisory and never replace explicit dispatch,
+- V5.2 dependency graphs are advisory and never replace explicit dispatch,
   integration review, or human approval.
 - Treat feature graphs, evidence, handoffs, and migration archives as durable
   workspace data.

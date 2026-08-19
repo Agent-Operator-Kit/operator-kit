@@ -48,8 +48,10 @@ Classify the workspace as exactly one of:
 
 - `kit-source`: `plugins/operator-kit/.codex-plugin/plugin.json` and
   `scripts/operator-bootstrap.sh` exist.
-- `v5-1-ready`: `operator.config.env` selects version 5.1, status succeeds, and
+- `v5-2-ready`: `operator.config.env` selects version 5.2, status succeeds, and
   the local feature-graph runtime is available.
+- `v5-2-compatible-update`: the project is a healthy V5.1 local-graph install
+  that can take the backward-compatible latest update.
 - `v5-1-migration-required`: the project marker is 4 or signed V5 and the V5.1
   migration command is present.
 - `legacy-or-partial`: some Operator files exist, but config, required scripts,
@@ -63,14 +65,16 @@ Classify the workspace as exactly one of:
 The first response should lead with the classification and one recommended
 next action:
 
-- `v5-1-ready`: run status and the local graph frontier, then recommend
+- `v5-2-ready`: run status and the local graph frontier, then recommend
   continuing or creating a feature session.
+- `v5-2-compatible-update`: recommend a latest-channel update; it preserves the
+  local graph and adds optional, off-by-default model selection.
 - `v5-1-migration-required`: recommend `operator-v5-1-migrate.sh plan`; apply
   only when the user authorizes the migration.
 - `legacy-or-partial`: recommend a latest-channel repair from a trusted source,
   then status validation.
 - `not-installed-project`: say that the Operator plugin is available but this
-  project is not initialized, and recommend the V5.1 project setup below.
+  project is not initialized, and recommend the V5.2 project setup below.
 - `kit-source`: report source and self-hosting status, then recommend local
   plugin refresh or project status only when needed.
 - `no-project`: recommend opening a git project or intentionally creating a
@@ -82,7 +86,7 @@ For a normal uninitialized git repository, keep the recommendation concise:
 
 ```text
 Operator is available, but this project is not initialized.
-Recommended: install the V5.1 project runtime using the latest channel.
+Recommended: install the V5.2 project runtime using the latest channel.
 This adds project scripts, operator.config.env, and an Operator workspace. It
 does not start lanes and requires no graph keys or Keychain setup.
 Say "set it up" and I can perform and validate the setup here.
@@ -128,6 +132,10 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 After setup or repair, run status, summary, memory, catalog, lane recommendation,
 role-map validation, and `operator-graph.sh status`. Fresh bootstrap creates no
 credentials and initializes feature graphs only when feature sessions exist.
+Then surface `operator-model-select.sh setup-guide` as an optional onboarding
+step. Ask the user for reviewed model IDs, exact thinking settings,
+availability/capabilities, task-class estimates, policy limits, and preferences;
+never ask for provider secrets or enable selection implicitly.
 
 Assume Codex Desktop chat is the primary UX unless the user explicitly asks for
 terminal-only, Cursor, or Claude Code instructions. Do not start with a long
@@ -188,9 +196,10 @@ Before operator work, resolve the project root:
    V4 installs may also provide `scripts/operator-feature.sh` and
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
-   V5.1 installs must additionally provide `operator-role-map.sh`,
+   V5.2 installs must additionally provide `operator-role-map.sh`,
    `operator-graph.sh`, `operator_local_graph.py`,
-   `operator-v5-1-migrate.sh`, and `operator_v5_1_migrate.py`.
+   `operator-v5-1-migrate.sh`, `operator_v5_1_migrate.py`,
+   `operator-model-select.sh`, and `operator_model_selector.py`.
 6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 7. Read `operator.config.env`.
 8. Read `AGENTS.md` if present.
@@ -259,14 +268,14 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 Do not install Operator Kit into the Operator Kit source checkout itself unless
 the user explicitly targets that checkout as a project.
 
-## V5.1 Local Dependency Graph
+## V5.2 Local Dependency Graph And Optional Model Selection
 
-Fresh latest installs are V5.1. Each feature session may own an ordinary local
+Fresh latest installs are V5.2. Each feature session may own an ordinary local
 `graph.json` containing work nodes, dependencies, lane assignments, priorities,
 approvals, and conflict claims. `operator-graph.sh frontier` identifies what can
 run next within an explicit capacity. It is advisory and never dispatches work.
 
-V5.1 has no signing authority, actor bindings, Keychain credentials, proof
+V5.2 has no signing authority, actor bindings, Keychain credentials, proof
 broker, trusted-host session, ownership lease, fence, or heartbeat loop. Human
 intent remains explicit for dispatch, integration, push/publish/release,
 credentials, destructive changes, and production work.
@@ -275,6 +284,12 @@ For V4 or signed V5 updated to latest, preserve the existing version marker and
 report migration required. Run `operator-v5-1-migrate.sh plan`; apply only with
 the explicit `MIGRATE_TO_V5_1_LOCAL_GRAPH` authorization. Signed V5 state is
 archived and Keychain entries are left untouched.
+
+Advisory model selection is optional and off by default. Installation provides
+only the runtime, schemas, inert examples, and `operator-model-select.sh
+setup-guide`. Do not create live `catalog.json` or `policy.json`, change policy
+mode, or apply a recommendation without explicit user intent and reviewed
+inputs. A recommendation never changes a lane or chat model automatically.
 
 ## Core Commands
 
@@ -779,7 +794,7 @@ When the user says `$operator update to latest version from git` or similar:
    bash scripts/operator-catalog.sh list roles
    bash scripts/operator-recommend-lanes.sh
    bash scripts/operator-plan-batch.sh
-   if [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then bash scripts/operator-role-map.sh validate; fi
+   if [ "${OPERATOR_KIT_VERSION:-2}" = "5" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5.2" ]; then bash scripts/operator-role-map.sh validate; fi
    bash scripts/operator-upgrade.sh --channel latest --dry-run --skip-skills --target <project-root>
    git status --short
    ```

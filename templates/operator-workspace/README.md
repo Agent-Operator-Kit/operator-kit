@@ -35,7 +35,7 @@ migrations/to-v5.1-local-graph.json
 
 This directory is outside the repo by design. Feature dependency graphs,
 handoffs, roadmap, migration archives, and memory are durable local state.
-V5.1 contains no graph credentials or private keys and requires no Keychain
+V5.2 contains no graph credentials or private keys and requires no Keychain
 setup.
 
 Use `memory/project.md` for durable project facts and `tasks/<slug>/memory.md` for feature-track facts that should move across lanes. Episode files are distilled from collected handoffs.
@@ -52,7 +52,7 @@ durable folder, duplicate role-template lane instances when surfaces allow it,
 and keep merge plans, memory, handoffs, and working files together until the
 feature is integrated, shipped, parked, blocked, closed, or archived.
 
-V5.1 adds one local `graph.json` per feature. Use it to record dependencies,
+V5.2 uses one local `graph.json` per feature. Use it to record dependencies,
 lane assignments, approvals, and conflict claims, then ask
 `operator-graph.sh frontier` what can run next within a bounded capacity. The
 graph is advisory and does not dispatch work.

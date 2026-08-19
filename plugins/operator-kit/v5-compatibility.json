@@ -1,12 +1,16 @@
 {
-  "name": "operator-kit-v5-1-compatibility",
+  "name": "operator-kit-v5-2-compatibility",
   "schemaVersion": 1,
-  "projectKitVersion": "5.1",
+  "projectKitVersion": "5.2",
   "migrationSourceVersions": [
     "4",
-    "5"
+    "5",
+    "5.1"
   ],
-  "pluginVersion": "0.5.1",
+  "compatibleUpdateSourceVersions": [
+    "5.1"
+  ],
+  "pluginVersion": "0.5.2",
   "releaseChannel": "stable",
   "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
@@ -15,13 +19,17 @@
     "scripts/operator-graph.sh",
     "scripts/operator_local_graph.py",
     "scripts/operator-v5-1-migrate.sh",
-    "scripts/operator_v5_1_migrate.py"
+    "scripts/operator_v5_1_migrate.py",
+    "scripts/operator-model-select.sh",
+    "scripts/operator_model_selector.py",
+    "schemas/operator-model-selection/v1/model-catalog.schema.json",
+    "schemas/operator-model-selection/v1/model-policy.schema.json"
   ],
   "hostAdapters": [
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.5.1"
+      "version": "0.5.2"
     },
     {
       "host": "cursor",
@@ -40,8 +48,15 @@
     "credentialsRequired": false,
     "privateKeysInProjectOrOperatorDirAllowed": false,
     "freshInstallInitializesGraphOrKeys": false,
+    "modelSelectionOptional": true,
+    "modelSelectionAppliesSettings": false,
+    "modelSelectionOnlineLearning": false,
     "explicitProvisioningCommandAvailable": false,
     "plainLegacyUpdateChangesMarker": false,
-    "explicitReviewedMigrationRequired": true
+    "explicitReviewedMigrationRequired": true,
+    "explicitReviewedMigrationSourceVersions": [
+      "4",
+      "5"
+    ]
   }
 }

@@ -21,8 +21,9 @@ Evergreen scripts are refreshed from the kit source.
 Channels:
   stable/v2.1  Current pinned release.
   v3           Plugin-based adapter release, once the v3 tag is published.
-  latest       Current V5.1 local dependency-graph release. Existing V4 and
-               signed V5 projects keep their marker until explicit migration.
+  latest       Current V5.2 release: V5.1 local dependency graphs plus optional
+               advisory model selection. Existing V4 and signed V5 projects
+               keep their marker until explicit graph migration.
 USAGE
 }
 
@@ -301,9 +302,9 @@ source "$TARGET_REPO/operator.config.env"
 remove_obsolete_project_assets
 
 # Signed V5 assets remain available until the reviewed migration completes.
-# Once the project is marked 5.1, the migration archive and source tag are the
+# Once the project is marked 5.1 or 5.2, the migration archive and source tag are the
 # recovery path and these runtime entrypoints should no longer be installed.
-if [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ]; then
+if [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5.2" ]; then
   for obsolete in \
     scripts/operator-scheduler.sh \
     scripts/operator-loop.sh \
@@ -433,7 +434,37 @@ case "${OPERATOR_KIT_VERSION:-2}" in
     record unchanged 'operator.config.env signed V5 marker preserved (V5.1 migration required)'
     ;;
   5.1)
-    record unchanged 'operator.config.env kit marker already 5.1'
+    if [ "$CHANNEL" = "latest" ] || [ "$CHANNEL" = "main" ]; then
+      if [ "$DRY_RUN" -eq 1 ]; then
+        record planned 'operator.config.env kit marker 5.1 -> 5.2 (backward-compatible update)'
+      else
+        /usr/bin/python3 - "$TARGET_REPO/operator.config.env" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+raw = path.read_text(encoding="utf-8")
+updated, count = re.subn(
+    r'^(OPERATOR_KIT_VERSION=)(["\'])5\.1\2$',
+    lambda match: f'{match.group(1)}{match.group(2)}5.2{match.group(2)}',
+    raw,
+    count=1,
+    flags=re.MULTILINE,
+)
+if count != 1:
+    raise SystemExit("could not update OPERATOR_KIT_VERSION from 5.1 to 5.2")
+path.write_text(updated, encoding="utf-8")
+PY
+        OPERATOR_KIT_VERSION="5.2"
+        record updated 'operator.config.env kit marker 5.1 -> 5.2 (backward-compatible update)'
+      fi
+    else
+      record unchanged 'operator.config.env kit marker preserved at 5.1 on legacy channel'
+    fi
+    ;;
+  5.2)
+    record unchanged 'operator.config.env kit marker already 5.2'
     ;;
   *)
     record unchanged "operator.config.env legacy kit marker preserved at ${OPERATOR_KIT_VERSION:-2}"
@@ -496,6 +527,7 @@ printf '  - bash scripts/operator-recommend-lanes.sh\n'
 printf '  - bash scripts/operator-plan-batch.sh\n'
 printf '  - bash scripts/operator-role-map.sh validate\n'
 printf '  - bash scripts/operator-graph.sh status\n'
+printf '  - bash scripts/operator-model-select.sh setup-guide  # optional; model selection remains off until configured\n'
 if [ "${OPERATOR_KIT_VERSION:-2}" = "4" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then
   printf '  - migration required: review docs/guides/operator-v5-1-migration.md and run scripts/operator-v5-1-migrate.sh plan\n'
 fi

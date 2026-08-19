@@ -11,7 +11,7 @@ git clone git@github.com:Agent-Operator-Kit/operator-kit.git /path/to/operator-k
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
 ```
 
-Stable remains V2.1; `--channel latest` installs V5.1 for fresh projects. After sync, inspect the project-specific role and lane
+Stable remains V2.1; `--channel latest` installs V5.2 for fresh projects. After sync, inspect the project-specific role and lane
 recommendations:
 
 ```bash
@@ -81,3 +81,20 @@ bash scripts/operator-v5-1-migrate.sh plan
 Follow [Operator V5.1 migration](operator-v5-1-migration.md). Signed V5 runtime
 state is archived, feature graphs are initialized, and Keychain entries are
 left untouched.
+
+## V5.1 to V5.2
+
+V5.2 is a backward-compatible update for a V5.1 local-graph project. A latest
+update advances the marker to `5.2`, installs the optional selector runtime and
+inert examples, and preserves every existing file under
+`OPERATOR_DIR/model-selection/`. It does not create live configuration or apply
+a model choice.
+
+After updating, use the read-only onboarding guide:
+
+```bash
+bash scripts/operator-model-select.sh setup-guide
+```
+
+See [Operator V5.2 migration](operator-v5-2-migration.md) for the required
+model inputs and the opt-in boundary.

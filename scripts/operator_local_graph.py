@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Operator V5.1 local, advisory dependency graph.
+"""Operator V5.2 local, advisory dependency graph.
 
 The graph is intentionally feature-scoped and credential-free. It helps the
 operator decide what is ready and what can run in parallel; it never dispatches
@@ -342,7 +342,7 @@ def render_frontier(result: dict[str, Any]) -> str:
 
 
 def parser() -> argparse.ArgumentParser:
-    root = argparse.ArgumentParser(prog="operator-graph", description="Operator V5.1 local dependency graph")
+    root = argparse.ArgumentParser(prog="operator-graph", description="Operator V5.2 local dependency graph")
     root.add_argument("--operator-dir", required=True)
     sub = root.add_subparsers(dest="command", required=True)
     for name in ("init", "validate", "status"):

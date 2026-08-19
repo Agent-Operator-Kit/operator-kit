@@ -285,11 +285,11 @@ operator_dir_is_repo_local() {
 
 operator_v5_migration_state() {
   case "$(operator_kit_version)" in
-    5.1)
+    5.1|5.2)
       if [ -f "$OPERATOR_DIR/migrations/to-v5.1-local-graph.json" ]; then
-        printf 'complete (V5.1 manifest present)\n'
+        printf 'complete (V5.1 graph migration retained)\n'
       else
-        printf 'not required (native V5.1 install)\n'
+        printf 'not required (native local-graph install)\n'
       fi
       ;;
     5)
@@ -307,7 +307,7 @@ operator_v5_migration_state() {
 }
 
 operator_v5_graph_state() {
-  if [ "$(operator_kit_version)" = "5.1" ]; then
+  if [ "$(operator_kit_version)" = "5.1" ] || [ "$(operator_kit_version)" = "5.2" ]; then
     local count
     count="$(find "$OPERATOR_DIR/features" -mindepth 2 -maxdepth 2 -type f -name graph.json 2>/dev/null | wc -l | tr -d ' ')"
     printf 'local advisory (%s feature graph%s; no credentials required)\n' "$count" "$([ "$count" = "1" ] || printf s)"

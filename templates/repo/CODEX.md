@@ -28,7 +28,7 @@ bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> -
 Use native Codex thread titles, pins, archives, and monitors as convenience
 indexes when available, but keep `OPERATOR_DIR/features` as the source of truth.
 
-Operator Kit V5.1 adds a local dependency graph inside each feature session.
+Operator Kit V5.2 uses a local dependency graph inside each feature session.
 Codex uses `operator-graph.sh frontier` to identify ready, non-conflicting work
 within an explicit capacity. The graph is advisory and credential-free; normal
 task packets, worktree isolation, handoffs, operator review, and explicit human

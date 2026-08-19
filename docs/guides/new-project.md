@@ -46,10 +46,22 @@ bash scripts/operator-recommend-lanes.sh
 
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.
 
-The latest bootstrap is V5.1. It derives `operator/catalog/role-map.json` from
+The latest bootstrap is V5.2. It derives `operator/catalog/role-map.json` from
 the target's `OPERATOR_LANES` and installs a local, feature-scoped dependency
 graph. It creates no authority, bindings, private keys, Keychain entries, host
 sessions, leases, or background loop.
+
+V5.2 also installs optional advisory model-selection files. It remains off and
+creates no live model catalog or policy. During onboarding, ask the user to run:
+
+```bash
+bash scripts/operator-model-select.sh setup-guide
+```
+
+The user should provide the models and exact thinking settings they can use,
+verified capabilities and context limits, task-class quality/token/retry
+estimates, policy limits, and any preferred profile or pin. Never request API
+keys for these files, and do not enable `recommend` mode without review.
 
 Verify with `operator-role-map.sh validate`, `operator-graph.sh status`, and
 `operator-status.sh`. Add `OPERATOR_DIR` to the project's backup plan when its

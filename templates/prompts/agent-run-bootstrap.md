@@ -54,8 +54,11 @@ Goals:
   - `.cursor/skills/incubation/SKILL.md`
   - `.cursor/environment.json.example`
 - Create the external operator workspace as `<project-root>/operator` unless I specify another path.
-- Fresh latest installs use Operator Kit V5.1, derive the role map from
+- Fresh latest installs use Operator Kit V5.2, derive the role map from
   `OPERATOR_LANES`, and install the local feature dependency graph.
+- Present `operator-model-select.sh setup-guide` as an optional onboarding step.
+  Collect reviewed model/thinking combinations, capabilities, estimates,
+  policy limits, and preferences without requesting provider secrets.
 - Do not create credentials, authority, bindings, Keychain entries, host
   sessions, leases, or background loops during setup.
 - A plain update of V4 or signed V5 must preserve its marker and report that

@@ -26,6 +26,6 @@ operator/
   migrations/    # migration manifests
 ```
 
-V5.1 graph files are ordinary local JSON. They contain no secrets and require
+V5.2 graph files are ordinary local JSON. They contain no secrets and require
 no Keychain or credential backup. Back up `OPERATOR_DIR` with the corresponding
 repository revision when its planning history and handoffs matter.

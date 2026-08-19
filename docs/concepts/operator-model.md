@@ -29,9 +29,9 @@ Worker agents own:
 
 This model is intentionally conservative. It favors traceability and integration quality over agents freely editing the same branch.
 
-## V5.1 Local Dependency Graph
+## V5.2 Local Dependency Graph And Model Guidance
 
-Operator V5.1 keeps authority with the human and operator. Each feature session
+Operator V5.2 keeps authority with the human and operator. Each feature session
 may contain an editable local graph of tasks, dependencies, lane assignments,
 approvals, and conflict claims. The graph computes a deterministic, bounded
 runnable frontier but never dispatches or approves work.
@@ -39,7 +39,7 @@ runnable frontier but never dispatches or approves work.
 Worktrees, task packets, handoffs, validation, operator integration review, and
 explicit human decisions remain the safety model. No signing keys, Keychain,
 proof broker, trusted-host session, lease, or fence is required. See
-[Operator V5.1 architecture](operator-v5.md) and the
+[Operator V5.2 architecture](operator-v5.md) and the
 [V5.1 migration guide](../guides/operator-v5-1-migration.md).
 
 ## V4 Feature Sessions

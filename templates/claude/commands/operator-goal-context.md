@@ -1,5 +1,5 @@
 ---
-description: Show Operator V5.1 feature and dependency context
+description: Show Operator V5.2 feature and dependency context
 argument-hint: FEATURE
 ---
 

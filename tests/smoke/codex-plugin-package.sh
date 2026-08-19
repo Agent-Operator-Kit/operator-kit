@@ -137,9 +137,12 @@ python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
 import json, sys
 manifest = json.load(open(sys.argv[1], encoding="utf-8"))
 compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
-assert manifest["version"] == "0.5.1"
-assert compatibility["projectKitVersion"] == "5.1"
+assert manifest["version"] == "0.5.2"
+assert compatibility["projectKitVersion"] == "5.2"
 assert compatibility["pluginVersion"] == manifest["version"]
+assert compatibility["safety"]["modelSelectionOptional"] is True
+assert compatibility["safety"]["modelSelectionAppliesSettings"] is False
+assert compatibility["safety"]["modelSelectionOnlineLearning"] is False
 assert compatibility["releaseChannel"] == "stable"
 assert compatibility["releaseSemverChanged"] is True
 assert compatibility["historicalBundle"] == "v3-adapter-bundle.json"

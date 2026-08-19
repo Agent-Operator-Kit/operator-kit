@@ -26,7 +26,7 @@ Project setup remains explicit through `operator-sync.sh`, `operator-upgrade.sh`
 or installed project-local `scripts/operator-*.sh`.
 
 The adapters remain version `0.1.0` and release-track `v3`, but their canonical
-skill/template copies are compatible with project kit versions 2, 4, 5, and 5.1.
-The separate `../v5-compatibility.json` records V5.1 runtime requirements without
+skill/template copies are compatible with project kit versions 2, 4, 5, 5.1,
+and 5.2. The separate `../v5-compatibility.json` records V5.2 runtime requirements without
 rewriting the historical `../v3-adapter-bundle.json` or implying a hidden host
-API. V5.1 setup never creates graph credentials.
+API. V5.2 setup never creates graph or model-provider credentials.

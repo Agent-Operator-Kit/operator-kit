@@ -14,7 +14,7 @@ git -C "$repo" add README.md
 git -C "$repo" commit -m init >/dev/null
 
 bash "$KIT_ROOT/scripts/operator-bootstrap.sh" "$repo" >/dev/null
-grep -q 'OPERATOR_KIT_VERSION="5.1"' "$repo/operator.config.env"
+grep -q 'OPERATOR_KIT_VERSION="5.2"' "$repo/operator.config.env"
 test -x "$repo/scripts/operator-graph.sh"
 test -f "$repo/scripts/operator_local_graph.py"
 test -x "$repo/scripts/operator-v5-1-migrate.sh"
@@ -37,6 +37,13 @@ test -f "$model_selection_dir/policy.example.json"
 test ! -e "$model_selection_dir/catalog.json"
 test ! -e "$model_selection_dir/policy.json"
 ! grep -Eq 'MODEL_SELECTION|model-selection' "$repo/operator.config.env"
+
+OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-model-select.sh" \
+  setup-guide > "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'optional and currently does nothing' "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'provider/model IDs' "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'quality and confidence' "$TMP_ROOT/model-selection-setup-guide.txt"
+grep -q 'policy mode "off"' "$TMP_ROOT/model-selection-setup-guide.txt"
 
 /usr/bin/python3 - "$model_selection_dir/catalog.example.json" "$model_selection_dir/policy.example.json" <<'PY'
 import json
@@ -124,6 +131,6 @@ grep -q 'projectOwned.*catalog example' "$model_selection_dir/catalog.example.js
 grep -q 'projectOwned.*live catalog' "$model_selection_dir/catalog.json"
 
 OPERATOR_CONFIG="$repo/operator.config.env" bash "$repo/scripts/operator-status.sh" > "$TMP_ROOT/status.txt"
-grep -q 'Operator Kit version: 5.1' "$TMP_ROOT/status.txt"
+grep -q 'Operator Kit version: 5.2' "$TMP_ROOT/status.txt"
 grep -q 'no credentials required' "$TMP_ROOT/status.txt"
-printf 'operator v5.1 final install smoke ok\n'
+printf 'operator v5.2 final install smoke ok\n'

@@ -258,7 +258,7 @@ printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
 case "$CHANNEL" in
-  latest|main) printf 'Fresh-install kit version: 5.1\n' ;;
+  latest|main) printf 'Fresh-install kit version: 5.2\n' ;;
   *) printf 'Fresh-install kit version: selected legacy channel\n' ;;
 esac
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"

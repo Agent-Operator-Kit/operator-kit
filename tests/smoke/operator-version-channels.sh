@@ -144,7 +144,7 @@ bash "$KIT_ROOT/scripts/operator-sync.sh" \
   --no-fetch >/dev/null
 
 latest_repo="$latest_project/code/app"
-grep -q 'OPERATOR_KIT_VERSION="5.1"' "$latest_repo/operator.config.env"
+grep -q 'OPERATOR_KIT_VERSION="5.2"' "$latest_repo/operator.config.env"
 test -f "$latest_repo/scripts/operator-feature.sh"
 test -f "$latest_repo/scripts/operator-v5-1-migrate.sh"
 test -f "$latest_repo/scripts/operator_local_graph.py"

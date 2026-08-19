@@ -1,5 +1,5 @@
 ---
-description: Show the bounded Operator V5.1 runnable frontier
+description: Show the bounded Operator V5.2 runnable frontier
 argument-hint: [FEATURE] [--capacity N]
 ---
 

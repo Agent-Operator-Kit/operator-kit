@@ -72,15 +72,16 @@ the user explicitly targets that checkout as a project.
 13. Dispatch and collect one smoke handoff when appropriate.
 14. Report exact paths, branches, commands, V2 catalog/system-map status, memory/roadmap status, and validation status.
 
-## V5.1 Distribution And Migration
+## V5.2 Distribution And Migration
 
-Fresh `latest` installs use `OPERATOR_KIT_VERSION="5.1"`. Install the role map,
-local graph shell/Python pair, and V5.1 migration command. Initialize the
+Fresh `latest` installs use `OPERATOR_KIT_VERSION="5.2"`. Install the role map,
+local graph shell/Python pair, V5.1 graph-migration command, and optional model
+selector. Initialize the
 catalog before deriving the target role map from `OPERATOR_LANES`. Do not
 install or provision signing authorities, Keychain credentials, proof brokers,
 trusted hosts, leases, fences, or heartbeat loops.
 
-A plain latest update of V4 or signed V5 installs V5.1 tooling but preserves the
+A plain latest update of V4 or signed V5 installs current tooling but preserves the
 existing marker and reports migration required. Use
 `operator-v5-1-migrate.sh plan`; apply only after review and explicit
 `MIGRATE_TO_V5_1_LOCAL_GRAPH` authorization. Signed V5 authority, graph, host,
@@ -90,6 +91,14 @@ read, changed, or deleted.
 V5.1 graphs are ordinary feature-scoped planning files. They advise which work
 is dependency-ready and non-conflicting within a bounded capacity. They do not
 dispatch work or replace human approval and operator integration review.
+
+A healthy V5.1 local-graph project updates compatibly to V5.2. Model selection
+remains off: bootstrap/update installs inert examples but no live catalog or
+policy. During onboarding or migration, run `operator-model-select.sh
+setup-guide`, ask the user for the models plus exact thinking settings they can
+use, verified capabilities/context/data constraints, task-class outcome
+estimates, policy floors and limits, and preferences or pins. Never request API
+keys, enable `recommend`, or apply a recommendation implicitly.
 
 ## Agent-Run Setup
 

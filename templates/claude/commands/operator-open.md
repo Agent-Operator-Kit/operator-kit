@@ -1,5 +1,5 @@
 ---
-description: Open or bind an Operator V5.1 feature session
+description: Open or bind an Operator V5.2 feature session
 argument-hint: [--feature FS-ID]
 ---
 
