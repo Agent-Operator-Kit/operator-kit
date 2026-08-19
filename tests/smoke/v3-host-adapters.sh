@@ -57,7 +57,7 @@ require(isinstance(bundle_version, str) and semver.fullmatch(bundle_version), "b
 require(bundle.get("releaseTrack") == "v3", "bundle releaseTrack must be v3")
 require(bundle.get("projectScopedSetupRequired") is True, "bundle must require project-scoped setup")
 require("2" in bundle.get("compatibleProjectKitVersions", []), "bundle must target Operator Kit V2")
-require(compatibility.get("projectKitVersion") == "5", "V5 compatibility version mismatch")
+require(compatibility.get("projectKitVersion") == "5.1", "V5.1 compatibility version mismatch")
 require(compatibility.get("historicalBundle") == "v3-adapter-bundle.json", "V5 metadata must preserve the V3 bundle")
 require(compatibility.get("releaseChannel") == "stable", "V5 registration must use the stable channel")
 require(compatibility.get("releaseSemverChanged") is True, "V5 preview must claim its semver change")
@@ -93,6 +93,7 @@ for adapter_path in adapter_paths:
     require("2" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V2")
     require("4" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V4")
     require("5" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V5")
+    require("5.1" in adapter.get("compatibleProjectKitVersions", []), f"{host} must target Operator Kit V5.1")
     adapter_sticky = adapter.get("stickyMode")
     require(isinstance(adapter_sticky, dict), f"{host} must declare stickyMode")
     if isinstance(adapter_sticky, dict):

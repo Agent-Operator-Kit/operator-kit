@@ -507,7 +507,7 @@ try:
         if json_output:
             emit_json(payload)
         else:
-            print("# Operator V5 Role Map")
+            print("# Operator V5.1 Role Map")
             print()
             print(f"- Path: `{role_map_path}`")
             print(f"- Durable lanes: {len(payload.get('durableLanes', []))}")

@@ -1,36 +1,27 @@
 {
-  "name": "operator-kit-v5-compatibility",
+  "name": "operator-kit-v5-1-compatibility",
   "schemaVersion": 1,
-  "projectKitVersion": "5",
+  "projectKitVersion": "5.1",
   "migrationSourceVersions": [
-    "4"
+    "4",
+    "5"
   ],
-  "pluginVersion": "0.5.0",
+  "pluginVersion": "0.5.1",
   "releaseChannel": "stable",
   "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
   "requiredProjectRuntime": [
     "scripts/operator-role-map.sh",
     "scripts/operator-graph.sh",
-    "scripts/operator_graph.py",
-    "scripts/operator-scheduler.sh",
-    "scripts/operator-loop.sh",
-    "scripts/operator-host.sh",
-    "scripts/operator-proof-broker.sh",
-    "scripts/operator_host.py",
-    "scripts/operator-design-flow.sh",
-    "scripts/operator_design_provider.py",
-    "scripts/operator-v5-migrate.sh",
-    "scripts/operator_v5_migrate.py",
-    "scripts/operator-v5-provision.sh",
-    "scripts/operator_v5_provision.py",
-    "schemas/operator-v5/"
+    "scripts/operator_local_graph.py",
+    "scripts/operator-v5-1-migrate.sh",
+    "scripts/operator_v5_1_migrate.py"
   ],
   "hostAdapters": [
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.5.0"
+      "version": "0.5.1"
     },
     {
       "host": "cursor",
@@ -44,12 +35,13 @@
     }
   ],
   "safety": {
-    "graphAuthority": "signed append-only control graph",
+    "graphAuthority": "human/operator; local graph is advisory",
     "productionBypassAllowed": false,
+    "credentialsRequired": false,
     "privateKeysInProjectOrOperatorDirAllowed": false,
     "freshInstallInitializesGraphOrKeys": false,
-    "explicitProvisioningCommandAvailable": true,
-    "plainV4UpdateChangesMarker": false,
+    "explicitProvisioningCommandAvailable": false,
+    "plainLegacyUpdateChangesMarker": false,
     "explicitReviewedMigrationRequired": true
   }
 }

@@ -67,18 +67,11 @@ For first-time or repeat setup, prefer install-or-initialize behavior:
    - `bash scripts/operator-catalog.sh list roles`
 8. Convert user-supplied lane requirements into `operator.config.env`; if lanes
    are unclear, propose the lane map before creating worktrees.
-For fresh `latest` setup, install V5 with the complete runtime and eleven
-schemas, initialize catalog before deriving the role map from `OPERATOR_LANES`,
-and create only private empty external runtime directories. Do not initialize
-graph history, bindings, authority/proof keys, or host sessions. A plain V4
-update preserves its `4` marker and artifacts and reports explicit migration
-required; use a reviewed `operator-v5-migrate.sh plan` before apply.
-
-After setup or migration, initialize production authority only as a separate,
-explicitly authorized operation: review `operator-v5-provision.sh plan`, then
-run `apply` only with `PROVISION_OPERATOR_V5_AUTHORITY`. Private keys remain in
-macOS Keychain; the workspace receives public authority/binding contracts and a
-signed initial graph event.
+For fresh `latest` setup, install V5.1 with the local feature dependency graph
+and derive the role map from `OPERATOR_LANES`. No authority, proof keys,
+Keychain, host session, lease, or loop setup is required. A plain V4 or signed
+V5 update preserves its marker and reports migration required; review
+`operator-v5-1-migrate.sh plan` before apply.
 
 For an empty scoped project folder, first suggest this top-level layout:
 
@@ -185,9 +178,7 @@ For Codex Desktop projects, use `$operator-feedback` for intake,
 - Ask before destructive cleanup, credential/provider-console changes,
   production deploys, release submissions, regulated or safety-critical
   behavior, or product decisions that cannot be safely inferred.
-- V5 production work enters through the signed `operator-host.sh` boundary;
-  never use permission-bypass launches or direct graph-file writes.
-- Keep private authority/proof keys out of the repo, `OPERATOR_DIR`,
-  environment, CLI, task packets, logs, and handoffs.
-- Treat graph history, fences, bindings, host effects, evidence, and migration
-  manifests as durable backup/recovery state, not disposable workspace data.
+- V5.1 dependency graphs are advisory and never replace explicit dispatch,
+  integration review, or human approval.
+- Treat feature graphs, evidence, handoffs, and migration archives as durable
+  workspace data.

@@ -39,15 +39,12 @@ incubation to incubation mode unless the user asks for execution.
 - Conflict detection is based on touched files, contracts, surfaces, branches, worktrees, and shared resources, not on role name alone.
 - Exploration can continue in unblocked lane instances while implementation is blocked on a file, contract, branch, worktree, or shared resource.
 - The operator owns the merge plan and final feature cohesion.
-- In V5, the signed append-only control graph, current lease, and fence are the
-  runtime authority. Roadmap files, chats, tmux panes, prompts, and task files
-  are not graph authority.
-- Use `operator-host.sh` for production host entry and the isolated proof broker
-  for mutations. Never launch a permission-bypass runner or edit graph state.
-- Private authority/proof keys never enter the repo, `OPERATOR_DIR`, environment,
-  CLI arguments, task packets, logs, or handoffs.
-- Treat `OPERATOR_DIR` graph history, bindings, fences, host effect ledgers,
-  evidence, memory, and migration manifests as durable backup/recovery state.
+- In V5.1, use one local dependency graph per feature session to identify ready,
+  non-conflicting work within an explicit capacity.
+- The graph is advisory. The operator and human remain authoritative for
+  dispatch, integration, push, release, credentials, and destructive work.
+- V5.1 requires no signing authority, Keychain, proof broker, trusted host,
+  lease, or fence.
 
 ## Commands
 
@@ -69,12 +66,8 @@ bash scripts/operator-plan-batch.sh
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-role-map.sh init|show|validate
-bash scripts/operator-graph.sh status|snapshot|replay check
-bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
-bash scripts/operator-loop.sh status|pause|resume
-bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied|promote|authorize-publish
-bash scripts/operator-v5-migrate.sh plan
-bash scripts/operator-v5-provision.sh plan|apply
+bash scripts/operator-graph.sh init|add|depend|approve|set-state|frontier|status|validate
+bash scripts/operator-v5-1-migrate.sh plan|apply
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]
 bash scripts/operator-upgrade.sh [--dry-run] [--projects-root <path>] [--target <repo>]
 ```

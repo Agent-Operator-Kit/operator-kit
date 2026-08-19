@@ -1,11 +1,11 @@
-# Operator V5 Project Role Map
+# Operator V5.1 Project Role Map
 
-Status: RM-0002 contract for the V5 architecture baseline.
+Status: project lane and reusable role-template contract.
 
 The project role map is the machine-readable boundary between durable project
-lanes, reusable role templates, temporary feature instances, and the host
-runners that execute them. These are separate types. A role name is not a lane,
-a host session is not an owner, and a feature instance does not become durable
+lanes, reusable role templates, temporary feature instances, and the tools that
+execute them. These are separate types. A role name is not a lane, a tool is
+not an owner, and a feature instance does not become durable
 project topology.
 
 The project-local source of truth is:
@@ -138,9 +138,8 @@ A host runner identifies an execution surface derived from the tool field in
 }
 ```
 
-Host runners execute assigned graph scope. They do not acquire queue,
-integration, branch, or worktree authority merely because a host can continue
-running autonomously.
+Host runners identify available tools. They do not acquire queue, integration,
+branch, worktree, graph, or approval authority.
 
 ## Project-Specific V5 Defaults
 

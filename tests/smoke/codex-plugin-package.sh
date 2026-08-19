@@ -137,13 +137,13 @@ python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
 import json, sys
 manifest = json.load(open(sys.argv[1], encoding="utf-8"))
 compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
-assert manifest["version"] == "0.5.0"
-assert compatibility["projectKitVersion"] == "5"
+assert manifest["version"] == "0.5.1"
+assert compatibility["projectKitVersion"] == "5.1"
 assert compatibility["pluginVersion"] == manifest["version"]
 assert compatibility["releaseChannel"] == "stable"
 assert compatibility["releaseSemverChanged"] is True
 assert compatibility["historicalBundle"] == "v3-adapter-bundle.json"
-assert compatibility["safety"]["productionBypassAllowed"] is False
+assert compatibility["safety"]["credentialsRequired"] is False
 PY
 
 diff_log="$(mktemp /tmp/aok-plugin-skills-diff.XXXXXX)"

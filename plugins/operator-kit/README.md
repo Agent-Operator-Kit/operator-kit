@@ -49,12 +49,12 @@ The preserved V3 adapter bundle adds host packages for Cursor and Claude Code un
 `adapters/`. Those packages are metadata and asset bundles, not hidden runtime
 APIs.
 
-`v5-compatibility.json` registers the final V5 project runtime and migration
-contract against the stable plugin (`0.5.0`) and adapter (`0.1.0`)
+`v5-compatibility.json` registers the V5.1 local graph runtime and migration
+contract against plugin `0.5.1` and adapter `0.1.0`
 package versions. It sits alongside, and does not relabel,
 `v3-adapter-bundle.json`.
-V5 execution remains project-local and enters through the signed host/broker
-boundary; installing the plugin never initializes graph or key state.
+V5.1 execution remains human-supervised. The local graph advises dependencies
+and bounded parallel work; installing the plugin never creates credentials.
 
 The project-local layer owns:
 
@@ -121,7 +121,8 @@ contract lives in `docs/concepts/sticky-operator-mode.md`.
 `plugin.json` uses semver for the global Codex adapter package. Slice 1 starts
 at `0.1.0`; the V4 feature-session package is `0.4.6`; and the first V5
 sharing pilot starts at `0.5.0-preview.1`; first-invocation project detection is
-included in `0.5.0-preview.2`; and the stable V5 plugin release is `0.5.0`.
+included in `0.5.0-preview.2`; the signed V5 release is `0.5.0`; and the local
+dependency-graph release is `0.5.1`.
 
 Compatibility rule:
 
@@ -134,10 +135,8 @@ Compatibility rule:
   using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
-- V5 compatibility did not itself require a plugin semver bump. The `0.5.0`
-  release marks the stable distributable V5 plugin while the project runtime marker,
-  explicit V4 migration, and `v5-compatibility.json` continue to carry the
-  compatibility boundary.
+- V5.1 uses plugin `0.5.1` and project marker `5.1`. V4 and signed V5 projects
+  migrate explicitly through `operator-v5-1-migrate.sh`.
 
 Cursor and Claude adapters remain separate follow-on milestones. They should
 consume the same Operator Kit project-local substrate, not fork the execution

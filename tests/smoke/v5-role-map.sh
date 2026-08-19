@@ -24,7 +24,7 @@ CODE_DIR="$smoke_root/code"
 OPERATOR_DIR="$smoke_root/operator"
 TMUX_SESSION="v5-role-map-smoke"
 DEFAULT_BRANCH="main"
-OPERATOR_KIT_VERSION="5"
+OPERATOR_KIT_VERSION="5.1"
 OPERATOR_LANES='
 $lanes
 '

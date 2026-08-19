@@ -72,38 +72,24 @@ the user explicitly targets that checkout as a project.
 13. Dispatch and collect one smoke handoff when appropriate.
 14. Report exact paths, branches, commands, V2 catalog/system-map status, memory/roadmap status, and validation status.
 
-## V5 Distribution And Migration
+## V5.1 Distribution And Migration
 
-Fresh `latest` installs use `OPERATOR_KIT_VERSION="5"`. Install the role map,
-graph shell/Python pair, scheduler, loop, host, proof broker, design flow,
-migration command, all eleven schemas, graph workspace template, and design
-prompt. Initialize the catalog before deriving the target role map from
-`OPERATOR_LANES`; never copy the canonical eight-lane example as project truth.
-Create private external runtime directories only. Do not initialize graph
-history, authority/binding state, production keys, host sessions, or proof
-material.
+Fresh `latest` installs use `OPERATOR_KIT_VERSION="5.1"`. Install the role map,
+local graph shell/Python pair, and V5.1 migration command. Initialize the
+catalog before deriving the target role map from `OPERATOR_LANES`. Do not
+install or provision signing authorities, Keychain credentials, proof brokers,
+trusted hosts, leases, fences, or heartbeat loops.
 
-A plain latest update of V4 installs V5 tooling but must preserve its `4`
-marker and report migration required. Use `operator-v5-migrate.sh plan`; apply
-only after the mapping is reviewed, writers are stopped, external state is
-safe and backed up, broker/keychain tooling is available, and the user
-explicitly authorizes `MIGRATE_V4_TO_V5`. V4 artifacts remain in place and are
-never reinterpreted as graph truth.
+A plain latest update of V4 or signed V5 installs V5.1 tooling but preserves the
+existing marker and reports migration required. Use
+`operator-v5-1-migrate.sh plan`; apply only after review and explicit
+`MIGRATE_TO_V5_1_LOCAL_GRAPH` authorization. Signed V5 authority, graph, host,
+and loop directories move to a timestamped archive. Keychain entries are never
+read, changed, or deleted.
 
-V5 production work enters through the signed `operator-host.sh` boundary. Do
-not use permission-bypass launches or direct graph-file writes. Private
-authority/proof keys never belong in the repo, `OPERATOR_DIR`, environment,
-CLI, task packets, logs, or handoffs. Treat graph history, fences, bindings,
-host effect ledgers, evidence, and migration manifests as durable
-backup/recovery state.
-
-After setup or migration is complete, production authority initialization is a
-separate control-plane operation. Run `operator-v5-provision.sh plan` first and
-review its host-policy findings. Run `apply` only after the user explicitly
-authorizes `PROVISION_OPERATOR_V5_AUTHORITY`; on macOS it creates private keys
-in Keychain, writes only public authority/binding contracts to `OPERATOR_DIR`,
-and initializes the first graph event through the signed proof protocol. Do not
-substitute direct graph writes, key files, environment secrets, or CLI secrets.
+V5.1 graphs are ordinary feature-scoped planning files. They advise which work
+is dependency-ready and non-conflicting within a bounded capacity. They do not
+dispatch work or replace human approval and operator integration review.
 
 ## Agent-Run Setup
 
@@ -188,6 +174,4 @@ cannot be safely inferred.
 - Do not let agents share branches.
 - Do not let agents edit the same file at the same time.
 - Keep project-specific secrets out of docs and examples.
-- Do not initialize production graph/key state during setup or migration; use
-  the separately authorized V5 provisioner after those operations are complete.
-- Do not treat the external V5 workspace as disposable.
+- Do not treat the Operator workspace or signed-V5 migration archive as disposable.

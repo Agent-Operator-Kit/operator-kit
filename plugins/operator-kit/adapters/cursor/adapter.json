@@ -9,7 +9,8 @@
   "compatibleProjectKitVersions": [
     "2",
     "4",
-    "5"
+    "5",
+    "5.1"
   ],
   "requiresProjectScopedSetup": true,
   "requiresSourceRootOperatorConfig": false,

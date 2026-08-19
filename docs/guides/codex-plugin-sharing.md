@@ -6,8 +6,8 @@ Operator uses two installation layers:
 2. the explicit project-local runtime installed by `operator-sync.sh`.
 
 The plugin contains skills and compatibility metadata. It never contains a
-project's `operator.config.env`, `OPERATOR_DIR`, worktrees, graph journal,
-bindings, proof material, or private Keychain identities.
+project's `operator.config.env`, `OPERATOR_DIR`, worktrees, feature graphs, or
+handoffs.
 
 ## Install From a Git Marketplace
 
@@ -72,11 +72,10 @@ bash scripts/operator-sync.sh \
   --skip-skills
 ```
 
-Fresh V5 setup installs the runtime but does not initialize production graph
-history or private keys. Create project-specific authority and bindings only
-through the reviewed V5 host setup for that project.
+Fresh V5.1 setup installs the local dependency-graph runtime. It creates no
+credentials and requires no Keychain setup.
 
-`--channel latest` is required for V5 while the default `stable` channel still
+`--channel latest` is required for V5.1 while the default `stable` channel still
 points to the V2.1 release line.
 
 ## Workspace Preview And Sharing

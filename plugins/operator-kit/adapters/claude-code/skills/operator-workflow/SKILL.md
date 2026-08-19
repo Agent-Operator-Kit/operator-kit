@@ -34,24 +34,11 @@ or:
 /operator-status
 ```
 
-For Operator V5 host execution, only the top-level Claude session binds and
-ticks a graph node:
-
-```text
-/operator-open --session <session-id> --scope <node-id>
-/operator-tick --session <session-id> --scope <node-id>
-/operator-goal-context --session <session-id> --scope <node-id>
-```
-
-If V5 runtime is installed but uninitialized, review
-`bash scripts/operator-v5-provision.sh plan` and run `apply` only after explicit
-`PROVISION_OPERATOR_V5_AUTHORITY` authorization. Private keys remain in macOS
-Keychain; never place them in the repo, external workspace, environment, CLI,
-logs, or handoffs.
-
-Claude subagents and hooks may report evidence or request that the top-level
-session run a tick. They cannot bind or lease a node, reprioritize the graph,
-decide gates, integrate, or cross the bound scope.
+For Operator V5.1, Claude receives an ordinary feature-scoped task packet. The
+local dependency graph tells the operator when the task is ready and whether it
+conflicts with other work. It requires no host binding, lease, proof key, or
+Keychain access. Claude's result remains evidence for operator review, not
+integration or human approval.
 
 You can also ask:
 

@@ -46,20 +46,14 @@ bash scripts/operator-recommend-lanes.sh
 
 After the first commit, create worker worktrees from `main` using the generated config as the lane map.
 
-The latest bootstrap is V5. It derives `operator/catalog/role-map.json` from
-the target's `OPERATOR_LANES`, installs all eleven schemas and V5 runtimes, and
-creates private external runtime directories. It does not automatically create
-graph events, definitions, projections, signed bindings, authority keys, proof
-keys, or host sessions. After reviewing the project role map and fail-closed
-lane invocations, control can explicitly run
-`operator-v5-provision.sh plan|apply` as documented in
-`operator-v5-provisioning.md`. The provisioner stores private material only in
-the OS keychain and initializes graph state through the signed graph API.
+The latest bootstrap is V5.1. It derives `operator/catalog/role-map.json` from
+the target's `OPERATOR_LANES` and installs a local, feature-scoped dependency
+graph. It creates no authority, bindings, private keys, Keychain entries, host
+sessions, leases, or background loop.
 
-After provisioning, verify with `operator-role-map.sh validate`,
-`operator-graph.sh status`, and a bound `operator-host.sh current`. Never use a
-permission-bypass runner or place private keys in the repo or external
-workspace. Add `OPERATOR_DIR` to the project's backup and recovery plan.
+Verify with `operator-role-map.sh validate`, `operator-graph.sh status`, and
+`operator-status.sh`. Add `OPERATOR_DIR` to the project's backup plan when its
+feature graphs, handoffs, and planning history matter.
 
 For Codex Desktop operation after install, add or refresh the bundled global skills:
 

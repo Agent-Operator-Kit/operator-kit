@@ -48,12 +48,10 @@ Classify the workspace as exactly one of:
 
 - `kit-source`: `plugins/operator-kit/.codex-plugin/plugin.json` and
   `scripts/operator-bootstrap.sh` exist.
-- `v5-ready`: `operator.config.env` selects version 5, all V5 scripts and eleven
-  schemas exist, status succeeds, and the graph/host state is usable.
-- `v5-runtime-only`: the V5 runtime is installed but graph authority or host
-  binding has not been initialized.
-- `v4-migration-required`: the project marker is 4 and latest V5 tooling is
-  present, so an explicit reviewed migration is required.
+- `v5-1-ready`: `operator.config.env` selects version 5.1, status succeeds, and
+  the local feature-graph runtime is available.
+- `v5-1-migration-required`: the project marker is 4 or signed V5 and the V5.1
+  migration command is present.
 - `legacy-or-partial`: some Operator files exist, but config, required scripts,
   or status validation is missing or stale.
 - `not-installed-project`: a normal git repository has no reliable Operator
@@ -65,17 +63,14 @@ Classify the workspace as exactly one of:
 The first response should lead with the classification and one recommended
 next action:
 
-- `v5-ready`: run status and recommend continuing or creating a feature session.
-- `v5-runtime-only`: run `operator-v5-provision.sh plan`, recommend correcting
-  any host-policy findings, and explain that `apply` creates project-specific
-  authority/bindings and requires the separate
-  `PROVISION_OPERATOR_V5_AUTHORITY` authorization.
-- `v4-migration-required`: recommend `operator-v5-migrate.sh plan`; never apply
-  the migration without the separate authorization token.
+- `v5-1-ready`: run status and the local graph frontier, then recommend
+  continuing or creating a feature session.
+- `v5-1-migration-required`: recommend `operator-v5-1-migrate.sh plan`; apply
+  only when the user authorizes the migration.
 - `legacy-or-partial`: recommend a latest-channel repair from a trusted source,
   then status validation.
 - `not-installed-project`: say that the Operator plugin is available but this
-  project is not initialized, and recommend the V5 project setup below.
+  project is not initialized, and recommend the V5.1 project setup below.
 - `kit-source`: report source and self-hosting status, then recommend local
   plugin refresh or project status only when needed.
 - `no-project`: recommend opening a git project or intentionally creating a
@@ -87,17 +82,16 @@ For a normal uninitialized git repository, keep the recommendation concise:
 
 ```text
 Operator is available, but this project is not initialized.
-Recommended: install the V5 project runtime using the latest channel.
-This adds project scripts, schemas, operator.config.env, and an external
-operator workspace. It does not start lanes or initialize graph keys.
+Recommended: install the V5.1 project runtime using the latest channel.
+This adds project scripts, operator.config.env, and an Operator workspace. It
+does not start lanes and requires no graph keys or Keychain setup.
 Say "set it up" and I can perform and validate the setup here.
 ```
 
 If the user explicitly asks to install, initialize, set up, or get started,
 that wording authorizes the normal project-file bootstrap. Otherwise, explain
 the proposed writes and wait for approval before changing the repository.
-Graph authority, private keys, actor bindings, production host sessions,
-worktree creation, tmux startup, migration, dispatch, push, and release remain
+Worktree creation, tmux startup, migration, dispatch, push, and release remain
 separately gated.
 
 Resolve a trusted project-runtime source in this order:
@@ -132,21 +126,8 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 ```
 
 After setup or repair, run status, summary, memory, catalog, lane recommendation,
-and V5 role-map validation. Confirm that graph status is either deliberately
-initialized or safely `NOT_INITIALIZED`; fresh bootstrap must not create graph
-history, authority, bindings, proof material, or private keys.
-
-For an explicitly authorized V5 production initialization, use:
-
-```bash
-bash scripts/operator-v5-provision.sh plan
-bash scripts/operator-v5-provision.sh apply \
-  --authorize PROVISION_OPERATOR_V5_AUTHORITY
-```
-
-Apply only after the plan is reviewed and all lane invocations satisfy the
-fail-closed host policy. The provisioner keeps private authority/proof material
-in macOS Keychain and emits only public metadata.
+role-map validation, and `operator-graph.sh status`. Fresh bootstrap creates no
+credentials and initializes feature graphs only when feature sessions exist.
 
 Assume Codex Desktop chat is the primary UX unless the user explicitly asks for
 terminal-only, Cursor, or Claude Code instructions. Do not start with a long
@@ -207,11 +188,9 @@ Before operator work, resolve the project root:
    V4 installs may also provide `scripts/operator-feature.sh` and
    `scripts/operator-conflicts.sh`; use them when present, but do not mark a V2
    install partial just because these newer commands are missing.
-   V5 installs must additionally provide `operator-role-map.sh`,
-   `operator-graph.sh`, `operator-scheduler.sh`, `operator-loop.sh`,
-   `operator-host.sh`, `operator-proof-broker.sh`, `operator-design-flow.sh`,
-   and `operator-v5-migrate.sh`, their plain Python helpers, and the eleven-file
-   `schemas/operator-v5/` bundle.
+   V5.1 installs must additionally provide `operator-role-map.sh`,
+   `operator-graph.sh`, `operator_local_graph.py`,
+   `operator-v5-1-migrate.sh`, and `operator_v5_1_migrate.py`.
 6. Run all project-local Operator Kit commands with the selected project root as the working directory. If a command must be run from another directory, set `OPERATOR_CONFIG=<selected-root>/operator.config.env`.
 7. Read `operator.config.env`.
 8. Read `AGENTS.md` if present.
@@ -280,33 +259,22 @@ bash <(curl -fsSL https://raw.githubusercontent.com/Agent-Operator-Kit/operator-
 Do not install Operator Kit into the Operator Kit source checkout itself unless
 the user explicitly targets that checkout as a project.
 
-## V5 Control Runtime
+## V5.1 Local Dependency Graph
 
-Fresh latest installs are V5. The signed append-only graph is runtime
-authority; roadmap, feature folders, chats, tmux, prompts, and host metadata
-remain planning/evidence indexes. Production mutations go only through a
-signed actor binding and the isolated host proof broker. Execute graph scopes
-through `operator-host.sh`; do not run permission-bypass agents, write graph
-files directly, or treat a runner result as a human gate.
+Fresh latest installs are V5.1. Each feature session may own an ordinary local
+`graph.json` containing work nodes, dependencies, lane assignments, priorities,
+approvals, and conflict claims. `operator-graph.sh frontier` identifies what can
+run next within an explicit capacity. It is advisory and never dispatches work.
 
-Status must report project kit version, migration state, graph initialization,
-host runtime, and broker/keychain readiness without auto-initializing or
-repairing graph state. Human gates remain explicit for subjective proposal
-selection, integration, push/publish/release, credentials, destructive or
-production changes, and irreversible high-risk work. Dissatisfaction creates
-forward feedback work rather than reopening completed nodes.
+V5.1 has no signing authority, actor bindings, Keychain credentials, proof
+broker, trusted-host session, ownership lease, fence, or heartbeat loop. Human
+intent remains explicit for dispatch, integration, push/publish/release,
+credentials, destructive changes, and production work.
 
-Private authority/proof keys never enter a repo, `OPERATOR_DIR`, environment,
-CLI argument, task packet, log, or handoff. Graph history, fences, signed
-bindings, host effect ledgers, evidence, and migration manifests are durable
-backup/recovery state; the external workspace is not disposable.
-
-For V4 updated to latest, preserve `OPERATOR_KIT_VERSION="4"` and report
-migration required. Run `operator-v5-migrate.sh plan`; apply only from a
-reviewed mapping with stopped writers, safe external state, compatible graph,
-available broker/keychain tooling, and explicit `MIGRATE_V4_TO_V5`
-authorization. Never reinterpret V4 files as graph truth or initialize graph
-or key state during migration.
+For V4 or signed V5 updated to latest, preserve the existing version marker and
+report migration required. Run `operator-v5-1-migrate.sh plan`; apply only with
+the explicit `MIGRATE_TO_V5_1_LOCAL_GRAPH` authorization. Signed V5 state is
+archived and Keychain entries are left untouched.
 
 ## Core Commands
 
@@ -332,11 +300,8 @@ bash scripts/operator-system-map.sh refresh
 bash scripts/operator-recommend-lanes.sh
 bash scripts/operator-plan-batch.sh
 bash scripts/operator-role-map.sh init|show|validate
-bash scripts/operator-graph.sh status|snapshot|replay check
-bash scripts/operator-host.sh open|current|bind|tick|goal-context|effect-commit
-bash scripts/operator-loop.sh status|pause|resume
-bash scripts/operator-design-flow.sh start|status|select|reject|dissatisfied|promote|authorize-publish
-bash scripts/operator-v5-migrate.sh plan
+bash scripts/operator-graph.sh init|add|depend|approve|set-state|frontier|status|validate
+bash scripts/operator-v5-1-migrate.sh plan|apply
 bash scripts/operator-feature.sh start|list|active|open|current|status|bind|link-roadmap|workspace|spawn-lane|close|archive|cleanup
 bash scripts/operator-conflicts.sh check <feature>|summary
 bash scripts/operator-update.sh [--source <kit-repo-or-url>] [--target <repo>]

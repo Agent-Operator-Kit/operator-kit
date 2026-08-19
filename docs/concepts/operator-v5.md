@@ -1,94 +1,83 @@
-# Operator Kit V5 Architecture Baseline
+# Operator Kit V5.1 Architecture
 
-Status: final V5 distribution contract.
+Operator V5.1 is a local, human-supervised execution planner. It keeps the
+useful part of the V5 design—a typed dependency graph and deterministic
+runnable frontier—without turning local development into a cryptographic
+control plane.
 
-Integrated distribution base: `701146c6bbbb4c526d1b4ff0671d662da6e47984`.
+## Authority
 
-## Authority And Durable State
+The human and the Operator cockpit remain authoritative. Feature-session files,
+task packets, worktrees, handoffs, validation evidence, and reviewed integration
+are the operating record. The graph advises what can run next; it does not grant
+execution authority and never dispatches work by itself.
 
-V5 uses this authority order:
+Each feature owns one editable graph:
 
-1. committed architecture, schemas, and compatibility contracts;
-2. the scheduled graph definition and append-only graph events under
-   `OPERATOR_DIR/graph/`;
-3. replayable graph projections and generated Operator views;
-4. host metadata such as Codex tasks, Claude sessions, tmux windows, titles,
-   pins, and monitors.
+```text
+OPERATOR_DIR/features/<FS-id-slug>/
+├── status.json
+├── graph.json
+├── graph-events.jsonl
+├── tasks/
+├── handoffs/
+└── work/
+```
 
-Host metadata is an index, never the source of truth. The local roadmap records
-product intent and priority under `OPERATOR_DIR/roadmap/`; it does not become
-the runtime execution graph and graph commands do not mutate roadmap items.
+`graph.json` contains task, validation, integration, and feedback nodes. Nodes
+have dependencies, a lane, priority, optional approval, and exact file,
+contract, resource, and surface claims.
 
-## Operating Model
+## Runnable Frontier
 
-The Operator heartbeat is a bounded, retryable loop over a typed control graph.
-The graph contains goals, features, lanes, tasks, validations, human gates,
-integration work, and forward feedback. The scheduler derives a deterministic
-runnable frontier from graph state. Host runners execute only graph scopes for
-which they hold valid ownership.
+`operator-graph.sh frontier` considers active feature sessions together. A node
+is runnable when:
 
-A feature creates temporary feature-scoped lane instances from project role
-templates. A lane agent owns one assigned graph scope, branch, worktree,
-validation result, and handoff. The control task owns queue-priority changes,
-cross-feature conflict decisions, integration, and release coordination.
+- its state is `pending`;
+- every dependency is `completed`;
+- a lane is assigned;
+- any requested human approval is approved; and
+- its lane and claims do not conflict with active or already-selected work.
 
-Operator and lane agents may use sub-agents within their assigned scope.
-Sub-agents do not own graph nodes or leases, branches, worktrees, queue state,
-integration, merge, push, publish, or release authority. The parent agent
-remains accountable for their edits, evidence, validation, and handoff.
+Candidates are ordered by descending priority and stable feature/node ID. The
+default capacity is four and can be bounded explicitly. Cross-feature claims
+prevent unsafe parallelism while disjoint work remains parallel-runnable.
 
-Codex and Claude are host runners over the same graph contract. A Codex goal or
-Claude session may keep safe work moving, but host autonomy does not widen the
-graph scope or bypass leases, conflicts, transition rules, or human gates.
+## Deliberately Absent
+
+V5.1 does not require or install:
+
+- signing authorities or actor bindings;
+- Keychain or Secret Service entries;
+- proof brokers;
+- ownership leases or fencing tokens;
+- trusted-host bindings or `launchd` relays;
+- autonomous heartbeat loops; or
+- cryptographic graph replay.
+
+These mechanisms are preserved in Git tag `v5.0-signed-control-plane` for a
+future autonomous-execution edition.
 
 ## Human Gates
 
-Human decisions protect explicit transitions rather than freezing an entire
-project. V5 requires a recorded human decision before:
+Graph approvals are visible planning signals, not security credentials. Human
+intent is still required before integration, push, tag, release, credential or
+provider changes, destructive operations, production changes, and other
+irreversible work. A successful worker handoff never implies approval.
 
-- selecting a subjective product or design proposal;
-- integrating a feature into the stable branch;
-- pushing, tagging, versioning, publishing, or releasing;
-- changing credentials, provider consoles, production data, or destructive
-  infrastructure;
-- executing regulated, financial, safety-critical, or otherwise irreversible
-  behavior that cannot be inferred safely.
+## Commands
 
-Read-only inspection, specification, isolated implementation, and disposable
-validation may continue when their graph dependencies, leases, and conflict
-checks allow it.
+```bash
+bash scripts/operator-graph.sh init <feature>
+bash scripts/operator-graph.sh add <feature> <node-id> "<title>" --lane <lane>
+bash scripts/operator-graph.sh depend <feature> <node-id> <dependency-id>
+bash scripts/operator-graph.sh approve <feature> <node-id> approved
+bash scripts/operator-graph.sh set-state <feature> <node-id> completed
+bash scripts/operator-graph.sh frontier [<feature>] [--capacity N]
+bash scripts/operator-graph.sh status [<feature>]
+bash scripts/operator-graph.sh validate [<feature>]
+```
 
-## Feedback And History
-
-Completed graph history is append-only. Normal dissatisfaction or a rejected
-result creates a feedback record and a forward improvement node linked to the
-prior outcome. It does not rewind, reopen, or rewrite completed execution.
-
-## Reliability Contract
-
-Every mutation is actor-attributed, request-idempotent, revision-checked, and
-recorded as an event. Projections are derived and replayable. Ownership leases
-use expiry plus monotonically increasing fencing so stale holders cannot
-transition work after recovery. Invalid schemas, corrupt journals, ambiguous
-ownership, missing gates, and unknown host runners fail closed.
-
-V4 feature sessions, tasks, handoffs, roadmap items, and memory remain readable.
-Migration into V5 graph state is explicit and lossless; V4 files are not
-silently reinterpreted as the V5 source of truth.
-
-## Implementation Ownership
-
-- RM-0001 owns lane and sub-agent authority policy.
-- RM-0002 owns the project role-map contract.
-- RM-0007 owns graph schemas, events, transitions, leases, fencing, replay, and
-  the public graph API.
-- RM-0004 owns deterministic scheduling and runnable-frontier reason codes.
-- RM-0003 owns bounded tick, status, pause, resume, and runner orchestration.
-- RM-0005 owns Codex and Claude host-runner adapters.
-- RM-0006 owns three-proposal design selection and forward improvement flow.
-
-The final distribution registers every runtime, all eleven schemas, target-
-derived role maps, explicit lossless V4 migration, version-aware status,
-plugin/adapter compatibility metadata, and the combined installed-project
-matrix. Installation creates private runtime directories only; it does not
-initialize production graph history, authority/binding state, or keys.
+The graph command writes only the selected feature's `graph.json`, a small
+advisory event log, and a local lock file. Files are ordinary local JSON and
+can be inspected, backed up, or repaired by the user.
