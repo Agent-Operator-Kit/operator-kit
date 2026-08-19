@@ -1,7 +1,7 @@
 {
   "name": "operator",
-  "version": "0.5.0",
-  "description": "Agent Operator Kit for Codex: a first-run-aware operator cockpit for V5 project setup, feature sessions, agent lanes, task packets, memory, feedback, planning, design review, UX audits, journeys, and incubation.",
+  "version": "0.5.1",
+  "description": "Agent Operator Kit for Codex: a local, human-supervised operator cockpit with feature dependency graphs, bounded parallel planning, agent lanes, task packets, memory, feedback, and review.",
   "author": {
     "name": "Agent Operator Kit"
   },
@@ -21,8 +21,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Operator",
-    "shortDescription": "V5 loops, signed graph, and transient lanes",
-    "longDescription": "Version 0.5.0. Operator is the Codex plugin for Agent Operator Kit: a cockpit for real projects, including the V5 signed control graph, trusted host loop, scheduler, and session-based transient lanes. On the first Operator prompt it runs a read-only project preflight, distinguishes a workspace-shared plugin from a project-local runtime, and recommends the correct setup, repair, migration, or continuation path.\n\nUse it to coordinate multiple feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. The source of truth stays explicit and project-local: operator.config.env, scripts/operator-*.sh, OPERATOR_DIR, feature sessions, lanes, memory, roadmap, graph state, and handoffs. Installing the plugin never copies private graph keys or another project's runtime state.",
+    "shortDescription": "Local dependency graphs and feature lanes",
+    "longDescription": "Version 0.5.1. Operator is the Codex plugin for Agent Operator Kit: a human-supervised cockpit for real projects, including V5.1 feature-scoped dependency graphs and a capacity-bounded runnable frontier. On the first Operator prompt it runs a read-only project preflight and recommends the correct setup, repair, migration, or continuation path.\n\nUse it to coordinate feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. V5.1 requires no signing authority, Keychain credentials, proof broker, trusted host, lease, or heartbeat loop.",
     "developerName": "Agent Operator Kit",
     "category": "Developer Tools",
     "capabilities": [
@@ -32,7 +32,7 @@
     ],
     "websiteURL": "https://agent-operator-kit.github.io/operator-kit/",
     "defaultPrompt": [
-      "Get started: detect this project and recommend the initial Operator V5 setup",
+      "Get started: detect this project and recommend the initial Operator V5.1 setup",
       "Show active feature sessions and conflicts",
       "Create a feature session and bind this chat",
       "Update this project to the latest Operator Kit"

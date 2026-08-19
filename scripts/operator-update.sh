@@ -20,8 +20,8 @@ Evergreen scripts are refreshed from the kit source.
 Channels:
   stable/v2.1  Current pinned release.
   v3           Plugin-based adapter release, once the v3 tag is published.
-  latest       Current source, including V5 control-plane tooling. Existing
-               V4 projects remain V4 until explicit operator-v5-migrate apply.
+  latest       Current V5.1 local dependency-graph release. Existing V4 and
+               signed V5 projects keep their marker until explicit migration.
 USAGE
 }
 
@@ -297,14 +297,34 @@ append_gitignore_snippet() {
 source "$TARGET_REPO/operator.config.env"
 : "${OPERATOR_DIR:?OPERATOR_DIR is required in operator.config.env}"
 
-V5_EXTERNAL_STATE_ALLOWED=1
-
 remove_obsolete_project_assets
+
+# Signed V5 assets remain available until the reviewed migration completes.
+# Once the project is marked 5.1, the migration archive and source tag are the
+# recovery path and these runtime entrypoints should no longer be installed.
+if [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ]; then
+  for obsolete in \
+    scripts/operator-scheduler.sh \
+    scripts/operator-loop.sh \
+    scripts/operator-host.sh \
+    scripts/operator-proof-broker.sh \
+    scripts/operator-design-flow.sh \
+    scripts/operator-v5-migrate.sh \
+    scripts/operator-v5-provision.sh \
+    scripts/operator_graph.py \
+    scripts/operator_host.py \
+    scripts/operator_design_provider.py \
+    scripts/operator_v5_migrate.py \
+    scripts/operator_v5_provision.py \
+    schemas/operator-v5; do
+    remove_obsolete_path "$TARGET_REPO/$obsolete" "$obsolete"
+  done
+fi
 
 if [ "$DRY_RUN" -eq 0 ]; then
   mkdir -p "$TARGET_REPO/scripts"
 fi
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-v5-provision.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   if [ ! -f "$SOURCE_PATH/scripts/$script" ]; then
     record unchanged "scripts/$script unavailable in selected channel"
     continue
@@ -312,17 +332,13 @@ for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.
   copy_refresh_executable "$SOURCE_PATH/scripts/$script" "$TARGET_REPO/scripts/$script" "scripts/$script"
 done
 
-for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py operator_v5_provision.py; do
+for helper in operator_local_graph.py operator_v5_1_migrate.py; do
   if [ ! -f "$SOURCE_PATH/scripts/$helper" ]; then
     record unchanged "scripts/$helper unavailable in selected channel"
     continue
   fi
   copy_refresh_plain "$SOURCE_PATH/scripts/$helper" "$TARGET_REPO/scripts/$helper" "scripts/$helper"
 done
-
-if [ -d "$SOURCE_PATH/schemas/operator-v5" ]; then
-  copy_refresh_plain_directory "$SOURCE_PATH/schemas/operator-v5" "$TARGET_REPO/schemas/operator-v5" "schemas/operator-v5"
-fi
 
 install_missing_plain "$SOURCE_PATH/templates/repo/AGENTS.md" "$TARGET_REPO/AGENTS.md" "AGENTS.md"
 install_missing_plain "$SOURCE_PATH/templates/repo/CODEX.md" "$TARGET_REPO/CODEX.md" "CODEX.md"
@@ -344,18 +360,6 @@ fi
 if [ "$DRY_RUN" -eq 0 ]; then
   mkdir -p "$OPERATOR_DIR/tasks" "$OPERATOR_DIR/captures" "$OPERATOR_DIR/memory" "$OPERATOR_DIR/features" "$OPERATOR_DIR/roadmap/items" "$OPERATOR_DIR/roadmap/inbox" "$OPERATOR_DIR/roadmap/views" "$OPERATOR_DIR/catalog/roles" "$OPERATOR_DIR/catalog/patterns"
 fi
-target_real="$(cd "$TARGET_REPO" && pwd -P)"
-operator_real="$(cd "$OPERATOR_DIR" 2>/dev/null && pwd -P || true)"
-case "$operator_real" in
-  "$target_real"|"$target_real"/*)
-    V5_EXTERNAL_STATE_ALLOWED=0
-    record unchanged 'V5 relocation/migration blocked: OPERATOR_DIR is repo-local; relocate it outside the repository before creating V5 runtime state'
-    ;;
-  "")
-    V5_EXTERNAL_STATE_ALLOWED=0
-    record unchanged 'V5 relocation/migration blocked: OPERATOR_DIR could not be validated as an external directory'
-    ;;
-esac
 if [ "$DRY_RUN" -eq 0 ]; then
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-memory.sh" init >/dev/null
   OPERATOR_CONFIG="$TARGET_REPO/operator.config.env" bash "$TARGET_REPO/scripts/operator-roadmap.sh" init >/dev/null
@@ -389,14 +393,13 @@ install_missing_plain "$SOURCE_PATH/templates/operator-workspace/roadmap/views/b
 install_missing_plain "$SOURCE_PATH/templates/operator-workspace/roadmap/views/now-next-later.md" "$OPERATOR_DIR/roadmap/views/now-next-later.md" "OPERATOR_DIR/roadmap/views/now-next-later.md"
 install_missing_plain "$SOURCE_PATH/templates/operator-workspace/roadmap/views/shipped.md" "$OPERATOR_DIR/roadmap/views/shipped.md" "OPERATOR_DIR/roadmap/views/shipped.md"
 
-if [ -f "$SOURCE_PATH/templates/operator-workspace/graph/README.md" ] && [ "$V5_EXTERNAL_STATE_ALLOWED" -eq 1 ]; then
-  if [ "$DRY_RUN" -eq 0 ]; then
-    for runtime_dir in authority graph graph/bindings host loop migrations; do
-      mkdir -p "$OPERATOR_DIR/$runtime_dir"
-      chmod 0700 "$OPERATOR_DIR/$runtime_dir"
-    done
-  fi
-  install_missing_plain "$SOURCE_PATH/templates/operator-workspace/graph/README.md" "$OPERATOR_DIR/graph/README.md" "OPERATOR_DIR/graph/README.md"
+if [ "$DRY_RUN" -eq 0 ]; then
+  for runtime_dir in archive migrations; do
+    mkdir -p "$OPERATOR_DIR/$runtime_dir"
+    chmod 0700 "$OPERATOR_DIR/$runtime_dir"
+  done
+fi
+if [ -f "$SOURCE_PATH/templates/prompts/design-proposal.md" ]; then
   prompt_result="$(operator_restore_design_prompt "$OPERATOR_DIR" "$SOURCE_PATH/templates/prompts/design-proposal.md" "$DRY_RUN")"
   record "$prompt_result" "OPERATOR_DIR/prompts/design-proposal.md"
 fi
@@ -404,10 +407,13 @@ append_gitignore_snippet
 
 case "${OPERATOR_KIT_VERSION:-2}" in
   4)
-    record unchanged 'operator.config.env kit marker preserved at 4 (migration required)'
+    record unchanged 'operator.config.env kit marker preserved at 4 (V5.1 migration required)'
     ;;
   5)
-    record unchanged 'operator.config.env kit marker already 5'
+    record unchanged 'operator.config.env signed V5 marker preserved (V5.1 migration required)'
+    ;;
+  5.1)
+    record unchanged 'operator.config.env kit marker already 5.1'
     ;;
   *)
     record unchanged "operator.config.env legacy kit marker preserved at ${OPERATOR_KIT_VERSION:-2}"
@@ -469,11 +475,8 @@ printf '  - bash scripts/operator-catalog.sh list roles\n'
 printf '  - bash scripts/operator-recommend-lanes.sh\n'
 printf '  - bash scripts/operator-plan-batch.sh\n'
 printf '  - bash scripts/operator-role-map.sh validate\n'
-if [ "${OPERATOR_KIT_VERSION:-2}" = "4" ]; then
-  if [ "$V5_EXTERNAL_STATE_ALLOWED" -eq 1 ]; then
-    printf '  - migration required: review docs/guides/operator-v5-migration.md and run scripts/operator-v5-migrate.sh plan\n'
-  else
-    printf '  - relocation/migration blocked: move OPERATOR_DIR outside the repository, then rerun update and review migration\n'
-  fi
+printf '  - bash scripts/operator-graph.sh status\n'
+if [ "${OPERATOR_KIT_VERSION:-2}" = "4" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then
+  printf '  - migration required: review docs/guides/operator-v5-1-migration.md and run scripts/operator-v5-1-migrate.sh plan\n'
 fi
 printf '  - git status --short\n'

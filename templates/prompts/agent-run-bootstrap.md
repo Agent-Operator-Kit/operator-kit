@@ -54,12 +54,12 @@ Goals:
   - `.cursor/skills/incubation/SKILL.md`
   - `.cursor/environment.json.example`
 - Create the external operator workspace as `<project-root>/operator` unless I specify another path.
-- Fresh latest installs use Operator Kit V5, derive the role map from
-  `OPERATOR_LANES`, and install every V5 runtime plus all eleven schemas.
-- Create only private empty V5 runtime directories. Do not initialize graph
-  history, bindings, authority keys, proof keys, or host sessions during setup.
-- A plain update of V4 must preserve its marker and artifacts and report that
-  reviewed explicit migration is required.
+- Fresh latest installs use Operator Kit V5.1, derive the role map from
+  `OPERATOR_LANES`, and install the local feature dependency graph.
+- Do not create credentials, authority, bindings, Keychain entries, host
+  sessions, leases, or background loops during setup.
+- A plain update of V4 or signed V5 must preserve its marker and report that
+  reviewed explicit V5.1 migration is required.
 
 Lane requirements:
 

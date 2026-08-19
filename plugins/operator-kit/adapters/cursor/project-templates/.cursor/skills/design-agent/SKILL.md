@@ -89,28 +89,14 @@ Suggested flow:
 5. `operator` collects results; `design-agent` reviews output and packages next
    feedback.
 
-## Three-Proposal Forward Flow
+## Three-Proposal Review Flow
 
-When an installed V5 project provides `scripts/operator-design-flow.sh`, use it
-for reviewable design exploration that must preserve human choice:
-
-1. `start` creates exactly `proposal-a`, `proposal-b`, and `proposal-c` as
-   sibling graph work and prepares their external feature-workspace folders.
-2. Proposal workers write only inside their assigned proposal folder and never
-   select a direction or create implementation work.
-3. A human uses `select` or `reject`; selection counts only when the trusted
-   control-graph launcher records the human-gate event.
-4. The RM-0003 loop, not the design agent, owns execution of the selected
-   implementation node.
-5. Later dissatisfaction uses `dissatisfied` with a stable request ID. It
-   creates FB intake plus forward feedback work and never reopens completed
-   history.
-
-Keep these artifacts under the active feature's
-`work/design-options/{proposal-a,proposal-b,proposal-c}` folders. Never treat a
-prompt response, task state, artifact file, or host-session label as approval,
-and never request graph files, actor bindings, proof descriptors, or authority
-keys for this workflow.
+For reviewable design exploration, create `proposal-a`, `proposal-b`, and
+`proposal-c` under the active feature's `work/design-options/` folder. Proposal
+workers never select a direction. Record implementation dependencies in the
+feature's local graph with approval `pending`; only an explicit human choice
+changes it to `approved`. The graph remains advisory and dispatch stays with the
+operator.
 
 ## Claude Code Fable 5 Dispatch Default
 

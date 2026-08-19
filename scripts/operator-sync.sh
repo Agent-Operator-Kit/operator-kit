@@ -467,8 +467,11 @@ run_project_checks() {
     bash scripts/operator-catalog.sh list roles >/dev/null
     bash scripts/operator-recommend-lanes.sh >/dev/null
     bash scripts/operator-plan-batch.sh >/dev/null
-    if [ -f scripts/operator-role-map.sh ] && [ "${OPERATOR_KIT_VERSION:-2}" = "5" ]; then
+    if [ -f scripts/operator-role-map.sh ] && { [ "${OPERATOR_KIT_VERSION:-2}" = "5" ] || [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ]; }; then
       bash scripts/operator-role-map.sh validate >/dev/null
+    fi
+    if [ "${OPERATOR_KIT_VERSION:-2}" = "5.1" ]; then
+      bash scripts/operator-graph.sh status >/dev/null
     fi
     git status --short
   )
@@ -482,7 +485,7 @@ printf 'Source: %s\n' "$SOURCE_PATH"
 printf 'Source revision: %s\n' "$SOURCE_REVISION"
 printf 'Channel: %s\n' "$CHANNEL"
 case "$CHANNEL" in
-  latest|main) printf 'Fresh-install kit version: 5\n' ;;
+  latest|main) printf 'Fresh-install kit version: 5.1\n' ;;
   *) printf 'Fresh-install kit version: selected legacy channel\n' ;;
 esac
 printf 'Codex home: %s\n' "$CODEX_HOME_DIR"

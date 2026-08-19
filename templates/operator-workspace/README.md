@@ -15,6 +15,8 @@ tasks/<slug>/work/feedback/annotations.json
 features/<FS-id-slug>/feature.md
 features/<FS-id-slug>/status.json
 features/<FS-id-slug>/events.jsonl
+features/<FS-id-slug>/graph.json
+features/<FS-id-slug>/graph-events.jsonl
 features/<FS-id-slug>/memory.md
 features/<FS-id-slug>/merge-plan.md
 roadmap/items/*.md
@@ -27,24 +29,14 @@ captures/
 memory/project.md
 memory/episodes/*.md
 memory/packs/
-authority/control-graph-public-key.json
-graph/{bindings,events.jsonl,definition.json,projection.json}
-host/
-loop/
-migrations/v4-to-v5-manifest.json
+archive/signed-v5/       # only after migration from signed V5
+migrations/to-v5.1-local-graph.json
 ```
 
-This directory is outside the repo by design, but it is not safe to delete and
-recreate as a unit. V5 graph history, lease fences, signed bindings, host effect
-ledgers, migration checksums, handoffs, roadmap, and memory are durable state.
-Back them up and recover them consistently with the repository revision and
-public trust anchor. Stop writers before backup or restore, and validate
-recovered graph history with signed replay.
-
-Private authority and proof keys never belong here, in a repository,
-environment variable, command line, task packet, log, or handoff. Recover them
-through the approved control plane and OS keychain. Do not launch V5 work with
-permission bypasses or initialize graph/key state during ordinary install.
+This directory is outside the repo by design. Feature dependency graphs,
+handoffs, roadmap, migration archives, and memory are durable local state.
+V5.1 contains no graph credentials or private keys and requires no Keychain
+setup.
 
 Use `memory/project.md` for durable project facts and `tasks/<slug>/memory.md` for feature-track facts that should move across lanes. Episode files are distilled from collected handoffs.
 
@@ -59,6 +51,11 @@ hosts multiple feature-focused chats. Feature sessions bind chat context to a
 durable folder, duplicate role-template lane instances when surfaces allow it,
 and keep merge plans, memory, handoffs, and working files together until the
 feature is integrated, shipped, parked, blocked, closed, or archived.
+
+V5.1 adds one local `graph.json` per feature. Use it to record dependencies,
+lane assignments, approvals, and conflict claims, then ask
+`operator-graph.sh frontier` what can run next within a bounded capacity. The
+graph is advisory and does not dispatch work.
 
 Host adapters should enter feature-session work through:
 

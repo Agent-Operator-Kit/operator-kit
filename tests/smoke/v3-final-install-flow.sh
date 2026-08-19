@@ -128,7 +128,7 @@ assert_file "$operator_dir/features/active.md"
 assert_file "$operator_dir/system-map.md"
 
 grep -q 'OPERATOR_DIR=.*/operator' "$repo/operator.config.env" || fail "operator.config.env does not point at sibling operator dir"
-grep -q 'OPERATOR_KIT_VERSION="5"' "$repo/operator.config.env" || fail "operator.config.env missing latest kit version"
+grep -q 'OPERATOR_KIT_VERSION="5.1"' "$repo/operator.config.env" || fail "operator.config.env missing latest kit version"
 grep -q 'Agent Operator Kit generated state' "$repo/.gitignore" || fail ".gitignore missing Operator Kit marker"
 test ! -e "$project_root/operator.config.env" || fail "project root should not contain operator.config.env"
 test ! -e "$KIT_ROOT/operator.config.env" || fail "source repo should not contain operator.config.env"

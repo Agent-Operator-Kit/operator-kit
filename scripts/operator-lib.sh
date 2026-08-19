@@ -285,20 +285,21 @@ operator_dir_is_repo_local() {
 
 operator_v5_migration_state() {
   case "$(operator_kit_version)" in
-    5)
-      if [ -f "$OPERATOR_DIR/migrations/v4-to-v5-manifest.json" ]; then
-        printf 'complete (V4 manifest present)\n'
+    5.1)
+      if [ -f "$OPERATOR_DIR/migrations/to-v5.1-local-graph.json" ]; then
+        printf 'complete (V5.1 manifest present)\n'
       else
-        printf 'not required (native V5 install)\n'
+        printf 'not required (native V5.1 install)\n'
       fi
       ;;
+    5)
+      printf 'required (run operator-v5-1-migrate.sh plan; signed V5 remains unchanged)\n'
+      ;;
     4)
-      if operator_dir_is_repo_local; then
-        printf 'blocked (relocate OPERATOR_DIR outside repository before V5 migration)\n'
-      elif [ -f "$(operator_repo_root)/scripts/operator-v5-migrate.sh" ]; then
-        printf 'required (run operator-v5-migrate.sh plan; update did not migrate)\n'
+      if [ -f "$(operator_repo_root)/scripts/operator-v5-1-migrate.sh" ]; then
+        printf 'required (run operator-v5-1-migrate.sh plan; update did not migrate)\n'
       else
-        printf 'V5 tooling not installed\n'
+        printf 'V5.1 tooling not installed\n'
       fi
       ;;
     *) printf 'not applicable to legacy channel\n' ;;
@@ -306,6 +307,12 @@ operator_v5_migration_state() {
 }
 
 operator_v5_graph_state() {
+  if [ "$(operator_kit_version)" = "5.1" ]; then
+    local count
+    count="$(find "$OPERATOR_DIR/features" -mindepth 2 -maxdepth 2 -type f -name graph.json 2>/dev/null | wc -l | tr -d ' ')"
+    printf 'local advisory (%s feature graph%s; no credentials required)\n' "$count" "$([ "$count" = "1" ] || printf s)"
+    return 0
+  fi
   local graph="$OPERATOR_DIR/graph"
   local authority="$OPERATOR_DIR/authority/control-graph-public-key.json"
   local material=0
@@ -314,14 +321,14 @@ operator_v5_graph_state() {
   if [ -e "$graph/projection.json" ] || [ -L "$graph/projection.json" ]; then material=1; fi
   if [ -e "$graph/events.jsonl" ] || [ -L "$graph/events.jsonl" ]; then material=1; fi
   if [ "$material" -eq 0 ]; then
-    printf 'not initialized\n'
+    printf 'signed V5 not initialized\n'
   elif [ -f "$authority" ] && [ ! -L "$authority" ] \
     && [ -f "$graph/definition.json" ] && [ ! -L "$graph/definition.json" ] \
     && [ -f "$graph/projection.json" ] && [ ! -L "$graph/projection.json" ] \
     && [ -s "$graph/events.jsonl" ] && [ ! -L "$graph/events.jsonl" ]; then
-    printf 'initialized (run operator-graph.sh status for signed replay validation)\n'
+    printf 'signed V5 initialized (migration archives this state)\n'
   else
-    printf 'incomplete (fails closed)\n'
+    printf 'signed V5 incomplete (migration plan will report it)\n'
   fi
 }
 

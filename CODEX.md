@@ -34,14 +34,10 @@ bash scripts/operator-feature.sh current --tool codex --chat <codex-thread-id> -
 Use native Codex thread titles, pins, archives, and monitors as convenience
 indexes when available, but keep `OPERATOR_DIR/features` as the source of truth.
 
-Operator Kit V5 adds a signed typed control graph above feature-session
-coordination. Codex must bind through `operator-host.sh`, execute only the exact
-leased graph scope and fence, and use the restricted native sandbox with no
-permission-bypass flags. Chat metadata and native goals are indexes, not graph
-authority. Human gates protect subjective design selection, integration,
-push/publish/release, credentials, destructive changes, and production effects.
-Private authority/proof keys never enter the repo, `OPERATOR_DIR`, environment,
-command line, task packet, log, or handoff.
+Operator Kit V5.1 adds a local dependency graph inside each feature session.
+Codex uses its bounded frontier to choose ready, non-conflicting work, then uses
+the normal task-packet, worktree, handoff, and operator-review workflow. The
+graph is advisory and credential-free.
 
 If the user says to always use operator for this project or session, treat
 `$operator` as the default for future execution requests in this Codex chat and

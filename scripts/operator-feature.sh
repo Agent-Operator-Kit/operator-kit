@@ -49,7 +49,14 @@ USAGE
 }
 
 FEATURES_DIR="$OPERATOR_DIR/features"
-REPO_ROOT="$(cd "$(dirname "$(operator_config_file)")" && pwd)"
+CONFIG_ROOT="$(cd "$(dirname "$(operator_config_file)")" && pwd)"
+REPO_ROOT="$CONFIG_ROOT"
+if ! git -C "$REPO_ROOT" rev-parse --show-toplevel >/dev/null 2>&1; then
+  operator_repo_candidate="$(operator_lane_path operator 2>/dev/null || true)"
+  if [ -n "$operator_repo_candidate" ] && git -C "$operator_repo_candidate" rev-parse --show-toplevel >/dev/null 2>&1; then
+    REPO_ROOT="$(git -C "$operator_repo_candidate" rev-parse --show-toplevel)"
+  fi
+fi
 export PROJECT_NAME PROJECT_ROOT CODE_DIR OPERATOR_DIR DEFAULT_BRANCH FEATURES_DIR REPO_ROOT
 
 command="${1:-}"

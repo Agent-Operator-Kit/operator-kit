@@ -31,7 +31,7 @@ codex_bypass='dangerously-bypass-approvals-and-'"sandbox"
 claude_bypass='dangerously-skip-'"permissions"
 claude_mode='bypass'"Permissions"
 ! grep -Eq "$codex_bypass|$claude_bypass|$claude_mode" operator.config.env
-grep -q 'OPERATOR_KIT_VERSION="5"' operator.config.env
+grep -q 'OPERATOR_KIT_VERSION="5.1"' operator.config.env
 if grep -q 'Codex CLI' operator.config.env; then
   printf 'Cursor profile should not generate Codex CLI lanes.\n' >&2
   exit 1

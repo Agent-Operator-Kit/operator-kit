@@ -11,7 +11,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/operator-bootstrap.sh [--profile default|cursor] /path/to/repo
 
-Installs Agent Operator Kit V5 scripts/templates into an existing git repository.
+Installs Agent Operator Kit V5.1 scripts/templates into an existing git repository.
 
 Profiles:
   default  Codex Desktop operator, Codex CLI backend, Claude Code UI.
@@ -104,7 +104,6 @@ copy_plain_directory() {
 }
 
 mkdir -p "$repo_root/scripts" "$project_root/operator/tasks" "$project_root/operator/captures" "$project_root/operator/memory" "$project_root/operator/features" "$project_root/operator/roadmap/items" "$project_root/operator/roadmap/inbox" "$project_root/operator/roadmap/views"
-mkdir -p "$repo_root/schemas/operator-v5"
 mkdir -p "$repo_root/.claude/commands" "$repo_root/.claude/agents"
 mkdir -p "$repo_root/.cursor/rules"
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
@@ -119,15 +118,13 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-scheduler.sh operator-loop.sh operator-host.sh operator-proof-broker.sh operator-design-flow.sh operator-v5-migrate.sh operator-v5-provision.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
 
-for helper in operator_graph.py operator_host.py operator_design_provider.py operator_v5_migrate.py operator_v5_provision.py; do
+for helper in operator_local_graph.py operator_v5_1_migrate.py; do
   copy_plain "$KIT_ROOT/scripts/$helper" "$repo_root/scripts/$helper"
 done
-
-copy_plain_directory "$KIT_ROOT/schemas/operator-v5" "$repo_root/schemas/operator-v5"
 
 if [ ! -f "$repo_root/operator.config.env" ]; then
   if [ "$BOOTSTRAP_PROFILE" = "cursor" ]; then
@@ -138,7 +135,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="5"
+OPERATOR_KIT_VERSION="5.1"
 
 OPERATOR_LANES='
 operator|Cursor IDE|$repo_name|$default_branch|
@@ -154,7 +151,7 @@ CODE_DIR="$code_dir"
 OPERATOR_DIR="$project_root/operator"
 TMUX_SESSION="$repo_name"
 DEFAULT_BRANCH="$default_branch"
-OPERATOR_KIT_VERSION="5"
+OPERATOR_KIT_VERSION="5.1"
 
 OPERATOR_LANES='
 operator|Codex Desktop|$repo_name|$default_branch|
@@ -257,16 +254,12 @@ OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operat
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-role-map.sh" init >/dev/null
 OPERATOR_CONFIG="$repo_root/operator.config.env" bash "$repo_root/scripts/operator-system-map.sh" refresh >/dev/null
 
-# V5 runtime roots are private and external to every repository worktree. The
-# installer deliberately creates no graph events, definitions, projections,
-# bindings, authority keys, host sessions, loop state, or proof material.
-for runtime_dir in authority graph graph/bindings host loop migrations; do
+# V5.1 keeps dependency graphs inside their feature-session folders. These
+# directories only hold migration records and optional signed-V5 archives.
+for runtime_dir in archive migrations; do
   mkdir -p "$project_root/operator/$runtime_dir"
   chmod 0700 "$project_root/operator/$runtime_dir"
 done
-if [ ! -f "$project_root/operator/graph/README.md" ]; then
-  copy_plain "$KIT_ROOT/templates/operator-workspace/graph/README.md" "$project_root/operator/graph/README.md"
-fi
 operator_restore_design_prompt "$project_root/operator" \
   "$KIT_ROOT/templates/prompts/design-proposal.md" 0 >/dev/null
 

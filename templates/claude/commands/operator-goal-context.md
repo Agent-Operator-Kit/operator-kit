@@ -1,13 +1,13 @@
 ---
-description: Emit durable Operator V5 goal context for the bound top-level Claude session
-argument-hint: --session SESSION --scope NODE
+description: Show Operator V5.1 feature and dependency context
+argument-hint: FEATURE
 ---
 
-Emit the graph-backed goal context for this top-level Claude Code session:
+Inspect the feature and its local dependency graph:
 
 ```bash
-bash scripts/operator-host.sh goal-context --tool claude $ARGUMENTS
+bash scripts/operator-feature.sh status $ARGUMENTS
+bash scripts/operator-graph.sh status $ARGUMENTS
 ```
 
-Treat the returned objective as prompt context only. The graph remains the
-source of truth, and subagents do not inherit mutation or integration authority.
+Treat this as planning context; the operator and human remain authoritative.

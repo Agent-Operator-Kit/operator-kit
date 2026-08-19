@@ -144,11 +144,11 @@ bash "$KIT_ROOT/scripts/operator-sync.sh" \
   --no-fetch >/dev/null
 
 latest_repo="$latest_project/code/app"
-grep -q 'OPERATOR_KIT_VERSION="5"' "$latest_repo/operator.config.env"
+grep -q 'OPERATOR_KIT_VERSION="5.1"' "$latest_repo/operator.config.env"
 test -f "$latest_repo/scripts/operator-feature.sh"
-test -f "$latest_repo/scripts/operator-v5-migrate.sh"
-test -f "$latest_repo/scripts/operator-v5-provision.sh"
-test "$(find "$latest_repo/schemas/operator-v5" -type f | wc -l | tr -d ' ')" = 11
+test -f "$latest_repo/scripts/operator-v5-1-migrate.sh"
+test -f "$latest_repo/scripts/operator_local_graph.py"
+test ! -e "$latest_repo/schemas/operator-v5"
 test -f "$latest_project/operator/features/active.md"
 
 # A config-only installation is deliberately missing every generated repo and

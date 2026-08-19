@@ -1,16 +1,13 @@
 ---
-description: Restore one durable Operator V5 graph scope for this top-level Claude session
-argument-hint: --session SESSION --scope NODE
+description: Open or bind an Operator V5.1 feature session
+argument-hint: [--feature FS-ID]
 ---
 
-Open the durable host binding for this top-level Claude Code session:
+Open the feature-session cockpit for this Claude Code session:
 
 ```bash
-bash scripts/operator-host.sh open --tool claude $ARGUMENTS
+bash scripts/operator-feature.sh open --tool claude $ARGUMENTS
 ```
 
-The returned graph node, actor binding, lane, branch, worktree, and handoff
-directory are authoritative host context. Do not infer authority from the chat
-title or copy another session's binding. Claude subagents may report evidence
-to this top-level session, but they must not bind, lease, prioritize, integrate,
-decide gates, or cross graph scope.
+Feature files and the local dependency graph are shared planning context. They
+do not grant automatic dispatch, integration, or release authority.

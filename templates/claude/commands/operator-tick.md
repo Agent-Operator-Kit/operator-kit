@@ -1,15 +1,12 @@
 ---
-description: Run one host-supervised Operator V5 tick for the bound top-level Claude session
-argument-hint: --session SESSION --scope NODE [--max-actions N] [--dry-run]
+description: Show the bounded Operator V5.1 runnable frontier
+argument-hint: [FEATURE] [--capacity N]
 ---
 
-Run the trusted host adapter for this top-level Claude Code session:
+Show dependency-ready, non-conflicting work without dispatching it:
 
 ```bash
-bash scripts/operator-host.sh tick --tool claude $ARGUMENTS
+bash scripts/operator-graph.sh frontier $ARGUMENTS
 ```
 
-The graph lease and fence authorize mutation. This command does not grant a
-Claude subagent independent lease, priority, gate, or integration authority.
-Subagents and hooks may only return evidence to the bound top-level session or
-ask that session to request another tick.
+The result is advisory. Use normal Operator task packets and explicit dispatch.

@@ -14,13 +14,10 @@
    dispatches it and keeps monitoring the feature track.
 9. Operator integrates approved changes into the stable branch.
 
-In V5, steps 4–9 additionally require a signed graph assignment, current lease,
-and fence. Host runners enter through `operator-host.sh`; direct loop launches
-and permission-bypass launches are not production paths. The scheduler cannot
-grant authority, sub-agents cannot own graph nodes, and a successful worker
-result cannot substitute for a human gate. Three-way design exploration uses
-`operator-design-flow.sh`; only an explicit durable gate decision selects a
-proposal, and dissatisfaction creates forward feedback work.
+In V5.1, `operator-graph.sh frontier` can advise which dependency-ready tasks
+are safe to run together within a bounded capacity. It does not dispatch work
+or grant authority. A successful worker result still cannot substitute for
+operator review or an explicit human decision.
 
 Once the user authorizes a feature track, the operator should keep dispatching
 lane follow-ups until the feature is completed, integrated, validated, or

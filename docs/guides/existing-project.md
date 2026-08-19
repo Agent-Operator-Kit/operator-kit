@@ -11,7 +11,7 @@ git clone git@github.com:Agent-Operator-Kit/operator-kit.git /path/to/operator-k
 bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
 ```
 
-Stable remains V2.1; `--channel latest` installs V5 for fresh projects. After sync, inspect the project-specific role and lane
+Stable remains V2.1; `--channel latest` installs V5.1 for fresh projects. After sync, inspect the project-specific role and lane
 recommendations:
 
 ```bash
@@ -70,16 +70,14 @@ bash /path/to/operator-kit/scripts/operator-sync.sh --target /path/to/repo
 
 This runs the safe update flow: refresh evergreen scripts, install missing templates, keep `operator.config.env` and existing project docs/assets, then report what changed.
 
-For an existing V4 project, that update intentionally preserves
-`OPERATOR_KIT_VERSION="4"` and reports `migration required`. Review the
-lossless inventory before any marker change:
+For an existing V4 or signed V5 project, that update preserves the version
+marker and reports `migration required`. Review the plan before any marker
+change:
 
 ```bash
-bash scripts/operator-v5-migrate.sh plan > /secure/review/v5-plan.json
+bash scripts/operator-v5-1-migrate.sh plan
 ```
 
-Follow [Operator Kit V4-to-V5 migration](operator-v5-migration.md). Migration
-requires stopped writers, an external private `OPERATOR_DIR`, available
-broker/keychain tooling, a reviewed mapping, explicit authorization, and no
-incompatible graph state. It preserves all V4 artifacts and does not infer or
-write graph truth from them.
+Follow [Operator V5.1 migration](operator-v5-1-migration.md). Signed V5 runtime
+state is archived, feature graphs are initialized, and Keychain entries are
+left untouched.

@@ -10,8 +10,10 @@ TMUX_BIN="$(operator_tmux_bin || true)"
 
 printf 'Operator Kit version: %s\n' "$(operator_kit_version)"
 printf 'Migration: %s\n' "$(operator_v5_migration_state)"
-if [ "$(operator_kit_version)" = "5" ] || [ -f "$SCRIPT_DIR/operator-v5-migrate.sh" ]; then
-  printf 'Control graph: %s\n' "$(operator_v5_graph_state)"
+if [ "$(operator_kit_version)" = "5.1" ]; then
+  printf 'Dependency graph: %s\n' "$(operator_v5_graph_state)"
+elif [ "$(operator_kit_version)" = "5" ]; then
+  printf 'Archived-mode control graph: %s\n' "$(operator_v5_graph_state)"
   printf 'Host: %s\n' "$(operator_v5_host_state)"
   printf 'Proof broker: %s\n' "$(operator_v5_broker_state)"
 fi
