@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Operator onboarding — install flow test harness</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+  <defs>
+    <g id="i-route" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="3"/><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"/><circle cx="18" cy="5" r="3"/></g>
+    <g id="i-terminal" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></g>
+    <g id="i-package" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></g>
+    <g id="i-send" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5 21 3l-1.5 6.5"/><path d="m21 3-9 9"/><path d="M21 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"/></g>
+    <g id="i-copy" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></g>
+    <g id="i-shield" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
+    <g id="i-check" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></g>
+    <g id="i-arrow-right" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></g>
+    <g id="i-arrow-left" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></g>
+    <g id="i-corner-down-right" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 10 5 5-5 5"/><path d="M4 4v7a4 4 0 0 0 4 4h12"/></g>
+    <g id="i-eye" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></g>
+    <g id="i-lock" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></g>
+    <g id="i-branch" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v12"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></g>
+    <g id="i-ban" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m4.9 4.9 14.2 14.2"/></g>
+    <g id="i-plug" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6"/><path d="M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/></g>
+    <g id="i-layers" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></g>
+    <g id="i-github" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.9a3.4 3.4 0 0 0-.9-2.6c3-.3 6.2-1.5 6.2-6.7A5.2 5.2 0 0 0 19.9 5a4.9 4.9 0 0 0-.1-3.6s-1.1-.4-3.8 1.4a13 13 0 0 0-7 0C6.3 1 5.2 1.4 5.2 1.4A4.9 4.9 0 0 0 5.1 5a5.2 5.2 0 0 0-1.4 3.7c0 5.2 3.2 6.4 6.2 6.7a3.4 3.4 0 0 0-.9 2.6V22"/></g>
+    <g id="i-grid" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></g>
+    <g id="i-info" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></g>
+    <g id="i-flask" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v6.3a2 2 0 0 1-.3 1L4 19a2 2 0 0 0 1.7 3h12.6a2 2 0 0 0 1.7-3l-5.7-9.7a2 2 0 0 1-.3-1V2"/><path d="M8.5 2h7"/><path d="M7 15h10"/></g>
+    <g id="i-loader" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m16.2 7.8 2.9-2.9"/><path d="M18 12h4"/><path d="m16.2 16.2 2.9 2.9"/><path d="M12 18v4"/><path d="m4.9 19.1 2.9-2.9"/><path d="M2 12h4"/><path d="m4.9 4.9 2.9 2.9"/></g>
+    <g id="i-refresh" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/></g>
+  </defs>
+</svg>
+
+<h1 class="ok-sr-only">Operator onboarding install flow — browser test harness</h1>
+
+<!-- ============ harness chrome: not part of the proposed design ============ -->
+<section class="ok-harness" aria-labelledby="ok-harness-title">
+  <p class="ok-harness-title" id="ok-harness-title">
+    <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flask"/></svg>
+    Test harness — proposed Codex install experience
+  </p>
+  <p class="ok-harness-note">
+    A static mock of a <strong>proposed</strong> host experience, used to test the acquisition and
+    installation boundary. This is not a Codex surface and nothing here installs, fetches,
+    reads, or changes anything.
+  </p>
+
+  <div class="ok-entry-switch" role="group" aria-labelledby="ok-entry-switch-title">
+    <p class="ok-entry-label" id="ok-entry-switch-title">Prototype entry (not part of the design)</p>
+    <button type="button" class="ok-entry-button" data-entry="github" aria-pressed="true">
+      <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-github"/></svg>
+      Copied from GitHub — today
+    </button>
+    <button type="button" class="ok-entry-button" data-entry="plugin" aria-pressed="false">
+      <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>
+      Codex plugin entry — future
+    </button>
+  </div>
+</section>
+
+<main class="ok-window" id="ok-window" aria-labelledby="ok-window-title">
+
+  <h2 class="ok-sr-only" id="ok-window-title">Mock Codex session</h2>
+
+  <!-- ============ host-owned chrome ============ -->
+  <header class="ok-topbar">
+    <div class="ok-brand">
+      <span class="ok-brand-mark" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-terminal"/></svg></span>
+      <div>
+        <span class="ok-brand-name">Codex</span>
+        <span class="ok-brand-sub">Working in <code>operator-kit</code></span>
+      </div>
+    </div>
+    <p class="ok-chip" id="ok-chip">
+      <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plug"/></svg>
+      <span data-chip-text>Operator not installed</span>
+    </p>
+  </header>
+
+  <!-- ============ stage rail ============ -->
+  <nav class="ok-rail" aria-label="Where you are in this flow">
+    <section class="ok-band" data-owner="codex" aria-labelledby="ok-band-codex-title">
+      <h3 class="ok-band-head" id="ok-band-codex-title">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-terminal"/></svg>
+        Codex
+      </h3>
+      <ol class="ok-stages">
+        <li class="ok-stage" data-stage="install" data-state="current"><span class="ok-stage-num" aria-hidden="true">1</span>Install</li>
+      </ol>
+    </section>
+
+    <section class="ok-band" id="ok-band-operator" data-owner="operator" data-locked="true" aria-labelledby="ok-band-operator-title">
+      <h3 class="ok-band-head" id="ok-band-operator-title">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-route"/></svg>
+        Operator
+        <span class="ok-band-note" data-band-note>Not installed yet</span>
+      </h3>
+      <ol class="ok-stages">
+        <li class="ok-stage" data-stage="check" data-state="locked"><span class="ok-stage-num" aria-hidden="true">2</span>Check project</li>
+      </ol>
+    </section>
+  </nav>
+
+  <!-- ============ pre-install session state ============ -->
+  <section class="ok-empty" id="ok-empty">
+
+    <div data-compose="github">
+      <p class="ok-eyebrow">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-github"/></svg>
+        Copied from the Operator README on GitHub
+      </p>
+      <h3 class="ok-empty-title">Paste the install instruction into Codex</h3>
+      <p>
+        The instruction names the repository Codex should install from. Sending it asks Codex to
+        resolve that source and open its install screen — it does not install anything.
+      </p>
+    </div>
+
+    <div data-compose="plugin" hidden>
+      <p class="ok-eyebrow">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>
+        Future Codex entry — nothing installed
+      </p>
+      <h3 class="ok-empty-title">Operator is not installed</h3>
+      <p>
+        The install screen is closed. Nothing was installed and this repository was not read.
+        You can open the same screen again.
+      </p>
+    </div>
+
+  </section>
+
+  <!-- ============ thread ============ -->
+  <h3 class="ok-sr-only" id="ok-thread-title">Conversation</h3>
+  <ol class="ok-thread" id="ok-thread" data-empty="true" aria-labelledby="ok-thread-title">
+
+    <!-- future entry marker (plugin path only) -->
+    <li class="ok-marker" data-kind="entry" data-turn="entry-marker" hidden>
+      <p class="ok-marker-label">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>
+        <span>Future Codex entry: opened from a plugin entry inside Codex. Not shipped behaviour — the catalog itself is out of scope here.</span>
+      </p>
+    </li>
+
+    <!-- the pasted instruction, echoed (GitHub path only) -->
+    <li class="ok-turn" data-from="user" data-turn="request-echo" data-echo hidden>
+      <article class="ok-bubble"><p>Install Operator from https://github.com/Agent-Operator-Kit/operator-kit.git</p></article>
+    </li>
+
+    <!-- Codex-owned install starting screen -->
+    <li class="ok-turn" data-from="codex" data-turn="install-screen" hidden>
+      <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-terminal"/></svg></span>
+      <article class="ok-bubble" aria-labelledby="ok-install-title">
+        <p class="ok-speaker">
+          <span class="ok-speaker-tag">Codex</span>
+          <span class="ok-proposed">Proposed Codex install screen</span>
+        </p>
+
+        <section class="ok-card">
+          <header class="ok-card-head">
+            <span class="ok-card-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><use href="#i-route"/></svg></span>
+            <div>
+              <h4 id="ok-install-title">Install Operator</h4>
+              <p class="ok-card-value">Coordinate multiple coding-agent tasks with a visible plan, isolated work, and explicit approvals.</p>
+            </div>
+          </header>
+
+          <div class="ok-card-body">
+            <dl class="ok-resolution" aria-label="Where Operator would be installed from">
+              <div>
+                <dt>
+                  Source
+                  <span class="ok-badge">
+                    <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>
+                    Resolved
+                  </span>
+                </dt>
+                <dd class="ok-source">
+                  <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-github"/></svg>
+                  <code>github.com/Agent-Operator-Kit/operator-kit</code>
+                </dd>
+              </div>
+              <p class="ok-source-note" data-source-note>Matches the repository in the instruction you sent.</p>
+            </dl>
+
+            <section class="ok-group" data-tone="info" aria-labelledby="ok-scope-title">
+              <h5 id="ok-scope-title">
+                <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>
+                What installing does
+              </h5>
+              <ul class="ok-list">
+                <li>
+                  <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-package"/></svg>
+                  <div><strong>Adds Operator to Codex</strong><span>Fetched from the source above.</span></div>
+                </li>
+                <li>
+                  <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg>
+                  <div><strong>Available across your projects</strong><span>Not tied to <code>operator-kit</code> or any single repository.</span></div>
+                </li>
+                <li>
+                  <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-ban"/></svg>
+                  <div><strong>Does not read or modify this repository</strong><span>Installing the plugin touches nothing in your working tree.</span></div>
+                </li>
+                <li>
+                  <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg>
+                  <div><strong>Project setup is a later, separate approval</strong><span>You will see exactly what it would write before it writes anything.</span></div>
+                </li>
+              </ul>
+            </section>
+
+            <details class="ok-details">
+              <summary>What is included, and where it comes from</summary>
+              <div class="ok-details-body">
+                <p><strong>Included:</strong> Operator and the instructions it follows — planning work, keeping pieces of work isolated, and reporting what it would change before it changes it.</p>
+                <p><strong>Source of record:</strong> <code class="ok-selectable">https://github.com/Agent-Operator-Kit/operator-kit.git</code>. That repository is the only thing being fetched.</p>
+                <p><strong>Not requested:</strong> credentials, API keys, sign-in, or access to anything outside Codex.</p>
+                <p><strong>Reversible:</strong> removing Operator from Codex leaves every repository exactly as it is now.</p>
+                <p><strong>Harness note:</strong> this screen is a proposal rendered in a test harness. Codex's real install surface will look different, and neither this screen nor the instruction that opened it exists today.</p>
+              </div>
+            </details>
+          </div>
+
+          <footer class="ok-card-actions" data-card-foot="actions">
+            <button type="button" class="ok-button ok-button-primary" data-action="install">
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-package"/></svg>
+              Install Operator
+            </button>
+            <button type="button" class="ok-button ok-button-quiet" data-action="cancel">
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-left"/></svg>
+              Cancel
+            </button>
+          </footer>
+
+          <p class="ok-card-foot" data-card-foot="installing" hidden>
+            <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
+            Installing on your approval. This screen is finished.
+          </p>
+
+          <p class="ok-card-foot" data-card-foot="resolved" data-tone="ok" hidden>
+            <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>
+            Installed on your approval. This screen is finished.
+          </p>
+        </section>
+      </article>
+    </li>
+
+    <!-- transient installing state -->
+    <li class="ok-turn" data-from="codex" data-turn="installing" hidden>
+      <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-terminal"/></svg></span>
+      <article class="ok-bubble">
+        <p class="ok-speaker"><span class="ok-speaker-tag">Codex</span></p>
+        <p class="ok-installing">
+          <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
+          <span>Installing Operator from the resolved source. Your repository is not being read.</span>
+        </p>
+      </article>
+    </li>
+
+    <!-- Codex install receipt -->
+    <li class="ok-turn" data-from="codex" data-turn="receipt" hidden>
+      <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-terminal"/></svg></span>
+      <article class="ok-bubble" aria-labelledby="ok-receipt-title">
+        <p class="ok-speaker"><span class="ok-speaker-tag">Codex</span></p>
+        <h4 id="ok-receipt-title">Operator installed</h4>
+
+        <dl class="ok-resolution" aria-label="Where Operator was installed from">
+          <div>
+            <dt>Installed from</dt>
+            <dd class="ok-source">
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-github"/></svg>
+              <code>https://github.com/Agent-Operator-Kit/operator-kit.git</code>
+            </dd>
+          </div>
+        </dl>
+
+        <ul class="ok-effects" aria-label="Effects of installing">
+          <li data-tone="added"><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-package"/></svg>Added to Codex</li>
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Repository unchanged</li>
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>0 files written here</li>
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>No credentials asked for</li>
+        </ul>
+
+        <p class="ok-bubble-tail">
+          Operator is available in every project you open. Setting it up for <code>operator-kit</code>
+          is a separate step, and that one is project-local.
+        </p>
+      </article>
+    </li>
+
+    <!-- ownership handoff: nothing Operator-authored may precede this -->
+    <li class="ok-marker" data-kind="handoff" data-turn="handoff" hidden>
+      <p class="ok-marker-label">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-route"/></svg>
+        <span>Operator can speak from here on. Your repository is still untouched.</span>
+      </p>
+    </li>
+
+    <!-- Operator's first message -->
+    <li class="ok-turn" data-from="operator" data-turn="operator-hello" hidden>
+      <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-route"/></svg></span>
+      <article class="ok-bubble" aria-labelledby="ok-hello-title">
+        <p class="ok-speaker"><span class="ok-speaker-tag">Operator</span></p>
+        <h4 id="ok-hello-title">Set up Operator for this project</h4>
+        <p>
+          Installing is finished — I am available in Codex now. I have not read
+          <code>operator-kit</code>, and I will not until you ask. Setting me up here is a separate
+          decision from installing me.
+        </p>
+
+        <section class="ok-group" data-tone="info" aria-labelledby="ok-value-title">
+          <h5 id="ok-value-title">
+            <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-layers"/></svg>
+            What I add to the way you already work
+          </h5>
+          <ul class="ok-list">
+            <li>
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+              <div><strong>One goal becomes several visible pieces of work</strong><span>Each one marked ready, waiting on something, or waiting on you.</span></div>
+            </li>
+            <li>
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-branch"/></svg>
+              <div><strong>Each piece keeps its own branch and its own files</strong><span>So you can tell which task touched what, and two tasks cannot collide.</span></div>
+            </li>
+            <li>
+              <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-lock"/></svg>
+              <div><strong>Nothing runs until you say so</strong><span>Planning is free. Running, merging, and pushing are separate approvals.</span></div>
+            </li>
+          </ul>
+        </section>
+
+        <p class="ok-bubble-tail">
+          The first useful thing I can do is read this project and tell you what I find. That
+          changes nothing on disk.
+        </p>
+      </article>
+    </li>
+
+    <!-- read-only check request -->
+    <li class="ok-turn" data-from="user" data-turn="user-check" hidden>
+      <article class="ok-bubble"><p>Check this project — read only.</p></article>
+    </li>
+
+    <!-- honest boundary of this slice -->
+    <li class="ok-marker" data-kind="slice" data-turn="next-slice" hidden>
+      <p class="ok-marker-label">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flask"/></svg>
+        <span>
+          <strong>Next implementation slice.</strong>
+          This harness covers acquisition and installation only. The read-only project check,
+          the setup preview, and project setup are not implemented here, so nothing ran and
+          nothing was read.
+        </span>
+      </p>
+    </li>
+
+  </ol>
+
+  <!-- ============ composer ============ -->
+  <section class="ok-composer" aria-labelledby="ok-composer-title">
+    <h3 id="ok-composer-title">
+      <span data-composer-heading>Message</span>
+      <span class="ok-composer-owner" data-owner="codex" data-composer-owner>Codex</span>
+    </h3>
+
+    <!-- the pasted GitHub instruction -->
+    <div class="ok-commandline" id="ok-commandline">
+      <p class="ok-cmd-label" id="ok-cmd-label">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-github"/></svg>
+        Pasted from the Operator README
+        <span class="ok-proposed">Proposed Codex behaviour</span>
+      </p>
+
+      <div class="ok-cmd-row">
+        <code class="ok-cmd ok-selectable" id="ok-cmd" tabindex="0" aria-describedby="ok-cmd-label">Install Operator from https://github.com/Agent-Operator-Kit/operator-kit.git</code>
+        <button type="button" class="ok-copy" id="ok-copy">
+          <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-copy"/></svg>
+          <span data-copy-text>Copy</span>
+        </button>
+      </div>
+
+      <div class="ok-cmd-meta">
+        <p class="ok-meta-source">
+          <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-corner-down-right"/></svg>
+          <span>Codex resolves this source and opens its install screen.</span>
+        </p>
+        <p class="ok-meta-scope">
+          <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>
+          <span>Sending installs nothing. This repository is not read.</span>
+        </p>
+      </div>
+    </div>
+
+    <div class="ok-replies" data-replies="compose-github">
+      <button type="button" class="ok-button ok-button-primary" data-action="send">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-send"/></svg>
+        Send to Codex
+      </button>
+    </div>
+
+    <div class="ok-replies" data-replies="compose-plugin" hidden>
+      <button type="button" class="ok-button ok-button-primary" data-action="open">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-grid"/></svg>
+        Open install screen
+      </button>
+    </div>
+
+    <div class="ok-replies" data-replies="screen" hidden>
+      <p class="ok-composer-hint">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-arrow-right"/></svg>
+        <span>Codex is showing its install screen above. Choose <strong>Install Operator</strong> or <strong>Cancel</strong> there.</span>
+      </p>
+    </div>
+
+    <div class="ok-replies" data-replies="installing" hidden>
+      <p class="ok-composer-hint">
+        <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
+        <span>Codex is installing Operator. Nothing in this repository is being read or written.</span>
+      </p>
+    </div>
+
+    <div class="ok-replies" data-replies="installed" hidden>
+      <button type="button" class="ok-button ok-button-primary" data-action="check">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-eye"/></svg>
+        Check this project — read only
+      </button>
+      <button type="button" class="ok-button ok-button-quiet" data-action="restart">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-refresh"/></svg>
+        Restart test
+      </button>
+    </div>
+
+    <div class="ok-replies" data-replies="next" hidden>
+      <p class="ok-composer-hint">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flask"/></svg>
+        <span>This is the end of the implemented slice.</span>
+      </p>
+      <button type="button" class="ok-button ok-button-primary" data-action="restart">
+        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-refresh"/></svg>
+        Restart test
+      </button>
+    </div>
+
+    <p class="ok-boundary" data-boundary>
+      <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-shield"/></svg>
+      <span data-boundary-text>Operator is not installed, so nothing of it can read, message, or change anything yet.</span>
+    </p>
+
+    <p class="ok-live" id="ok-live" role="status" aria-live="polite">Nothing installed. Sending the instruction only opens the install screen.</p>
+  </section>
+
+</main>
+
+<script src="app.js" defer></script>
+</body>
+</html>
