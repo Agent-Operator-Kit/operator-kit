@@ -41,7 +41,9 @@ The URL is shareable, so a reviewer can link to a specific frame.
   is represented.
 - An invalid or missing `step` falls back to the entry's own first frame
   (`entry` for GitHub, `screen` for plugin).
-- The transient `installing` step is never written to the URL.
+- The transient `installing` and `checking` steps are never written to the URL,
+  so a shared link always reconstructs a settled transcript instead of replaying
+  the wait.
 
 A dashed **prototype entry switch** sits above the mock window so a reviewer can
 flip between the two entries without editing the URL. It is labelled as not part
@@ -55,10 +57,13 @@ step, so first paint is meaningful and every bubble, card, marker, source row,
 and list stays independently selectable for browser annotation.
 
 ```text
-entry ──send/open──▶ screen ──install──▶ installing ──(750ms)──▶ installed ──check──▶ next
-  ▲                    │                                            │                  │
-  └──────cancel────────┘                                            └─────restart──────┘
-                                                                       (back to entry)
+entry ──send/open──▶ screen ──install──▶ installing ──(750ms)──▶ installed
+  ▲                    │                                            │
+  └──────cancel────────┘                                          check
+                                                                    ▼
+                       next ◀──(900ms)── checking
+                        │
+                        └──────────restart──────────▶ back to the entry's first frame
 ```
 
 - `entry` — pre-install frame. GitHub: the pasted instruction. Plugin: an
@@ -72,8 +77,19 @@ entry ──send/open──▶ screen ──install──▶ installing ──(7
 - `installed` — Codex receipt (source plus `Repository unchanged`), then the
   structural handoff marker, then Operator's first message. Operator renders
   nothing before that marker.
-- `next` — the honest end of this slice. `Check this project — read only` echoes
-  the request and shows a `Next implementation slice` notice; nothing is read.
+- `checking` — a pending reply. The user's choice is appended as a chat message,
+  the triggering action is replaced in place by a disabled echo of itself, and an
+  Operator turn in a dashed bubble says the check is read-only. Everything above
+  it stays visible.
+- `next` — the honest end of this slice. Operator's final message is tagged
+  `Test harness`, states that the check was simulated, and carries `0 files
+  read` / `0 files written` / `Nothing ran` chips.
+
+Replies arrive the way a conversation grows: each step reveals more of the
+transcript and never replaces what came before. Turns are authored once in the
+markup and revealed per step rather than cloned, so a repeated activation cannot
+duplicate a message; the click handler additionally ignores input while a reply
+is pending.
 
 `Restart test` returns to the current entry's first frame without a reload.
 
@@ -95,9 +111,13 @@ even though it advertises Operator. The host vouches for the source.
 - Semantic buttons, headings, lists, and `<dl>` source rows; one `role="status"`
   live region restates every transition — send, cancel, install, restart, copy,
   and the not-yet-implemented next slice.
-- Focus moves to the action the user is expected to reach next, so a keyboard
-  user is not dropped on `<body>` when the pressed control disappears. All
-  interactive elements have a visible `:focus-visible` outline.
+- Focus moves to the newly appended turn while a reply is pending, and otherwise
+  to the action the user is expected to reach next, so a keyboard user is not
+  dropped on `<body>` when the pressed control disappears. All interactive
+  elements have a visible `:focus-visible` outline.
+- Auto-scroll uses `scrollIntoView({ block: 'nearest' })` with a
+  `scroll-margin-bottom` that clears the sticky composer: it brings the newest
+  turn into view and moves no further. First paint does not scroll at all.
 - Icons are an inline `<svg>` sprite referenced with `<use>` — no CDN, so no
   glyph can fail to load. There is no `src` or `href` to any external resource,
   no iframe, no remote font, and no fetch.

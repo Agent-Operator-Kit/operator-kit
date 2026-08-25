@@ -51,6 +51,7 @@
     plugin: ['entry-marker', 'install-screen']
   };
   const INSTALLED_TAIL = ['receipt', 'handoff', 'operator-hello'];
+  const CHECK_TAIL = ['user-check', 'operator-working'];
   const NEXT_TAIL = ['user-check', 'next-slice'];
 
   const SOURCE_NOTE = {
@@ -119,6 +120,7 @@
       composerHeading: () => 'Install screen',
       owner: 'codex',
       ownerText: 'Codex',
+      focusTurn: 'installing',
       boundary: () =>
         'Installing adds Operator to Codex only. Nothing in this repository is read or written.',
       boundaryTone: 'pending',
@@ -144,6 +146,28 @@
       boundaryTone: null,
       live: () =>
         'Operator installed from github.com/Agent-Operator-Kit/operator-kit. Repository unchanged; Operator can now respond.'
+    },
+
+    checking: {
+      turns: () => [...SCREEN_HEAD[entry], ...INSTALLED_TAIL, ...CHECK_TAIL],
+      replies: () => 'checking',
+      commandline: () => false,
+      compose: () => null,
+      stages: { install: 'done', check: 'current' },
+      installed: true,
+      cardFoot: 'resolved',
+      bandNote: 'Read-only check — simulated',
+      chip: 'Installed in Codex · repository unchanged',
+      chipTone: 'installed',
+      composerHeading: () => 'Your reply',
+      owner: 'operator',
+      ownerText: 'Operator',
+      focusTurn: 'operator-working',
+      boundary: () =>
+        'A read-only check writes nothing. In this harness nothing is read either — the reply is simulated.',
+      boundaryTone: 'pending',
+      live: () =>
+        'Operator is preparing a read-only check. Nothing is being read, run, or written.'
     },
 
     next: {
@@ -173,30 +197,41 @@
     open: 'screen',
     cancel: 'entry',
     install: 'installing',
-    check: 'next',
+    check: 'checking',
     restart: null // resolved from the current entry
+  };
+
+  // Steps that resolve themselves after a short local delay. They are never
+  // written to the URL, so a shared link always reconstructs a settled
+  // transcript rather than replaying the wait.
+  const RESOLVES_TO = {
+    installing: 'installed',
+    checking: 'next'
   };
 
   const REDUCED_MOTION =
     typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const INSTALL_MS = REDUCED_MOTION ? 300 : 750;
+  const PENDING_MS = {
+    installing: REDUCED_MOTION ? 300 : 750,
+    checking: REDUCED_MOTION ? 350 : 900
+  };
 
   let entry = 'github';
   let step = 'entry';
-  let installTimer = null;
+  let pendingTimer = null;
 
   const defaultStep = () => (entry === 'plugin' ? 'screen' : 'entry');
 
-  function clearInstallTimer() {
-    if (installTimer !== null) {
-      window.clearTimeout(installTimer);
-      installTimer = null;
+  function clearPendingTimer() {
+    if (pendingTimer !== null) {
+      window.clearTimeout(pendingTimer);
+      pendingTimer = null;
     }
   }
 
   function syncUrl() {
-    if (step === 'installing') return; // transient: never shareable
+    if (step in RESOLVES_TO) return; // transient: never shareable
     try {
       const url = new URL(window.location.href);
       url.searchParams.set('entry', entry);
@@ -207,7 +242,7 @@
     }
   }
 
-  function render() {
+  function render({ scroll = true } = {}) {
     const state = STEPS[step];
     const visible = state.turns();
     const composePanel = state.compose();
@@ -251,35 +286,42 @@
       button.setAttribute('aria-pressed', String(button.dataset.entry === entry));
     });
 
-    if (visible.length) {
+    // Bring only the newest turn into view. `nearest` scrolls the minimum
+    // needed, so earlier messages stay where the reader left them.
+    if (scroll && visible.length) {
       turns.get(visible[visible.length - 1]).scrollIntoView({ block: 'nearest' });
     }
   }
 
-  // Move focus to the action the user is expected to reach next, so a keyboard
-  // user is not dropped on <body> when the control they pressed disappears.
-  function focusPrimary() {
+  // Keep focus on something meaningful: the newly appended turn while a reply is
+  // pending, otherwise the action the user is expected to reach next. Either way
+  // a keyboard user is not dropped on <body> when a control disappears.
+  function moveFocus() {
+    const state = STEPS[step];
+    if (state.focusTurn) {
+      const el = turns.get(state.focusTurn);
+      if (el && !el.hidden) { el.focus(); return; }
+    }
     // On the install screen the decision lives on the card, not in the composer.
     const owner =
-      step === 'screen'
-        ? cardFeet.get('actions')
-        : replyGroups.get(STEPS[step].replies());
-    const target = owner && !owner.hidden && owner.querySelector('button');
+      step === 'screen' ? cardFeet.get('actions') : replyGroups.get(state.replies());
+    const target = owner && !owner.hidden && owner.querySelector('button:not([disabled])');
     if (target) target.focus();
   }
 
-  function goTo(next, { focus = true } = {}) {
-    clearInstallTimer();
+  function goTo(next, { focus = true, scroll = true } = {}) {
+    clearPendingTimer();
     step = STEPS[next] ? next : defaultStep();
     syncUrl();
-    render();
-    if (focus) focusPrimary();
+    render({ scroll });
+    if (focus) moveFocus();
 
-    if (step === 'installing') {
-      installTimer = window.setTimeout(() => {
-        installTimer = null;
-        goTo('installed');
-      }, INSTALL_MS);
+    const resolved = RESOLVES_TO[step];
+    if (resolved) {
+      pendingTimer = window.setTimeout(() => {
+        pendingTimer = null;
+        goTo(resolved);
+      }, PENDING_MS[step]);
     }
   }
 
@@ -299,9 +341,12 @@
 
   root.addEventListener('click', (event) => {
     const button = event.target.closest('[data-action]');
-    if (!button || !root.contains(button)) return;
+    if (!button || !root.contains(button) || button.disabled) return;
     const action = button.dataset.action;
     if (!(action in ACTION_STEP)) return;
+    // While a reply is pending the transcript is mid-append: ignore further
+    // activations so a repeated press cannot queue a second response.
+    if (pendingTimer !== null) return;
     goTo(ACTION_STEP[action] || defaultStep());
   });
 
@@ -343,5 +388,10 @@
   }
 
   entry = ENTRIES.includes(initialEntry) ? initialEntry : 'github';
-  goTo(SHAREABLE_STEPS.includes(initialStep) ? initialStep : defaultStep(), { focus: false });
+  // First paint: no focus move and no scroll, so a shared link opens at the top
+  // of the transcript instead of jumping the reader to its end.
+  goTo(SHAREABLE_STEPS.includes(initialStep) ? initialStep : defaultStep(), {
+    focus: false,
+    scroll: false
+  });
 })();

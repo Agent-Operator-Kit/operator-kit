@@ -338,6 +338,23 @@ code {
 .ok-installing { display: flex; align-items: flex-start; gap: 8px; }
 .ok-installing svg { margin-top: 3px; color: var(--ok-accent-text); }
 
+/* pending reply: same bubble, quieter surface, so it reads as in-progress rather than final */
+.ok-bubble[data-pending] {
+  border-style: dashed;
+  background: var(--ok-surface-soft);
+}
+.ok-turn[data-from="operator"] .ok-bubble[data-pending] { border-left-style: solid; }
+
+.ok-working { display: flex; align-items: flex-start; gap: 8px; }
+.ok-working svg { margin-top: 3px; color: var(--ok-accent-text); }
+.ok-working strong { color: var(--ok-text); font-weight: 500; }
+
+/* a turn focused programmatically must not draw a stray ring for mouse users */
+.ok-turn[tabindex]:focus { outline: none; }
+.ok-turn[tabindex]:focus-visible { outline: 2px solid var(--ok-accent); outline-offset: 3px; border-radius: 14px; }
+
+.ok-avatar[data-harness] { color: var(--ok-orange); background: var(--ok-orange-soft); }
+
 .ok-speaker {
   display: flex; align-items: center; flex-wrap: wrap;
   gap: 6px;
@@ -403,17 +420,6 @@ code {
   color: var(--ok-host);
   background: var(--ok-host-soft);
 }
-
-.ok-marker[data-kind="slice"] .ok-marker-label {
-  flex: 1 1 auto;
-  border-style: dashed;
-  border-radius: 12px;
-  border-color: var(--ok-orange);
-  color: var(--ok-orange);
-  background: var(--ok-orange-soft);
-}
-.ok-marker[data-kind="slice"]::before,
-.ok-marker[data-kind="slice"]::after { display: none; }
 
 /* ---------------- install screen card ---------------- */
 .ok-card {
@@ -722,6 +728,9 @@ code {
   background: transparent;
   color: var(--ok-muted);
 }
+
+.ok-button[disabled] { cursor: default; opacity: 0.72; }
+.ok-button[disabled]:hover { border-color: transparent; filter: none; }
 
 .ok-boundary {
   display: flex; align-items: flex-start; gap: 7px;

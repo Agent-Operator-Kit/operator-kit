@@ -250,9 +250,9 @@
     </li>
 
     <!-- transient installing state -->
-    <li class="ok-turn" data-from="codex" data-turn="installing" hidden>
+    <li class="ok-turn" data-from="codex" data-turn="installing" tabindex="-1" hidden>
       <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-terminal"/></svg></span>
-      <article class="ok-bubble">
+      <article class="ok-bubble" data-pending>
         <p class="ok-speaker"><span class="ok-speaker-tag">Codex</span></p>
         <p class="ok-installing">
           <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
@@ -345,17 +345,44 @@
       <article class="ok-bubble"><p>Check this project — read only.</p></article>
     </li>
 
-    <!-- honest boundary of this slice -->
-    <li class="ok-marker" data-kind="slice" data-turn="next-slice" hidden>
-      <p class="ok-marker-label">
-        <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-flask"/></svg>
-        <span>
-          <strong>Next implementation slice.</strong>
-          This harness covers acquisition and installation only. The read-only project check,
-          the setup preview, and project setup are not implemented here, so nothing ran and
-          nothing was read.
-        </span>
-      </p>
+    <!-- pending state while the reply is being prepared -->
+    <li class="ok-turn" data-from="operator" data-turn="operator-working" tabindex="-1" hidden>
+      <span class="ok-avatar" aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-route"/></svg></span>
+      <article class="ok-bubble" data-pending>
+        <p class="ok-speaker"><span class="ok-speaker-tag">Operator</span></p>
+        <p class="ok-working">
+          <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
+          <span>Checking this project — <strong>read only</strong>. I am not writing, running, or changing anything.</span>
+        </p>
+      </article>
+    </li>
+
+    <!-- honest boundary of this slice, authored in Operator's slot and tagged as harness copy -->
+    <li class="ok-turn" data-from="operator" data-turn="next-slice" tabindex="-1" hidden>
+      <span class="ok-avatar" data-harness aria-hidden="true"><svg class="ok-icon" viewBox="0 0 24 24"><use href="#i-flask"/></svg></span>
+      <article class="ok-bubble" aria-labelledby="ok-slice-title">
+        <p class="ok-speaker">
+          <span class="ok-speaker-tag">Operator</span>
+          <span class="ok-proposed">Test harness</span>
+        </p>
+        <h4 id="ok-slice-title">Project check is the next implementation slice</h4>
+        <p>
+          The read-only project check, the setup preview, and project setup are not implemented
+          in this harness. That check was simulated: nothing in <code>operator-kit</code> was
+          read, run, or written.
+        </p>
+
+        <ul class="ok-effects" aria-label="Effects of the simulated check">
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>0 files read</li>
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>0 files written</li>
+          <li><svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-check"/></svg>Nothing ran</li>
+        </ul>
+
+        <p class="ok-bubble-tail">
+          Everything above this message stays in the transcript, so the install decision and its
+          receipt remain reviewable.
+        </p>
+      </article>
     </li>
 
   </ol>
@@ -431,6 +458,14 @@
       <button type="button" class="ok-button ok-button-quiet" data-action="restart">
         <svg class="ok-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-refresh"/></svg>
         Restart test
+      </button>
+    </div>
+
+    <!-- the triggering action is replaced by a disabled echo of itself while the reply is pending -->
+    <div class="ok-replies" data-replies="checking" hidden>
+      <button type="button" class="ok-button ok-button-primary" disabled>
+        <svg class="ok-icon ok-spin" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-loader"/></svg>
+        Checking this project — read only
       </button>
     </div>
 
