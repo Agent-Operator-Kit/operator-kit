@@ -326,7 +326,7 @@ fi
 if [ "$DRY_RUN" -eq 0 ]; then
   mkdir -p "$TARGET_REPO/scripts"
 fi
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-context.sh operator-adapter-check.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh codex-skills-install.sh cursor-skills-install.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   if [ ! -f "$SOURCE_PATH/scripts/$script" ]; then
     record unchanged "scripts/$script unavailable in selected channel"
     continue
@@ -364,6 +364,9 @@ install_missing_plain "$SOURCE_PATH/templates/cursor/rules/operator-workflow.mdc
 for cursor_skill in operator-workflow operator operator-planner operator-feedback design-agent incubation ux-auditor user-journey; do
   install_missing_plain "$SOURCE_PATH/templates/cursor/skills/$cursor_skill/SKILL.md" "$TARGET_REPO/.cursor/skills/$cursor_skill/SKILL.md" ".cursor/skills/$cursor_skill/SKILL.md"
 done
+if [ -f "$SOURCE_PATH/templates/cursor/commands/operator.md" ]; then
+  install_missing_plain "$SOURCE_PATH/templates/cursor/commands/operator.md" "$TARGET_REPO/.cursor/commands/operator.md" ".cursor/commands/operator.md"
+fi
 if [ ! -f "$TARGET_REPO/.cursor/environment.json" ]; then
   install_missing_plain "$SOURCE_PATH/templates/cursor/environment.json.example" "$TARGET_REPO/.cursor/environment.json.example" ".cursor/environment.json.example"
 fi
