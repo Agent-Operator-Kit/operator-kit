@@ -97,6 +97,13 @@ else
   printf 'operator-roadmap.sh: missing\n'
 fi
 
+print_section "Blocked On Human"
+if [ -f "$SCRIPT_DIR/operator-roadmap.sh" ]; then
+  bash "$SCRIPT_DIR/operator-roadmap.sh" blocked || true
+else
+  printf 'operator-roadmap.sh: missing\n'
+fi
+
 print_section "Feature Sessions"
 if [ -f "$SCRIPT_DIR/operator-feature.sh" ]; then
   bash "$SCRIPT_DIR/operator-feature.sh" active || true
