@@ -209,6 +209,20 @@ If a Claude Code design/UI lane lacks `--model fable`, repair
 `operator.config.env` before dispatch when project config edits are allowed;
 otherwise stop and report the stale lane configuration.
 
+## Cockpit vs worker lanes
+
+- The operator chat owns preflight, task packets, dispatch, collection, and
+  integration review.
+- Do not implement large code changes directly in the operator chat when a lane
+  worktree exists; dispatch to tmux lanes instead.
+- Prefer tmux lane dispatch over Cursor Task subagents when lanes are configured.
+- Do not start both Cursor Multitask and Task subagents for the same task slug.
+- Register background workers when you must use Task or Multitask:
+
+```bash
+bash scripts/operator-workers.sh register <task-slug> <worker-id> --kind task
+```
+
 ## Guardrails
 
 - Do not let two agents share the same branch.

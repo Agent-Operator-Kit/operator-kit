@@ -69,6 +69,12 @@ if [ -f "$SCRIPT_DIR/operator-feature.sh" ]; then
   feature_line="$(bash "$SCRIPT_DIR/operator-feature.sh" current --tool cursor 2>/dev/null | head -1 || printf none)"
 fi
 
+if [ "${#config_candidates[@]}" -gt 1 ] && [ -z "${OPERATOR_CONFIG:-}" ]; then
+  printf 'Multiple operator configs detected; set OPERATOR_CONFIG to one project root.\n' >&2
+  printf '  - %s\n' "${config_candidates[@]}" >&2
+  exit 2
+fi
+
 if [ "$JSON" -eq 1 ]; then
   printf '{"project":"%s","operator_dir":"%s","repo_root":"%s","cwd":"%s","branch":"%s","matched_lane":"%s","matched_worktree":"%s","operator_config":"%s","config_candidates":%s,"feature_binding":"%s"}\n' \
     "$PROJECT_NAME" "$OPERATOR_DIR" "$repo_root" "$cwd" "$branch" "$matched_lane" "$matched_path" \
@@ -86,11 +92,6 @@ else
     printf 'Matched lane: %s (%s)\n' "$matched_lane" "$matched_path"
   else
     printf 'Matched lane: none (cwd is outside configured lane worktrees)\n'
-  fi
-  if [ "${#config_candidates[@]}" -gt 1 ]; then
-    printf '\nMultiple operator configs detected:\n'
-    printf '  - %s\n' "${config_candidates[@]}"
-    printf 'Use one Cursor window per project root.\n'
   fi
   if [ -f "$SCRIPT_DIR/operator-feature.sh" ]; then
     printf '\nFeature binding (cursor):\n'

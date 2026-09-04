@@ -118,7 +118,7 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-context.sh operator-adapter-check.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-context.sh operator-adapter-check.sh operator-workers.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
 

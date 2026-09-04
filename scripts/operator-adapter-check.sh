@@ -70,6 +70,15 @@ if [ ! -f "$command_file" ]; then
   WARNINGS+=("optional: .cursor/commands/operator.md not installed ( /operator command )")
 fi
 
+expected_adapter_version="1.0.0"
+if [ -f "$rule_file" ]; then
+  if ! grep -q 'operatorKitAdapter:' "$rule_file"; then
+    WARNINGS+=("stale rule: missing operatorKitAdapter version stamp")
+  elif ! grep -q "operatorKitAdapter: \"$expected_adapter_version\"" "$rule_file"; then
+    WARNINGS+=("stale rule: operatorKitAdapter version does not match kit ($expected_adapter_version)")
+  fi
+fi
+
 if [ "$JSON" -eq 1 ]; then
   printf '{"ok":%s,"issues":[' "$([ "${#ISSUES[@]}" -eq 0 ] && printf true || printf false)"
   i=0

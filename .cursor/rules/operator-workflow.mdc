@@ -1,6 +1,7 @@
 ---
 description: Agent Operator Kit workflow, lane boundaries, and external handoff policy
 alwaysApply: true
+operatorKitAdapter: "1.0.0"
 ---
 
 # Agent Operator Kit Workflow
