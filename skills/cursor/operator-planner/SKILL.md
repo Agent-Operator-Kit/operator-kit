@@ -11,6 +11,10 @@ project.
 Planning is not execution. Do not dispatch lanes, collect lane work, merge code,
 or send text directly into tmux panes. The `operator` skill owns execution.
 
+Do not switch to Cursor Plan mode in operator chats. Use this skill and
+`operator-roadmap.sh` for RM-* roadmap planning authority. Product artifacts
+such as `deck-plan.md` are separate domain plans, not Cursor Plan mode.
+
 Mode split:
 
 ```text

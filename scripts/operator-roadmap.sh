@@ -31,6 +31,8 @@ Commands:
       Show counts by status and type.
   ready
       List items ready for operator task dispatch.
+  blocked
+      List roadmap items blocked on human gates or approval.
   link-task <roadmap-id> <task-slug>
       Append an operator task link to a roadmap item.
   pr-note <roadmap-id> [--feedback FB-0001,FB-0002] [--task task-slug]
@@ -244,6 +246,39 @@ status_items() {
     | sort | uniq -c | sed 's/^/  /'
 }
 
+blocked_items() {
+  roadmap_init
+  local found=0
+  local file id status gate title tasks
+  printf '%-10s %-14s %-12s %s\n' ID Status Gate Title
+  printf '%-10s %-14s %-12s %s\n' -- ------ ---- -----
+
+  while IFS= read -r file; do
+    id="$(read_field "$file" ID)"
+    status="$(read_field "$file" Status)"
+    gate="$(read_field "$file" "Approval gate")"
+    title="$(sed -n '1s/^# //p' "$file")"
+    tasks="$(read_field "$file" "Related operator tasks")"
+
+    case "$status" in
+      shipped|integrated|parked) continue ;;
+    esac
+
+    if [ "$status" = "blocked" ] || { [ -n "$gate" ] && [ "$gate" != "none" ]; }; then
+      found=1
+      printf '%-10s %-14s %-12s %s\n' "$id" "$status" "$gate" "$title"
+      if [ "$tasks" != "none" ] && [ -n "$tasks" ]; then
+        printf '           task: %s\n' "$tasks"
+      fi
+      printf '           path: %s\n' "${file#$ROADMAP_DIR/}"
+    fi
+  done < <(find "$ITEMS_DIR" -maxdepth 1 -type f -name 'RM-*.md' 2>/dev/null | sort)
+
+  if [ "$found" -eq 0 ]; then
+    printf '  (none)\n'
+  fi
+}
+
 link_task() {
   local id="${1:-}"
   local task_slug="${2:-}"
@@ -320,6 +355,7 @@ case "$command" in
   list) list_items "$@" ;;
   status) status_items ;;
   ready) list_items --status ready "$@" ;;
+  blocked) blocked_items ;;
   link-task) link_task "$@" ;;
   pr-note) pr_note "$@" ;;
   -h|--help|"") usage ;;

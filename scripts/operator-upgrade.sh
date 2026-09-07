@@ -26,6 +26,7 @@ Options:
   --skip-skills             Do not refresh global host skills.
   --skip-projects           Do not update project repos.
   --skip-checks             Do not run project validation checks.
+  --refresh-cursor-adapter  Refresh Cursor sticky-mode assets during project updates.
   -h, --help                Show this help.
 
 Examples:
@@ -54,6 +55,7 @@ NO_FETCH=0
 SKIP_SKILLS=0
 SKIP_PROJECTS=0
 SKIP_CHECKS=0
+REFRESH_CURSOR_ADAPTER=0
 TMP_ROOT=""
 PROJECT_ROOTS=()
 TARGETS=()
@@ -109,6 +111,10 @@ while [ "$#" -gt 0 ]; do
       ;;
     --skip-checks)
       SKIP_CHECKS=1
+      shift
+      ;;
+    --refresh-cursor-adapter)
+      REFRESH_CURSOR_ADAPTER=1
       shift
       ;;
     -h|--help)
@@ -329,9 +335,17 @@ while IFS= read -r target; do
   if [ "$SKIP_CHECKS" -eq 1 ]; then
     sync_args+=(--skip-checks)
   fi
+  if [ "$REFRESH_CURSOR_ADAPTER" -eq 1 ]; then
+    sync_args+=(--refresh-cursor-adapter)
+  fi
 
   if bash "$SOURCE_PATH/scripts/operator-sync.sh" "${sync_args[@]}"; then
     updated=$((updated + 1))
+    if [ "$DRY_RUN" -eq 0 ] && [ -f "$target/scripts/operator-adapter-check.sh" ]; then
+      if ! OPERATOR_CONFIG="$target/operator.config.env" bash "$target/scripts/operator-adapter-check.sh"; then
+        printf 'Cursor adapter check reported issues for %s\n' "$target" >&2
+      fi
+    fi
   else
     failed=$((failed + 1))
   fi

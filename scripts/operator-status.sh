@@ -8,6 +8,11 @@ operator_load_config
 
 TMUX_BIN="$(operator_tmux_bin || true)"
 
+if [ -f "$SCRIPT_DIR/operator-context.sh" ]; then
+  bash "$SCRIPT_DIR/operator-context.sh"
+  printf '\n'
+fi
+
 printf 'Operator Kit version: %s\n' "$(operator_kit_version)"
 printf 'Migration: %s\n' "$(operator_v5_migration_state)"
 if [ "$(operator_kit_version)" = "5.1" ] || [ "$(operator_kit_version)" = "5.2" ]; then
@@ -57,3 +62,8 @@ for lane in $(operator_lanes); do
 
   printf '%-16s %-18s %-24s %-58s %s\n' "$lane" "$owner" "$expected_branch" "$git_status" "$tmux_status"
 done
+
+if [ -f "$SCRIPT_DIR/operator-adapter-check.sh" ]; then
+  printf '\n'
+  bash "$SCRIPT_DIR/operator-adapter-check.sh" || true
+fi

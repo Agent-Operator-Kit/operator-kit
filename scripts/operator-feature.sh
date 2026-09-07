@@ -604,6 +604,20 @@ def cmd_open():
 
     print("- Current feature: none")
     print()
+    bind_candidates = [
+        feature_summary(path, state)
+        for _last, path, state in active_feature_rows()
+        if state.get("status") in {"active", "in-review"}
+    ]
+    if len(bind_candidates) == 1:
+        candidate = bind_candidates[0]
+        print(f"- Suggested bind: `{candidate['id']}` ({candidate['status']})")
+        print(
+            f"- Run: `bash scripts/operator-feature.sh bind {candidate['id']} --tool {tool}"
+            + (f" --chat {chat}" if chat else "")
+            + f" --mode {mode}`"
+        )
+        print()
     print(render_active())
     print("## Next\n")
     print(f"- Bind: `bash scripts/operator-feature.sh bind <feature> --tool {tool}" + (f" --chat {chat}" if chat else "") + f" --mode {mode}`")
