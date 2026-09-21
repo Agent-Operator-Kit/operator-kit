@@ -11,8 +11,8 @@
     "5.1",
     "5.2"
   ],
-  "pluginVersion": "0.6.0",
-  "releaseChannel": "stable",
+  "pluginVersion": "0.6.0-alpha.1",
+  "releaseChannel": "alpha",
   "releaseSemverChanged": true,
   "historicalBundle": "v3-adapter-bundle.json",
   "requiredProjectRuntime": [
@@ -31,7 +31,7 @@
     {
       "host": "codex",
       "path": ".codex-plugin/plugin.json",
-      "version": "0.6.0"
+      "version": "0.6.0-alpha.1"
     },
     {
       "host": "cursor",

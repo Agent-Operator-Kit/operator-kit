@@ -73,13 +73,20 @@ export function saveView(project, view) {
   renameSync(temporary, path);
 }
 
-export function snapshot(projectRoot, capacity = 4) {
+export function projectInfo(projectRoot) {
   if (!projectRoot || !isAbsolute(projectRoot)) throw new Error('Pass the absolute initialized projectRoot. This console never falls back to another project.');
   if (!existsSync(join(projectRoot, 'operator.config.env'))) throw new Error('No operator.config.env at the requested projectRoot. Select an initialized Operator project.');
   const root = realpathSync(projectRoot);
   const cfg = config(root);
   const operatorDir = realpathSync(cfg.operatorDir);
   const project = { id: cfg.id || `local-${hash(root).slice(0, 20)}`, root, operatorDir, name: cfg.name, kitVersion: cfg.kitVersion, identityScope: cfg.id ? 'configured' : 'local-path' };
+  return project;
+}
+
+export function snapshot(projectRoot, capacity = 4) {
+  const project = projectInfo(projectRoot);
+  const { root, operatorDir } = project;
+  const cfg = config(root);
   const readiness = frontier(root, operatorDir, capacity);
   const windowState = windows(cfg.session);
   const featuresDir = join(operatorDir, 'features');

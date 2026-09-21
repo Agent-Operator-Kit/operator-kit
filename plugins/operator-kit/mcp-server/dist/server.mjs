@@ -11191,21 +11191,21 @@ var init_to_json_schema = __esm({
 // node_modules/zod/v4/core/json-schema-processors.js
 function toJSONSchema(input, params) {
   if ("_idmap" in input) {
-    const registry2 = input;
+    const registry3 = input;
     const ctx2 = initializeContext({ ...params, processors: allProcessors });
     const defs = {};
-    for (const entry of registry2._idmap.entries()) {
+    for (const entry of registry3._idmap.entries()) {
       const [_2, schema] = entry;
       process2(schema, ctx2);
     }
     const schemas = {};
     const external = {
-      registry: registry2,
+      registry: registry3,
       uri: params?.uri,
       defs
     };
     ctx2.external = external;
-    for (const entry of registry2._idmap.entries()) {
+    for (const entry of registry3._idmap.entries()) {
       const [key, schema] = entry;
       extractDefs(ctx2, schema);
       schemas[key] = finalize(ctx2, schema);
@@ -31314,13 +31314,19 @@ function saveView(project, view) {
   writeFileSync(temporary, JSON.stringify(view), { mode: 384 });
   renameSync(temporary, path);
 }
-function snapshot(projectRoot, capacity = 4) {
+function projectInfo(projectRoot) {
   if (!projectRoot || !isAbsolute(projectRoot)) throw new Error("Pass the absolute initialized projectRoot. This console never falls back to another project.");
   if (!existsSync(join(projectRoot, "operator.config.env"))) throw new Error("No operator.config.env at the requested projectRoot. Select an initialized Operator project.");
   const root = realpathSync(projectRoot);
   const cfg = config2(root);
   const operatorDir = realpathSync(cfg.operatorDir);
   const project = { id: cfg.id || `local-${hash2(root).slice(0, 20)}`, root, operatorDir, name: cfg.name, kitVersion: cfg.kitVersion, identityScope: cfg.id ? "configured" : "local-path" };
+  return project;
+}
+function snapshot(projectRoot, capacity = 4) {
+  const project = projectInfo(projectRoot);
+  const { root, operatorDir } = project;
+  const cfg = config2(root);
   const readiness = frontier(root, operatorDir, capacity);
   const windowState = windows(cfg.session);
   const featuresDir = join(operatorDir, "features");
@@ -31351,9 +31357,93 @@ function snapshot(projectRoot, capacity = 4) {
   return { ...data, savedView, revision: hash2(data), generatedAt: (/* @__PURE__ */ new Date()).toISOString() };
 }
 
+// src/projects.mjs
+import { existsSync as existsSync2, readFileSync as readFileSync2, readdirSync as readdirSync2, mkdirSync as mkdirSync2, writeFileSync as writeFileSync2, renameSync as renameSync2, rmSync } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import { dirname, join as join2 } from "node:path";
+import { randomUUID } from "node:crypto";
+var defaults = { language: "auto", appearance: "auto", allProjects: false };
+var registryPath = () => process.env.OPERATOR_CONSOLE_REGISTRY || join2(process.env.XDG_CONFIG_HOME || join2(homedir2(), ".config"), "operator", "console", "projects.json");
+function registry2() {
+  const path = registryPath();
+  if (!existsSync2(path)) return { version: 1, roots: [], preferences: defaults };
+  const value = JSON.parse(readFileSync2(path, "utf8"));
+  if (value.version !== 1 || !Array.isArray(value.roots) || !value.roots.every((r2) => typeof r2 === "string")) throw new Error("Invalid Operator console registry. Repair projects.json before adding projects.");
+  return value;
+}
+function update(change) {
+  const path = registryPath(), lock = `${path}.lock`, temporary = `${path}.${randomUUID()}.tmp`;
+  mkdirSync2(dirname(path), { recursive: true });
+  try {
+    mkdirSync2(lock);
+  } catch {
+    throw new Error("Project settings are being saved by another console. Retry shortly.");
+  }
+  try {
+    const next = change(registry2());
+    writeFileSync2(temporary, JSON.stringify(next, null, 2) + "\n", { mode: 384 });
+    renameSync2(temporary, path);
+    return next;
+  } finally {
+    rmSync(temporary, { force: true });
+    rmSync(lock, { recursive: true, force: true });
+  }
+}
+function registerProject(root) {
+  const project = projectInfo(root);
+  update((data) => {
+    const duplicate = data.roots.some((r2) => {
+      try {
+        return projectInfo(r2).operatorDir === project.operatorDir;
+      } catch {
+        return r2 === project.root;
+      }
+    });
+    return { ...data, roots: duplicate ? data.roots : [...data.roots, project.root] };
+  });
+  return project;
+}
+function savePreferences(preferences) {
+  if (!["auto", "en", "pl"].includes(preferences.language) || !["auto", "light", "dark"].includes(preferences.appearance) || typeof preferences.allProjects !== "boolean") throw new Error("Invalid console preferences.");
+  update((data) => ({ ...data, preferences }));
+  return preferences;
+}
+function listProjects(currentRoot) {
+  const data = registry2(), seen = /* @__PURE__ */ new Set();
+  const projects = [...new Set([currentRoot, ...data.roots].filter(Boolean))].flatMap((root) => {
+    try {
+      const project = projectInfo(root);
+      if (seen.has(project.operatorDir)) return [];
+      seen.add(project.operatorDir);
+      const folder = join2(project.operatorDir, "features");
+      let features = 0, attention = 0, active = 0, lastActivity = "";
+      for (const entry of existsSync2(folder) ? readdirSync2(folder, { withFileTypes: true }) : []) {
+        if (!entry.isDirectory() || !entry.name.startsWith("FS-")) continue;
+        const status = JSON.parse(readFileSync2(join2(folder, entry.name, "status.json"), "utf8"));
+        if (typeof status.id !== "string" || typeof status.status !== "string") throw new Error("Incomplete feature status");
+        features++;
+        if (["blocked", "in-review", "human-feedback"].includes(status.status)) attention++;
+        lastActivity = [lastActivity, status.updatedAt || status.lastActivity || ""].sort().at(-1);
+        const graphPath = join2(folder, entry.name, "graph.json");
+        if (existsSync2(graphPath)) {
+          const graph = JSON.parse(readFileSync2(graphPath, "utf8"));
+          if (!Array.isArray(graph.nodes) || graph.featureId !== status.id) throw new Error("Invalid feature graph");
+          active += graph.nodes.filter((n) => n.state === "active").length;
+          attention += graph.nodes.filter((n) => ["blocked", "failed"].includes(n.state) || n.approval === "pending").length;
+          lastActivity = [lastActivity, graph.updatedAt || ""].sort().at(-1);
+        }
+      }
+      return [{ ...project, available: true, summary: { features, attention, active }, lastActivity }];
+    } catch (error48) {
+      return [{ root, name: root.split("/").at(-1), available: false, error: error48.message }];
+    }
+  });
+  return { projects, preferences: { ...defaults, ...data.preferences }, generatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+}
+
 // src/server.mjs
-var RESOURCE_URI = "ui://operator/console-v2.html";
-var server = new McpServer({ name: "operator-console", version: "0.6.0" });
+var RESOURCE_URI = "ui://operator/console-v6-alpha.html";
+var server = new McpServer({ name: "operator-console", version: "0.6.0-alpha.1" });
 var inputSchema = {
   projectRoot: external_exports3.string().describe("Exact absolute project root containing operator.config.env; required on every call."),
   projectId: external_exports3.string().optional().describe("Expected project ID from the initial snapshot; prevents accidental rebinding."),
@@ -31403,4 +31493,15 @@ server.registerTool("operator_console_save_view", {
   }
 });
 N3(server, "Operator cockpit", RESOURCE_URI, { mimeType: p }, async () => ({ contents: [{ uri: RESOURCE_URI, mimeType: p, text: await readFile(new URL("../dist/console.html", import.meta.url), "utf8"), _meta: { ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } } } }] }));
+for (const [name, title, inputSchema2, action, readOnlyHint] of [
+  ["operator_console_projects", "List registered Operator projects", { projectRoot: external_exports3.string().optional() }, (args) => listProjects(args.projectRoot), true],
+  ["operator_console_register_project", "Add a local Operator project to this user\u2019s console", { projectRoot: external_exports3.string() }, (args) => registerProject(args.projectRoot), false],
+  ["operator_console_preferences", "Save language, appearance and project sidebar preferences", { language: external_exports3.enum(["auto", "en", "pl"]), appearance: external_exports3.enum(["auto", "light", "dark"]), allProjects: external_exports3.boolean() }, savePreferences, false]
+]) server.registerTool(name, { title, inputSchema: inputSchema2, annotations: { ...annotations, readOnlyHint }, _meta: { ui: { visibility: ["app"] } } }, async (args) => {
+  try {
+    return { content: [{ type: "text", text: title }], structuredContent: action(args) };
+  } catch (e) {
+    return { isError: true, content: [{ type: "text", text: e.message }] };
+  }
+});
 await server.connect(new StdioServerTransport());

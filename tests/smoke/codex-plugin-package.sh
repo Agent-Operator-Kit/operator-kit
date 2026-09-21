@@ -142,7 +142,7 @@ python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
 import json, sys
 manifest = json.load(open(sys.argv[1], encoding="utf-8"))
 compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
-assert manifest["version"].split("+", 1)[0] == "0.6.0"
+assert manifest["version"].split("+", 1)[0] == "0.6.0-alpha.1"
 assert compatibility["projectKitVersion"] == "5.2"
 assert compatibility["pluginVersion"] == manifest["version"].split("+", 1)[0]
 assert compatibility["safety"]["modelSelectionOptional"] is True
@@ -151,7 +151,7 @@ assert compatibility["safety"]["modelSelectionOnlineLearning"] is False
 assert compatibility["safety"]["modelSelectionHistorySuggestionReadOnly"] is True
 assert "5.2" in compatibility["compatibleUpdateSourceVersions"]
 assert "schemas/operator-model-selection/v1/model-suggestion.schema.json" in compatibility["requiredProjectRuntime"]
-assert compatibility["releaseChannel"] == "stable"
+assert compatibility["releaseChannel"] == "alpha"
 assert compatibility["releaseSemverChanged"] is True
 assert compatibility["historicalBundle"] == "v3-adapter-bundle.json"
 assert compatibility["safety"]["credentialsRequired"] is False

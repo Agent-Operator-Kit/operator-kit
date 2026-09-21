@@ -2,8 +2,8 @@
 set -eu
 
 if [ "$#" -lt 1 ]; then
-  printf '%s\n' 'Operator Console could not start: missing server path.' >&2
-  exit 64
+  server_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+  set -- "$server_dir/dist/server.mjs"
 fi
 
 PATH="${PATH:-/usr/bin:/bin}:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
@@ -33,5 +33,5 @@ if node_path=$(command -v node 2>/dev/null); then
   esac
 fi
 
-printf '%s\n' 'Operator Console could not find a Node runtime. Reinstall or update Codex.' >&2
+printf '%s\n' 'Operator Console needs Node 20+. Install Node or set CODEX_MCP_NODE_PATH.' >&2
 exit 127

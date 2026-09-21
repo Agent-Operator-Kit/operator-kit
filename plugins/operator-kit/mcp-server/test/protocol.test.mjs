@@ -23,7 +23,7 @@ async function fixture(t, name = 'fixture') {
 }
 async function connect(t, root) {
   const client = new Client({ name: 'operator-poc-test', version: '1' });
-  await client.connect(new StdioClientTransport({ command: process.execPath, args: [resolve('dist/server.mjs')], env: { ...process.env, OPERATOR_PROJECT_ROOT: root } }));
+  await client.connect(new StdioClientTransport({ command: process.execPath, args: [resolve('dist/server.mjs')], env: { ...process.env, OPERATOR_PROJECT_ROOT: root, OPERATOR_CONSOLE_REGISTRY: join(root, "registry.json") } }));
   t.after(() => client.close());
   return client;
 }
@@ -32,7 +32,7 @@ const call = (client, root, extra = {}) => client.callTool({ name: 'operator_con
 test('publishes canonical readiness and refresh without a rendering resource', async t => {
   const f = await fixture(t); const client = await connect(t, f.root);
   const tools = (await client.listTools()).tools;
-  assert.equal(tools.find(t => t.name === 'operator_console')._meta.ui.resourceUri, 'ui://operator/console-v2.html');
+  assert.equal(tools.find(t => t.name === 'operator_console')._meta.ui.resourceUri, 'ui://operator/console-v6-alpha.html');
   assert.equal(tools.find(t => t.name === 'operator_console_refresh')._meta.ui.resourceUri, undefined);
   const state = (await call(client, f.root)).structuredContent;
   assert.equal(state.summary.eligibleTasks, 1);
@@ -42,7 +42,7 @@ test('publishes canonical readiness and refresh without a rendering resource', a
   assert.equal(state.features[0].tasks.find(t => t.id === 'approval').eligible, false);
   assert.equal(state.lanes[0].activity, 'unknown');
   assert.equal('running' in state.lanes[0], false);
-  const resource = await client.readResource({ uri: 'ui://operator/console-v2.html' });
+  const resource = await client.readResource({ uri: 'ui://operator/console-v6-alpha.html' });
   assert.equal(resource.contents[0].mimeType, 'text/html;profile=mcp-app');
 });
 
@@ -92,4 +92,61 @@ test('malformed records return errors; missing canonical runtime does not invent
   assert.equal(state.readiness.available, false); assert.equal(state.summary.eligibleTasks, null);
   await writeFile(f.graphFile, '{broken');
   assert.equal((await call(client, f.root)).isError, true);
+});
+
+test('registry shares projects and preferences across server processes, deduplicates shared state, and isolates failures', async t => {
+  const a = await fixture(t, 'A'), b = await fixture(t, 'B'); const client = await connect(t, a.root);
+  const register = root => client.callTool({ name: 'operator_console_register_project', arguments: { projectRoot: root } });
+  assert.equal((await register(a.root)).isError, undefined);
+  assert.equal((await register(b.root)).isError, undefined);
+  assert.equal((await register(b.root)).isError, undefined);
+  const alias = join(a.root, 'worktree'); await mkdir(alias);
+  await writeFile(join(alias, 'operator.config.env'), `PROJECT_NAME="same project"\nOPERATOR_DIR="${a.root}/operator"\n`);
+  await register(alias);
+  const list = async c => (await c.callTool({ name: 'operator_console_projects', arguments: { projectRoot: a.root } })).structuredContent;
+  assert.equal((await list(client)).projects.length, 2);
+  assert.equal((await list(client)).projects[0].summary.attention, 1);
+  const prefs = { language: 'pl', appearance: 'dark', allProjects: true };
+  await client.callTool({ name: 'operator_console_preferences', arguments: prefs });
+  const another = await connect(t, a.root);
+  assert.deepEqual((await list(another)).preferences, prefs);
+  await writeFile(join(b.folder, 'status.json'), '{broken');
+  const result = await list(another);
+  assert.equal(result.projects[0].available, true);
+  assert.equal(result.projects[1].available, false);
+  assert.equal((await call(client, a.root)).structuredContent.project.name, 'A');
+  assert.equal((await register(join(a.root, 'missing'))).isError, true);
+});
+
+test('registry and preference changes do not change project revisions; preferences reject invalid choices', async t => {
+  const a = await fixture(t), client = await connect(t, a.root);
+  const before = (await call(client, a.root)).structuredContent;
+  await client.callTool({ name: 'operator_console_register_project', arguments: { projectRoot: a.root } });
+  await client.callTool({ name: 'operator_console_preferences', arguments: { language: 'pl', appearance: 'light', allProjects: true } });
+  assert.equal((await call(client, a.root)).structuredContent.revision, before.revision);
+  assert.equal((await client.callTool({ name: 'operator_console_preferences', arguments: { language: 'bad', appearance: 'dark', allProjects: true } })).isError, true);
+});
+
+test('damaged registry fails explicitly without preventing a bound project read', async t => {
+  const a = await fixture(t), client = await connect(t, a.root);
+  await writeFile(join(a.root, 'registry.json'), '{broken');
+  assert.equal((await client.callTool({ name: 'operator_console_projects', arguments: {} })).isError, true);
+  assert.equal((await client.callTool({ name: 'operator_console_register_project', arguments: { projectRoot: a.root } })).isError, true);
+  assert.equal((await call(client, a.root)).structuredContent.project.name, 'fixture');
+});
+
+test('standalone package starts from an unrelated working directory without node_modules', async t => {
+  const { cp, chmod } = await import('node:fs/promises');
+  const a = await fixture(t), packageRoot = join(a.root, 'relocated package');
+  await mkdir(packageRoot); await cp(resolve('dist'), join(packageRoot, 'dist'), { recursive: true });
+  await copyFile(resolve('launch'), join(packageRoot, 'launch')); await chmod(join(packageRoot, 'launch'), 0o755);
+  const client = new Client({ name: 'relocation-test', version: '1' });
+  await client.connect(new StdioClientTransport({ command: join(packageRoot, 'launch'), args: [], cwd: a.root, env: { ...process.env, CODEX_MCP_NODE_PATH: process.execPath, OPERATOR_CONSOLE_REGISTRY: join(a.root, 'registry.json') } }));
+  t.after(() => client.close());
+  assert.equal((await call(client, a.root)).structuredContent.project.name, 'fixture');
+  const resource = await client.readResource({ uri: 'ui://operator/console-v6-alpha.html' });
+  assert.match(resource.contents[0].text, /v6-alpha/);
+  const { execFileSync } = await import('node:child_process');
+  const config = execFileSync(process.execPath, [join(packageRoot, 'dist/cli.mjs'), 'config'], { encoding: 'utf8', cwd: a.root });
+  assert.ok(config.includes(join(packageRoot, 'launch')));
 });

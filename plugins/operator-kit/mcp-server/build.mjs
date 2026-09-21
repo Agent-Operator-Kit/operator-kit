@@ -29,3 +29,10 @@ const html = template
 await writeFile('dist/console.html', html);
 
 console.log('Built Operator Console MCP server and embedded UI.');
+
+for (const name of ['cli', 'dev-host']) await build({
+  entryPoints: [`src/${name}.mjs`], bundle: true, platform: 'node', format: 'esm',
+  target: 'node20', outfile: `dist/${name}.mjs`, external: ['./dev-host.mjs'],
+  banner: { js: "import { createRequire as __createRequire } from 'node:module'; const require = __createRequire(import.meta.url);" }
+});
+await build({ entryPoints: ['src/host.js'], bundle: true, format: 'esm', target: 'es2022', minify: true, outfile: 'dist/host.js' });

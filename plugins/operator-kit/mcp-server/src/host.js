@@ -1,0 +1,22 @@
+import { AppBridge, PostMessageTransport } from '@modelcontextprotocol/ext-apps/app-bridge';
+const { token } = JSON.parse(document.querySelector('#config').textContent);
+const headers = { 'Content-Type': 'application/json', 'X-Operator-Token': token };
+const initial = await fetch('/initial', { headers }).then(r => r.json());
+const frame = document.querySelector('iframe');
+let disconnected = false;
+const bridge = new AppBridge(null, { name: 'Operator development host', version: '0.6.0-alpha.1' }, { serverTools: {}, logging: {} }, { hostContext: { theme: 'light', locale: 'en-US', displayMode: 'fullscreen', availableDisplayModes: ['inline', 'fullscreen'] } });
+bridge.oncalltool = async params => {
+  if (disconnected) throw new Error('Development host: connection paused.');
+  const result = await fetch('/rpc', { method: 'POST', headers, body: JSON.stringify(params) }).then(r => r.json());
+  document.querySelector('#receipt').textContent = `${params.name} · ${new Date().toLocaleTimeString()} · ${result.isError ? 'error' : result.structuredContent?.unchanged ? 'unchanged' : 'acknowledged'}`;
+  return result;
+};
+bridge.oninitialized = async () => { await bridge.sendToolInput({ arguments: { projectRoot: initial.root } }); await bridge.sendToolResult(initial.result); };
+bridge.onmessage = async () => ({ isError: true });
+bridge.onrequestdisplaymode = async ({ mode }) => { document.body.dataset.mode = mode; bridge.setHostContext({ displayMode: mode }); return { mode }; };
+bridge.onsizechange = () => {};
+await bridge.connect(new PostMessageTransport(frame.contentWindow, frame.contentWindow));
+frame.src = '/resource';
+document.querySelector('#host-theme').onchange = e => bridge.setHostContext({ theme: e.target.value });
+document.querySelector('#host-locale').onchange = e => bridge.setHostContext({ locale: e.target.value });
+document.querySelector('#connection').onclick = e => { disconnected = !disconnected; e.target.textContent = disconnected ? 'Restore connection' : 'Simulate disconnection'; };

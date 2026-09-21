@@ -4,9 +4,10 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@model
 import { readFile } from 'node:fs/promises';
 import { z } from 'zod';
 import { snapshot, saveView } from './state.mjs';
+import { listProjects, registerProject, savePreferences } from './projects.mjs';
 
-const RESOURCE_URI = 'ui://operator/console-v2.html';
-const server = new McpServer({ name: 'operator-console', version: '0.6.0' });
+const RESOURCE_URI = 'ui://operator/console-v6-alpha.html';
+const server = new McpServer({ name: 'operator-console', version: '0.6.0-alpha.1' });
 const inputSchema = {
   projectRoot: z.string().describe('Exact absolute project root containing operator.config.env; required on every call.'),
   projectId: z.string().optional().describe('Expected project ID from the initial snapshot; prevents accidental rebinding.'),
@@ -44,4 +45,12 @@ server.registerTool('operator_console_save_view', {
   } catch (e) { return { isError: true, content: [{ type: 'text', text: e.message }] }; }
 });
 registerAppResource(server, 'Operator cockpit', RESOURCE_URI, { mimeType: RESOURCE_MIME_TYPE }, async () => ({ contents: [{ uri: RESOURCE_URI, mimeType: RESOURCE_MIME_TYPE, text: await readFile(new URL('../dist/console.html', import.meta.url), 'utf8'), _meta: { ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } } } }] }));
+for (const [name, title, inputSchema, action, readOnlyHint] of [
+  ['operator_console_projects', 'List registered Operator projects', { projectRoot: z.string().optional() }, args => listProjects(args.projectRoot), true],
+  ['operator_console_register_project', 'Add a local Operator project to this user’s console', { projectRoot: z.string() }, args => registerProject(args.projectRoot), false],
+  ['operator_console_preferences', 'Save language, appearance and project sidebar preferences', { language: z.enum(['auto', 'en', 'pl']), appearance: z.enum(['auto', 'light', 'dark']), allProjects: z.boolean() }, savePreferences, false]
+]) server.registerTool(name, { title, inputSchema, annotations: { ...annotations, readOnlyHint }, _meta: { ui: { visibility: ['app'] } } }, async args => {
+  try { return { content: [{ type: 'text', text: title }], structuredContent: action(args) }; }
+  catch (e) { return { isError: true, content: [{ type: 'text', text: e.message }] }; }
+});
 await server.connect(new StdioServerTransport());

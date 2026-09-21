@@ -1,6 +1,6 @@
 {
   "name": "operator",
-  "version": "0.6.0+codex.20260911145407",
+  "version": "0.6.0-alpha.1",
   "description": "Agent Operator Kit for Codex: a local, human-supervised operator cockpit with feature dependency graphs, bounded parallel planning, and optional advisory model selection.",
   "author": {
     "name": "Agent Operator Kit"
@@ -21,9 +21,9 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Operator",
-    "shortDescription": "Embedded project console and local graphs",
-    "longDescription": "Version 0.6.0. Operator is the Codex plugin for Agent Operator Kit: a human-supervised cockpit for real projects with an MCP-powered console that can render directly in compatible Codex Desktop conversations. The console reads project configuration, lanes, feature sessions, dependency graphs, conflicts, and runnable work without changing project state.\n\nUse it to coordinate feature chats, isolated worktrees, reusable lane roles, task packets, handoffs, memory, roadmap items, feedback intake, planning, design review, UX audits, journeys, and incubation. Execution remains explicit: the embedded console can send a user-selected planning or status request into the conversation, while dispatch, collect, merge, and cleanup continue through reviewed Operator workflows.",
+    "displayName": "Operator v6-alpha",
+    "shortDescription": "Project cockpit, Polish/English and host themes",
+    "longDescription": "Operator v6-alpha: an experimental local MCP Apps cockpit with a registered-project sidebar, English and Polish interface, and host-aware light/dark appearance. Requires Node 20+ and initialized Operator workspaces. Use the bundled console CLI to print a machine-local MCP connection. Existing Operator execution workflows remain human-supervised.",
     "developerName": "Agent Operator Kit",
     "category": "Developer Tools",
     "capabilities": [
