@@ -21,6 +21,13 @@ function displayModeControl() {
     button.disabled = changingDisplayMode || !supported;
     button.title = supported ? '' : 'This host does not support this display mode.';
   });
+  document.querySelectorAll('[data-expand-feature]').forEach(button => {
+    const mode = displayMode === 'inline' ? 'fullscreen' : 'inline';
+    button.disabled = changingDisplayMode || (availableDisplayModes && !availableDisplayModes.includes(mode));
+    button.textContent = mode === 'fullscreen' ? 'Full screen' : 'Inline';
+    button.setAttribute('aria-label', `${mode === 'fullscreen' ? 'View' : 'Return'} ${button.dataset.expandFeature} ${mode === 'fullscreen' ? 'full screen' : 'inline'}`);
+    button.title = mode === 'fullscreen' ? 'View full screen' : 'Back to inline';
+  });
 }
 function applyHostContext(context = {}) {
   if (context.theme) applyDocumentTheme(context.theme);
@@ -107,7 +114,7 @@ async function refresh(manual = false) {
   } finally { busy = false; statusLine(); schedule(); }
 }
 function featureCard(feature) {
-  return `<button class="feature-card ${feature.id === selectedId ? 'selected' : ''}" data-feature="${escape(feature.id)}" aria-pressed="${feature.id === selectedId}"><span class="feature-top"><span class="feature-id">${escape(feature.id)}</span><span class="status ${escape(feature.status)}">${escape(feature.status)}</span></span><strong>${escape(feature.title)}</strong><span class="feature-meta">${feature.tasks.length} recorded tasks · ${feature.tasks.filter(t => t.state === 'completed').length} completed</span></button>`;
+  return `<div class="feature-card ${feature.id === selectedId ? 'selected' : ''}"><button class="feature-select" data-feature="${escape(feature.id)}" aria-pressed="${feature.id === selectedId}"><span class="feature-top"><span class="feature-id">${escape(feature.id)}</span><span class="status ${escape(feature.status)}">${escape(feature.status)}</span></span><strong>${escape(feature.title)}</strong><span class="feature-meta">${feature.tasks.length} recorded tasks · ${feature.tasks.filter(t => t.state === 'completed').length} completed</span></button><button class="feature-expand" data-expand-feature="${escape(feature.id)}" aria-label="View ${escape(feature.id)} full screen" title="View full screen">Full screen</button></div>`;
 }
 function taskDetail(feature) {
   const task = feature.tasks.find(t => t.id === selectedTask);
@@ -124,13 +131,14 @@ function detail(feature) {
 function render() {
   const y = window.scrollY;
   const focused = document.activeElement;
-  const focusKey = ['id', 'data-feature', 'data-task', 'data-tab', 'data-chat'].map(key => [key, focused?.getAttribute(key)]).find(([, value]) => value);
+  const focusKey = ['id', 'data-feature', 'data-expand-feature', 'data-task', 'data-tab', 'data-chat'].map(key => [key, focused?.getAttribute(key)]).find(([, value]) => value);
   const expanded = [...document.querySelectorAll('details[open]')].map(el => el.dataset.record);
   root.innerHTML = `<header><div class="brand"><span class="mark">o:</span>Operator <i>Console</i><b>POC</b></div><div class="project"><strong>${escape(state.project.name)}</strong><span>Kit ${escape(state.project.kitVersion)} · local records</span></div><button id="expand" class="secondary" data-display-mode>Expand</button><button id="refresh" class="icon-button" aria-label="Refresh">↻</button></header><div id="sync" role="status" aria-live="off"></div><main><section class="metrics"><div><strong>${state.summary.features}</strong><span>Feature sessions</span></div><div><strong>${state.summary.recordedActiveTasks}</strong><span>Tasks recorded active</span></div><div><strong>${state.summary.attention}</strong><span>Need attention</span></div><div><strong>${state.summary.eligibleTasks ?? '—'}</strong><span>Eligible · capacity 4</span></div></section><section class="panel attention"><div class="section-head"><h2>Needs attention</h2><span>Recorded Operator state</span></div>${state.attention.length ? state.attention.map(item => `<button class="attention-item" data-feature="${escape(item.featureId)}" data-select-task="${escape(item.taskId || '')}"><span>${escape(item.title)}</span><small>${escape(item.reason)}</small></button>`).join('') : '<p class="muted">No recorded attention items.</p>'}</section><div class="layout"><aside class="feature-list panel"><div class="section-head"><h2>Project overview</h2><span>${state.features.length}</span></div>${state.features.map(featureCard).join('')}</aside>${detail(state.features.find(f => f.id === selectedId))}</div><section class="lanes panel"><div class="section-head"><h2>Configured lanes</h2><span>Worker activity unverified</span></div><div class="lane-grid">${state.lanes.map(lane => `<div class="lane"><div><strong>${escape(lane.id)}</strong><small>${escape(lane.owner)}</small></div><small>${lane.windowPresent === null ? 'window unknown' : lane.windowPresent ? 'window present' : 'no window'}</small></div>`).join('')}</div></section><section class="panel recent"><div class="section-head"><h2>Recent recorded changes</h2><span>Graph events</span></div>${state.features.flatMap(f => f.recentChanges || []).sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt))).slice(0, 6).map(event => `<p>${escape(event.featureId)} · ${escape(event.taskId)} · ${escape(event.state || event.action)} <small>${stamp(event.occurredAt)}</small></p>`).join('') || '<p class="muted">No graph events recorded yet.</p>'}</section>${!state.readiness.available ? `<p class="warning">Eligibility unavailable: ${escape(state.readiness.reason)}</p>` : ''}</main><footer><span>${escape(state.project.root)}</span><span>Revision ${state.revision.slice(0, 8)}</span></footer>`;
   document.querySelector('#refresh').onclick = () => refresh(true);
   document.querySelectorAll('[data-display-mode]').forEach(button => button.onclick = toggleDisplayMode);
   displayModeControl();
   document.querySelectorAll('[data-feature]').forEach(button => button.onclick = () => { selectedId = button.dataset.feature; selectedTask = button.dataset.selectTask || null; render(); saveView(); });
+  document.querySelectorAll('[data-expand-feature]').forEach(button => button.onclick = () => { selectedId = button.dataset.expandFeature; selectedTask = null; render(); saveView(); toggleDisplayMode(); });
   document.querySelectorAll('[data-task]').forEach(button => button.onclick = () => { selectedTask = button.dataset.task; render(); saveView(); });
   document.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => { currentTab = button.dataset.tab; render(); saveView(); });
   document.querySelectorAll('[data-chat]').forEach(button => button.onclick = async () => {
