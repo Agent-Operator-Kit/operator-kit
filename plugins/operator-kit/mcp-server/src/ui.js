@@ -9,9 +9,39 @@ let state, selectedId, selectedTask, timer, busy = false, failures = 0, lastRead
 let currentTab = 'work';
 let error = '';
 let toolRoot;
+let displayMode = 'inline', availableDisplayModes, changingDisplayMode = false;
 const view = () => ({ selectedId: selectedId || null, selectedTask: selectedTask || null, tab: currentTab, scrollY: window.scrollY });
 
 function say(message) { notice.textContent = message; notice.className = 'show'; clearTimeout(say.timer); say.timer = setTimeout(() => { notice.className = ''; }, 6000); }
+function displayModeControl() {
+  const button = document.querySelector('#expand');
+  if (!button) return;
+  const target = displayMode === 'inline' ? 'fullscreen' : 'inline';
+  const supported = !availableDisplayModes || availableDisplayModes.includes(target);
+  button.textContent = changingDisplayMode ? 'Switching…' : target === 'inline' ? 'Back to inline' : 'Expand';
+  button.disabled = changingDisplayMode || !supported;
+  button.title = supported ? '' : 'This host does not support this display mode.';
+}
+function applyHostContext(context = {}) {
+  if (context.theme) applyDocumentTheme(context.theme);
+  if (context.styles?.variables) applyHostStyleVariables(context.styles.variables);
+  if (context.displayMode) displayMode = context.displayMode;
+  if (context.availableDisplayModes) availableDisplayModes = context.availableDisplayModes;
+  displayModeControl();
+}
+async function toggleDisplayMode() {
+  if (changingDisplayMode) return;
+  const mode = displayMode === 'inline' ? 'fullscreen' : 'inline';
+  if (availableDisplayModes && !availableDisplayModes.includes(mode)) return;
+  changingDisplayMode = true; displayModeControl();
+  try {
+    const result = await bridge.requestDisplayMode({ mode });
+    // The host may keep the current mode instead of accepting our request.
+    if (result.mode) displayMode = result.mode;
+    if (displayMode !== mode) say(mode === 'inline' ? 'The host kept the console expanded.' : 'The host did not expand the console.');
+  } catch { say(mode === 'inline' ? 'Unable to return to inline in this host.' : 'Unable to expand in this host.'); }
+  finally { changingDisplayMode = false; displayModeControl(); }
+}
 function statusLine() {
   const label = !connected ? 'Connecting to host' : error ? `Stale · last checked ${stamp(lastRead)} · ${error}` : busy ? 'Checking for changes…' : `Checked ${stamp(lastRead)} · auto refresh ${document.hidden ? 'paused' : 'every 4s'}`;
   const el = document.querySelector('#sync');
@@ -98,7 +128,8 @@ function render() {
   const expanded = [...document.querySelectorAll('details[open]')].map(el => el.dataset.record);
   root.innerHTML = `<header><div class="brand"><span class="mark">o:</span>Operator <i>Console</i><b>POC</b></div><div class="project"><strong>${escape(state.project.name)}</strong><span>Kit ${escape(state.project.kitVersion)} · local records</span></div><button id="expand" class="secondary">Expand</button><button id="refresh" class="icon-button" aria-label="Refresh">↻</button></header><div id="sync" role="status" aria-live="off"></div><main><section class="metrics"><div><strong>${state.summary.features}</strong><span>Feature sessions</span></div><div><strong>${state.summary.recordedActiveTasks}</strong><span>Tasks recorded active</span></div><div><strong>${state.summary.attention}</strong><span>Need attention</span></div><div><strong>${state.summary.eligibleTasks ?? '—'}</strong><span>Eligible · capacity 4</span></div></section><section class="panel attention"><div class="section-head"><h2>Needs attention</h2><span>Recorded Operator state</span></div>${state.attention.length ? state.attention.map(item => `<button class="attention-item" data-feature="${escape(item.featureId)}" data-select-task="${escape(item.taskId || '')}"><span>${escape(item.title)}</span><small>${escape(item.reason)}</small></button>`).join('') : '<p class="muted">No recorded attention items.</p>'}</section><div class="layout"><aside class="feature-list panel"><div class="section-head"><h2>Project overview</h2><span>${state.features.length}</span></div>${state.features.map(featureCard).join('')}</aside>${detail(state.features.find(f => f.id === selectedId))}</div><section class="lanes panel"><div class="section-head"><h2>Configured lanes</h2><span>Worker activity unverified</span></div><div class="lane-grid">${state.lanes.map(lane => `<div class="lane"><div><strong>${escape(lane.id)}</strong><small>${escape(lane.owner)}</small></div><small>${lane.windowPresent === null ? 'window unknown' : lane.windowPresent ? 'window present' : 'no window'}</small></div>`).join('')}</div></section><section class="panel recent"><div class="section-head"><h2>Recent recorded changes</h2><span>Graph events</span></div>${state.features.flatMap(f => f.recentChanges || []).sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt))).slice(0, 6).map(event => `<p>${escape(event.featureId)} · ${escape(event.taskId)} · ${escape(event.state || event.action)} <small>${stamp(event.occurredAt)}</small></p>`).join('') || '<p class="muted">No graph events recorded yet.</p>'}</section>${!state.readiness.available ? `<p class="warning">Eligibility unavailable: ${escape(state.readiness.reason)}</p>` : ''}</main><footer><span>${escape(state.project.root)}</span><span>Revision ${state.revision.slice(0, 8)}</span></footer>`;
   document.querySelector('#refresh').onclick = () => refresh(true);
-  document.querySelector('#expand').onclick = async () => { try { await bridge.requestDisplayMode({ mode: 'fullscreen' }); } catch { say('This host did not grant fullscreen.'); } };
+  document.querySelector('#expand').onclick = toggleDisplayMode;
+  displayModeControl();
   document.querySelectorAll('[data-feature]').forEach(button => button.onclick = () => { selectedId = button.dataset.feature; selectedTask = button.dataset.selectTask || null; render(); saveView(); });
   document.querySelectorAll('[data-task]').forEach(button => button.onclick = () => { selectedTask = button.dataset.task; render(); saveView(); });
   document.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => { currentTab = button.dataset.tab; render(); saveView(); });
@@ -115,15 +146,14 @@ function render() {
 }
 bridge.ontoolinput = input => { toolRoot = input.arguments?.projectRoot; if (connected && !state) refresh(); };
 bridge.ontoolresult = result => { try { ingest(result); toolRoot = state.project.root; schedule(); } catch (e) { error = e.message; statusLine(); } };
-bridge.onhostcontextchanged = context => { if (context.theme) applyDocumentTheme(context.theme); if (context.styles?.variables) applyHostStyleVariables(context.styles.variables); };
+bridge.onhostcontextchanged = applyHostContext;
 document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) refresh(); statusLine(); });
 window.addEventListener('focus', () => refresh());
 window.addEventListener('scroll', () => saveView(), { passive: true });
 try {
   await bridge.connect(); connected = true;
   const context = bridge.getHostContext();
-  if (context?.theme) applyDocumentTheme(context.theme);
-  if (context?.styles?.variables) applyHostStyleVariables(context.styles.variables);
+  applyHostContext(context || {});
   statusLine();
   if (toolRoot && !state) refresh(); else schedule();
 } catch (e) { root.innerHTML = `<section class="setup"><h1>Host connection unavailable</h1><p>${escape(e.message)}</p><p>This resource needs an MCP Apps host.</p></section>`; }
