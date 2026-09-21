@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "operator_console": {
+      "command": "./mcp-server/launch",
+      "args": [
+        "./mcp-server/dist/server.mjs"
+      ],
+      "enabled": true,
+      "startup_timeout_sec": 20,
+      "tool_timeout_sec": 30,
+      "default_tools_approval_mode": "approve",
+      "env_vars": [
+        "HOME",
+        "USERPROFILE",
+        "PATH",
+        "CODEX_MCP_NODE_PATH",
+        "CODEX_BROWSER_USE_NODE_PATH",
+        "CODEX_ELECTRON_RESOURCES_PATH",
+        "CODEX_CLI_PATH",
+        "XDG_CACHE_HOME",
+        "OPERATOR_PROJECT_ROOT"
+      ]
+    }
+  }
+}

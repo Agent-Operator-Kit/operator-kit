@@ -20,6 +20,10 @@ test -d "$PLUGIN_ROOT" || fail "Missing plugin root: $PLUGIN_ROOT"
 test -f "$MANIFEST" || fail "Missing plugin manifest: $MANIFEST"
 test -f "$MARKETPLACE_ENTRY" || fail "Missing marketplace entry metadata."
 test -f "$V5_COMPATIBILITY" || fail "Missing V5 compatibility metadata."
+test -f "$PLUGIN_ROOT/.mcp.json" || fail "Missing MCP server manifest."
+test -x "$PLUGIN_ROOT/mcp-server/launch" || fail "Missing executable MCP launcher."
+test -f "$PLUGIN_ROOT/mcp-server/dist/server.mjs" || fail "Missing bundled MCP server."
+test -f "$PLUGIN_ROOT/mcp-server/dist/console.html" || fail "Missing bundled MCP App UI."
 test -f "$MARKETPLACE_MANIFEST" || fail "Missing repository marketplace manifest."
 test -d "$PLUGIN_ROOT/skills" || fail "Missing plugin skills directory."
 
@@ -64,9 +68,10 @@ else:
     if normalized not in {"skills", "./skills"}:
         errors.append("manifest.skills must resolve to ./skills/")
 
-for field in ("apps", "mcpServers"):
-    if field in manifest:
-        errors.append(f"manifest must not declare {field} until companion files exist")
+if "apps" in manifest:
+    errors.append("manifest must not declare apps until a companion file exists")
+if manifest.get("mcpServers") != "./.mcp.json":
+    errors.append("manifest.mcpServers must point at ./.mcp.json")
 
 author = manifest.get("author")
 if not isinstance(author, dict):
@@ -137,9 +142,9 @@ python3 - "$MANIFEST" "$V5_COMPATIBILITY" <<'PY'
 import json, sys
 manifest = json.load(open(sys.argv[1], encoding="utf-8"))
 compatibility = json.load(open(sys.argv[2], encoding="utf-8"))
-assert manifest["version"] == "0.5.3"
+assert manifest["version"].split("+", 1)[0] == "0.6.0"
 assert compatibility["projectKitVersion"] == "5.2"
-assert compatibility["pluginVersion"] == manifest["version"]
+assert compatibility["pluginVersion"] == manifest["version"].split("+", 1)[0]
 assert compatibility["safety"]["modelSelectionOptional"] is True
 assert compatibility["safety"]["modelSelectionAppliesSettings"] is False
 assert compatibility["safety"]["modelSelectionOnlineLearning"] is False

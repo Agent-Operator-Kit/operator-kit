@@ -8,6 +8,13 @@ a Codex plugin.
 ```text
 plugins/operator-kit/
   .codex-plugin/plugin.json
+  .mcp.json
+  mcp-server/
+    dist/server.mjs
+    dist/console.html
+    launch
+    src/
+    test/
   marketplace-entry.json
   v3-adapter-bundle.json
   v5-compatibility.json
@@ -43,14 +50,15 @@ The global Codex plugin owns:
 - `.codex-plugin/plugin.json`
 - the installable Codex skill bundle
 - plugin-facing install/update documentation
-- future Codex MCP/tools for status, dispatch, collect, upgrade, or diagnostics
+- the read-only `operator_console` and `operator_console_refresh` MCP tools
+- a self-contained MCP App UI for compatible Codex Desktop conversations
 
 The preserved V3 adapter bundle adds host packages for Cursor and Claude Code under
 `adapters/`. Those packages are metadata and asset bundles, not hidden runtime
 APIs.
 
 `v5-compatibility.json` registers the V5.2 local graph and optional model
-selection runtime against plugin `0.5.3` and adapter `0.1.0`
+selection runtime against the compatible 0.x plugin line and adapter `0.1.0`
 package versions. It sits alongside, and does not relabel,
 `v3-adapter-bundle.json`.
 V5.2 execution remains human-supervised. The local graph advises dependencies
@@ -72,6 +80,30 @@ marketplace file belongs to the distribution channel that installs this package.
 Installing this plugin must not create or mutate project-local state. Project
 setup and sync stay explicit through `operator-sync.sh`, `operator-upgrade.sh`,
 or project-local `scripts/operator-*.sh`.
+
+## Embedded Operator Console
+
+In a new Codex task, ask `Open the embedded Operator Console for this project`.
+Codex calls the plugin's local MCP server with the workspace root and attaches
+the console UI to the tool result. The console reads `operator.config.env`,
+active feature `status.json` and `graph.json` files, tmux lane presence, and the
+project conflict summary.
+
+The embedded console is intentionally read-only. Its Refresh action invokes a
+read-only MCP tool. Planning, feature-status, and conflict buttons add an
+explicit user message to the current Codex conversation; they do not dispatch,
+collect, merge, clean up, or edit files. This keeps the conversational approval
+boundary visible while still allowing the console to start an Operator flow.
+
+The server and UI are bundled into `mcp-server/dist/`, so the installed plugin
+does not need to run `npm install`. Rebuild and test after source changes:
+
+```bash
+cd plugins/operator-kit/mcp-server
+npm install
+npm run build
+npm test
+```
 
 When the global plugin is available, a user can explicitly ask for project setup
 with phrases such as `operator install`, `operator init`, or `set up Operator
@@ -126,8 +158,9 @@ at `0.1.0`; the V4 feature-session package is `0.4.6`; and the first V5
 sharing pilot starts at `0.5.0-preview.1`; first-invocation project detection is
 included in `0.5.0-preview.2`; the signed V5 release is `0.5.0`; and the local
 dependency-graph release is `0.5.1`; optional advisory model selection ships in
-`0.5.2`; and evidence-backed policy starting points ship in `0.5.3` without
-changing the V5.2 project marker.
+`0.5.2`; evidence-backed policy starting points ship in `0.5.3`; and the
+embedded read-only Codex console ships in `0.6.0`, all without changing the
+V5.2 project marker.
 
 Compatibility rule:
 
@@ -140,7 +173,7 @@ Compatibility rule:
   using feature-session commands;
 - setup/sync UX should report both versions once structured tooling exists:
   global plugin version and project-local kit version.
-- V5.2 uses plugin `0.5.3` and project marker `5.2`. V5.1 and earlier V5.2
+- V5.2 uses plugin `0.5.3` or later and project marker `5.2`. V5.1 and earlier V5.2
   patch levels update compatibly;
   V4 and signed V5 projects first migrate explicitly through
   `operator-v5-1-migrate.sh`.
