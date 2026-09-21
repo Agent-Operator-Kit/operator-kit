@@ -625,10 +625,10 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function finalizeIssue(iss, ctx, config2) {
+function finalizeIssue(iss, ctx, config3) {
   const full = { ...iss, path: iss.path ?? [] };
   if (!iss.message) {
-    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config2.customError?.(iss)) ?? unwrapMessage(config2.localeError?.(iss)) ?? "Invalid input";
+    const message = unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config3.customError?.(iss)) ?? unwrapMessage(config3.localeError?.(iss)) ?? "Invalid input";
     full.message = message;
   }
   delete full.inst;
@@ -6942,8 +6942,8 @@ var capitalizeFirstCharacter, error26;
 var init_lt = __esm({
   "node_modules/zod/v4/locales/lt.js"() {
     init_util();
-    capitalizeFirstCharacter = (text) => {
-      return text.charAt(0).toUpperCase() + text.slice(1);
+    capitalizeFirstCharacter = (text2) => {
+      return text2.charAt(0).toUpperCase() + text2.slice(1);
     };
     error26 = () => {
       const Sizable = {
@@ -11237,29 +11237,29 @@ var init_json_schema_processors = __esm({
       // do not set
     };
     stringProcessor = (schema, ctx, _json, _params) => {
-      const json2 = _json;
-      json2.type = "string";
+      const json3 = _json;
+      json3.type = "string";
       const { minimum, maximum, format, patterns, contentEncoding } = schema._zod.bag;
       if (typeof minimum === "number")
-        json2.minLength = minimum;
+        json3.minLength = minimum;
       if (typeof maximum === "number")
-        json2.maxLength = maximum;
+        json3.maxLength = maximum;
       if (format) {
-        json2.format = formatMap[format] ?? format;
-        if (json2.format === "")
-          delete json2.format;
+        json3.format = formatMap[format] ?? format;
+        if (json3.format === "")
+          delete json3.format;
         if (format === "time") {
-          delete json2.format;
+          delete json3.format;
         }
       }
       if (contentEncoding)
-        json2.contentEncoding = contentEncoding;
+        json3.contentEncoding = contentEncoding;
       if (patterns && patterns.size > 0) {
         const regexes = [...patterns];
         if (regexes.length === 1)
-          json2.pattern = regexes[0].source;
+          json3.pattern = regexes[0].source;
         else if (regexes.length > 1) {
-          json2.allOf = [
+          json3.allOf = [
             ...regexes.map((regex) => ({
               ...ctx.target === "draft-07" || ctx.target === "draft-04" || ctx.target === "openapi-3.0" ? { type: "string" } : {},
               pattern: regex.source
@@ -11269,51 +11269,51 @@ var init_json_schema_processors = __esm({
       }
     };
     numberProcessor = (schema, ctx, _json, _params) => {
-      const json2 = _json;
+      const json3 = _json;
       const { minimum, maximum, format, multipleOf, exclusiveMaximum, exclusiveMinimum } = schema._zod.bag;
       if (typeof format === "string" && format.includes("int"))
-        json2.type = "integer";
+        json3.type = "integer";
       else
-        json2.type = "number";
+        json3.type = "number";
       if (typeof exclusiveMinimum === "number") {
         if (ctx.target === "draft-04" || ctx.target === "openapi-3.0") {
-          json2.minimum = exclusiveMinimum;
-          json2.exclusiveMinimum = true;
+          json3.minimum = exclusiveMinimum;
+          json3.exclusiveMinimum = true;
         } else {
-          json2.exclusiveMinimum = exclusiveMinimum;
+          json3.exclusiveMinimum = exclusiveMinimum;
         }
       }
       if (typeof minimum === "number") {
-        json2.minimum = minimum;
+        json3.minimum = minimum;
         if (typeof exclusiveMinimum === "number" && ctx.target !== "draft-04") {
           if (exclusiveMinimum >= minimum)
-            delete json2.minimum;
+            delete json3.minimum;
           else
-            delete json2.exclusiveMinimum;
+            delete json3.exclusiveMinimum;
         }
       }
       if (typeof exclusiveMaximum === "number") {
         if (ctx.target === "draft-04" || ctx.target === "openapi-3.0") {
-          json2.maximum = exclusiveMaximum;
-          json2.exclusiveMaximum = true;
+          json3.maximum = exclusiveMaximum;
+          json3.exclusiveMaximum = true;
         } else {
-          json2.exclusiveMaximum = exclusiveMaximum;
+          json3.exclusiveMaximum = exclusiveMaximum;
         }
       }
       if (typeof maximum === "number") {
-        json2.maximum = maximum;
+        json3.maximum = maximum;
         if (typeof exclusiveMaximum === "number" && ctx.target !== "draft-04") {
           if (exclusiveMaximum <= maximum)
-            delete json2.maximum;
+            delete json3.maximum;
           else
-            delete json2.exclusiveMaximum;
+            delete json3.exclusiveMaximum;
         }
       }
       if (typeof multipleOf === "number")
-        json2.multipleOf = multipleOf;
+        json3.multipleOf = multipleOf;
     };
-    booleanProcessor = (_schema, _ctx, json2, _params) => {
-      json2.type = "boolean";
+    booleanProcessor = (_schema, _ctx, json3, _params) => {
+      json3.type = "boolean";
     };
     bigintProcessor = (_schema, ctx, _json, _params) => {
       if (ctx.unrepresentable === "throw") {
@@ -11325,13 +11325,13 @@ var init_json_schema_processors = __esm({
         throw new Error("Symbols cannot be represented in JSON Schema");
       }
     };
-    nullProcessor = (_schema, ctx, json2, _params) => {
+    nullProcessor = (_schema, ctx, json3, _params) => {
       if (ctx.target === "openapi-3.0") {
-        json2.type = "string";
-        json2.nullable = true;
-        json2.enum = [null];
+        json3.type = "string";
+        json3.nullable = true;
+        json3.enum = [null];
       } else {
-        json2.type = "null";
+        json3.type = "null";
       }
     };
     undefinedProcessor = (_schema, ctx, _json, _params) => {
@@ -11344,8 +11344,8 @@ var init_json_schema_processors = __esm({
         throw new Error("Void cannot be represented in JSON Schema");
       }
     };
-    neverProcessor = (_schema, _ctx, json2, _params) => {
-      json2.not = {};
+    neverProcessor = (_schema, _ctx, json3, _params) => {
+      json3.not = {};
     };
     anyProcessor = (_schema, _ctx, _json, _params) => {
     };
@@ -11356,16 +11356,16 @@ var init_json_schema_processors = __esm({
         throw new Error("Date cannot be represented in JSON Schema");
       }
     };
-    enumProcessor = (schema, _ctx, json2, _params) => {
+    enumProcessor = (schema, _ctx, json3, _params) => {
       const def = schema._zod.def;
       const values = getEnumValues(def.entries);
       if (values.every((v2) => typeof v2 === "number"))
-        json2.type = "number";
+        json3.type = "number";
       if (values.every((v2) => typeof v2 === "string"))
-        json2.type = "string";
-      json2.enum = values;
+        json3.type = "string";
+      json3.enum = values;
     };
-    literalProcessor = (schema, ctx, json2, _params) => {
+    literalProcessor = (schema, ctx, json3, _params) => {
       const def = schema._zod.def;
       const vals = [];
       for (const val of def.values) {
@@ -11387,22 +11387,22 @@ var init_json_schema_processors = __esm({
       if (vals.length === 0) {
       } else if (vals.length === 1) {
         const val = vals[0];
-        json2.type = val === null ? "null" : typeof val;
+        json3.type = val === null ? "null" : typeof val;
         if (ctx.target === "draft-04" || ctx.target === "openapi-3.0") {
-          json2.enum = [val];
+          json3.enum = [val];
         } else {
-          json2.const = val;
+          json3.const = val;
         }
       } else {
         if (vals.every((v2) => typeof v2 === "number"))
-          json2.type = "number";
+          json3.type = "number";
         if (vals.every((v2) => typeof v2 === "string"))
-          json2.type = "string";
+          json3.type = "string";
         if (vals.every((v2) => typeof v2 === "boolean"))
-          json2.type = "boolean";
+          json3.type = "boolean";
         if (vals.every((v2) => v2 === null))
-          json2.type = "null";
-        json2.enum = vals;
+          json3.type = "null";
+        json3.enum = vals;
       }
     };
     nanProcessor = (_schema, ctx, _json, _params) => {
@@ -11410,16 +11410,16 @@ var init_json_schema_processors = __esm({
         throw new Error("NaN cannot be represented in JSON Schema");
       }
     };
-    templateLiteralProcessor = (schema, _ctx, json2, _params) => {
-      const _json = json2;
+    templateLiteralProcessor = (schema, _ctx, json3, _params) => {
+      const _json = json3;
       const pattern = schema._zod.pattern;
       if (!pattern)
         throw new Error("Pattern not found in template literal");
       _json.type = "string";
       _json.pattern = pattern.source;
     };
-    fileProcessor = (schema, _ctx, json2, _params) => {
-      const _json = json2;
+    fileProcessor = (schema, _ctx, json3, _params) => {
+      const _json = json3;
       const file2 = {
         type: "string",
         format: "binary",
@@ -11442,8 +11442,8 @@ var init_json_schema_processors = __esm({
         Object.assign(_json, file2);
       }
     };
-    successProcessor = (_schema, _ctx, json2, _params) => {
-      json2.type = "boolean";
+    successProcessor = (_schema, _ctx, json3, _params) => {
+      json3.type = "boolean";
     };
     customProcessor = (_schema, ctx, _json, _params) => {
       if (ctx.unrepresentable === "throw") {
@@ -11471,24 +11471,24 @@ var init_json_schema_processors = __esm({
       }
     };
     arrayProcessor = (schema, ctx, _json, params) => {
-      const json2 = _json;
+      const json3 = _json;
       const def = schema._zod.def;
       const { minimum, maximum } = schema._zod.bag;
       if (typeof minimum === "number")
-        json2.minItems = minimum;
+        json3.minItems = minimum;
       if (typeof maximum === "number")
-        json2.maxItems = maximum;
-      json2.type = "array";
-      json2.items = process2(def.element, ctx, { ...params, path: [...params.path, "items"] });
+        json3.maxItems = maximum;
+      json3.type = "array";
+      json3.items = process2(def.element, ctx, { ...params, path: [...params.path, "items"] });
     };
     objectProcessor = (schema, ctx, _json, params) => {
-      const json2 = _json;
+      const json3 = _json;
       const def = schema._zod.def;
-      json2.type = "object";
-      json2.properties = {};
+      json3.type = "object";
+      json3.properties = {};
       const shape = def.shape;
       for (const key in shape) {
-        json2.properties[key] = process2(shape[key], ctx, {
+        json3.properties[key] = process2(shape[key], ctx, {
           ...params,
           path: [...params.path, "properties", key]
         });
@@ -11503,21 +11503,21 @@ var init_json_schema_processors = __esm({
         }
       }));
       if (requiredKeys.size > 0) {
-        json2.required = Array.from(requiredKeys);
+        json3.required = Array.from(requiredKeys);
       }
       if (def.catchall?._zod.def.type === "never") {
-        json2.additionalProperties = false;
+        json3.additionalProperties = false;
       } else if (!def.catchall) {
         if (ctx.io === "output")
-          json2.additionalProperties = false;
+          json3.additionalProperties = false;
       } else if (def.catchall) {
-        json2.additionalProperties = process2(def.catchall, ctx, {
+        json3.additionalProperties = process2(def.catchall, ctx, {
           ...params,
           path: [...params.path, "additionalProperties"]
         });
       }
     };
-    unionProcessor = (schema, ctx, json2, params) => {
+    unionProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       const isExclusive = def.inclusive === false;
       const options = def.options.map((x, i) => process2(x, ctx, {
@@ -11525,12 +11525,12 @@ var init_json_schema_processors = __esm({
         path: [...params.path, isExclusive ? "oneOf" : "anyOf", i]
       }));
       if (isExclusive) {
-        json2.oneOf = options;
+        json3.oneOf = options;
       } else {
-        json2.anyOf = options;
+        json3.anyOf = options;
       }
     };
-    intersectionProcessor = (schema, ctx, json2, params) => {
+    intersectionProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       const a = process2(def.left, ctx, {
         ...params,
@@ -11545,12 +11545,12 @@ var init_json_schema_processors = __esm({
         ...isSimpleIntersection(a) ? a.allOf : [a],
         ...isSimpleIntersection(b) ? b.allOf : [b]
       ];
-      json2.allOf = allOf;
+      json3.allOf = allOf;
     };
     tupleProcessor = (schema, ctx, _json, params) => {
-      const json2 = _json;
+      const json3 = _json;
       const def = schema._zod.def;
-      json2.type = "array";
+      json3.type = "array";
       const prefixPath = ctx.target === "draft-2020-12" ? "prefixItems" : "items";
       const restPath = ctx.target === "draft-2020-12" ? "items" : ctx.target === "openapi-3.0" ? "items" : "additionalItems";
       const prefixItems = def.items.map((x, i) => process2(x, ctx, {
@@ -11562,37 +11562,37 @@ var init_json_schema_processors = __esm({
         path: [...params.path, restPath, ...ctx.target === "openapi-3.0" ? [def.items.length] : []]
       }) : null;
       if (ctx.target === "draft-2020-12") {
-        json2.prefixItems = prefixItems;
+        json3.prefixItems = prefixItems;
         if (rest) {
-          json2.items = rest;
+          json3.items = rest;
         }
       } else if (ctx.target === "openapi-3.0") {
-        json2.items = {
+        json3.items = {
           anyOf: prefixItems
         };
         if (rest) {
-          json2.items.anyOf.push(rest);
+          json3.items.anyOf.push(rest);
         }
-        json2.minItems = prefixItems.length;
+        json3.minItems = prefixItems.length;
         if (!rest) {
-          json2.maxItems = prefixItems.length;
+          json3.maxItems = prefixItems.length;
         }
       } else {
-        json2.items = prefixItems;
+        json3.items = prefixItems;
         if (rest) {
-          json2.additionalItems = rest;
+          json3.additionalItems = rest;
         }
       }
       const { minimum, maximum } = schema._zod.bag;
       if (typeof minimum === "number")
-        json2.minItems = minimum;
+        json3.minItems = minimum;
       if (typeof maximum === "number")
-        json2.maxItems = maximum;
+        json3.maxItems = maximum;
     };
     recordProcessor = (schema, ctx, _json, params) => {
-      const json2 = _json;
+      const json3 = _json;
       const def = schema._zod.def;
-      json2.type = "object";
+      json3.type = "object";
       const keyType = def.keyType;
       const keyBag = keyType._zod.bag;
       const patterns = keyBag?.patterns;
@@ -11601,18 +11601,18 @@ var init_json_schema_processors = __esm({
           ...params,
           path: [...params.path, "patternProperties", "*"]
         });
-        json2.patternProperties = {};
+        json3.patternProperties = {};
         for (const pattern of patterns) {
-          json2.patternProperties[pattern.source] = valueSchema;
+          json3.patternProperties[pattern.source] = valueSchema;
         }
       } else {
         if (ctx.target === "draft-07" || ctx.target === "draft-2020-12") {
-          json2.propertyNames = process2(def.keyType, ctx, {
+          json3.propertyNames = process2(def.keyType, ctx, {
             ...params,
             path: [...params.path, "propertyNames"]
           });
         }
-        json2.additionalProperties = process2(def.valueType, ctx, {
+        json3.additionalProperties = process2(def.valueType, ctx, {
           ...params,
           path: [...params.path, "additionalProperties"]
         });
@@ -11621,19 +11621,19 @@ var init_json_schema_processors = __esm({
       if (keyValues) {
         const validKeyValues = [...keyValues].filter((v2) => typeof v2 === "string" || typeof v2 === "number");
         if (validKeyValues.length > 0) {
-          json2.required = validKeyValues;
+          json3.required = validKeyValues;
         }
       }
     };
-    nullableProcessor = (schema, ctx, json2, params) => {
+    nullableProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       const inner = process2(def.innerType, ctx, params);
       const seen = ctx.seen.get(schema);
       if (ctx.target === "openapi-3.0") {
         seen.ref = def.innerType;
-        json2.nullable = true;
+        json3.nullable = true;
       } else {
-        json2.anyOf = [inner, { type: "null" }];
+        json3.anyOf = [inner, { type: "null" }];
       }
     };
     nonoptionalProcessor = (schema, ctx, _json, params) => {
@@ -11642,22 +11642,22 @@ var init_json_schema_processors = __esm({
       const seen = ctx.seen.get(schema);
       seen.ref = def.innerType;
     };
-    defaultProcessor = (schema, ctx, json2, params) => {
+    defaultProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       process2(def.innerType, ctx, params);
       const seen = ctx.seen.get(schema);
       seen.ref = def.innerType;
-      json2.default = JSON.parse(JSON.stringify(def.defaultValue));
+      json3.default = JSON.parse(JSON.stringify(def.defaultValue));
     };
-    prefaultProcessor = (schema, ctx, json2, params) => {
+    prefaultProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       process2(def.innerType, ctx, params);
       const seen = ctx.seen.get(schema);
       seen.ref = def.innerType;
       if (ctx.io === "input")
-        json2._prefault = JSON.parse(JSON.stringify(def.defaultValue));
+        json3._prefault = JSON.parse(JSON.stringify(def.defaultValue));
     };
-    catchProcessor = (schema, ctx, json2, params) => {
+    catchProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       process2(def.innerType, ctx, params);
       const seen = ctx.seen.get(schema);
@@ -11668,7 +11668,7 @@ var init_json_schema_processors = __esm({
       } catch {
         throw new Error("Dynamic catch values are not supported in JSON Schema");
       }
-      json2.default = catchValue;
+      json3.default = catchValue;
     };
     pipeProcessor = (schema, ctx, _json, params) => {
       const def = schema._zod.def;
@@ -11677,12 +11677,12 @@ var init_json_schema_processors = __esm({
       const seen = ctx.seen.get(schema);
       seen.ref = innerType;
     };
-    readonlyProcessor = (schema, ctx, json2, params) => {
+    readonlyProcessor = (schema, ctx, json3, params) => {
       const def = schema._zod.def;
       process2(def.innerType, ctx, params);
       const seen = ctx.seen.get(schema);
       seen.ref = def.innerType;
-      json2.readOnly = true;
+      json3.readOnly = true;
     };
     promiseProcessor = (schema, ctx, _json, params) => {
       const def = schema._zod.def;
@@ -13007,7 +13007,7 @@ var init_schemas2 = __esm({
     _ZodString = /* @__PURE__ */ $constructor("_ZodString", (inst, def) => {
       $ZodString.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => stringProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => stringProcessor(inst, ctx, json3, params);
       const bag = inst._zod.bag;
       inst.format = bag.format ?? null;
       inst.minLength = bag.minimum ?? null;
@@ -13150,7 +13150,7 @@ var init_schemas2 = __esm({
     ZodNumber2 = /* @__PURE__ */ $constructor("ZodNumber", (inst, def) => {
       $ZodNumber.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => numberProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => numberProcessor(inst, ctx, json3, params);
       inst.gt = (value, params) => inst.check(_gt(value, params));
       inst.gte = (value, params) => inst.check(_gte(value, params));
       inst.min = (value, params) => inst.check(_gte(value, params));
@@ -13180,12 +13180,12 @@ var init_schemas2 = __esm({
     ZodBoolean2 = /* @__PURE__ */ $constructor("ZodBoolean", (inst, def) => {
       $ZodBoolean.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => booleanProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => booleanProcessor(inst, ctx, json3, params);
     });
     ZodBigInt2 = /* @__PURE__ */ $constructor("ZodBigInt", (inst, def) => {
       $ZodBigInt.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => bigintProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => bigintProcessor(inst, ctx, json3, params);
       inst.gte = (value, params) => inst.check(_gte(value, params));
       inst.min = (value, params) => inst.check(_gte(value, params));
       inst.gt = (value, params) => inst.check(_gt(value, params));
@@ -13211,42 +13211,42 @@ var init_schemas2 = __esm({
     ZodSymbol2 = /* @__PURE__ */ $constructor("ZodSymbol", (inst, def) => {
       $ZodSymbol.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => symbolProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => symbolProcessor(inst, ctx, json3, params);
     });
     ZodUndefined2 = /* @__PURE__ */ $constructor("ZodUndefined", (inst, def) => {
       $ZodUndefined.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => undefinedProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => undefinedProcessor(inst, ctx, json3, params);
     });
     ZodNull2 = /* @__PURE__ */ $constructor("ZodNull", (inst, def) => {
       $ZodNull.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => nullProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => nullProcessor(inst, ctx, json3, params);
     });
     ZodAny2 = /* @__PURE__ */ $constructor("ZodAny", (inst, def) => {
       $ZodAny.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => anyProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => anyProcessor(inst, ctx, json3, params);
     });
     ZodUnknown2 = /* @__PURE__ */ $constructor("ZodUnknown", (inst, def) => {
       $ZodUnknown.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => unknownProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => unknownProcessor(inst, ctx, json3, params);
     });
     ZodNever2 = /* @__PURE__ */ $constructor("ZodNever", (inst, def) => {
       $ZodNever.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => neverProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => neverProcessor(inst, ctx, json3, params);
     });
     ZodVoid2 = /* @__PURE__ */ $constructor("ZodVoid", (inst, def) => {
       $ZodVoid.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => voidProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => voidProcessor(inst, ctx, json3, params);
     });
     ZodDate2 = /* @__PURE__ */ $constructor("ZodDate", (inst, def) => {
       $ZodDate.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => dateProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => dateProcessor(inst, ctx, json3, params);
       inst.min = (value, params) => inst.check(_gte(value, params));
       inst.max = (value, params) => inst.check(_lte(value, params));
       const c = inst._zod.bag;
@@ -13256,7 +13256,7 @@ var init_schemas2 = __esm({
     ZodArray2 = /* @__PURE__ */ $constructor("ZodArray", (inst, def) => {
       $ZodArray.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => arrayProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => arrayProcessor(inst, ctx, json3, params);
       inst.element = def.element;
       inst.min = (minLength, params) => inst.check(_minLength(minLength, params));
       inst.nonempty = (params) => inst.check(_minLength(1, params));
@@ -13267,7 +13267,7 @@ var init_schemas2 = __esm({
     ZodObject2 = /* @__PURE__ */ $constructor("ZodObject", (inst, def) => {
       $ZodObjectJIT.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => objectProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => objectProcessor(inst, ctx, json3, params);
       util_exports.defineLazy(inst, "shape", () => {
         return def.shape;
       });
@@ -13292,13 +13292,13 @@ var init_schemas2 = __esm({
     ZodUnion2 = /* @__PURE__ */ $constructor("ZodUnion", (inst, def) => {
       $ZodUnion.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => unionProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => unionProcessor(inst, ctx, json3, params);
       inst.options = def.options;
     });
     ZodXor = /* @__PURE__ */ $constructor("ZodXor", (inst, def) => {
       ZodUnion2.init(inst, def);
       $ZodXor.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => unionProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => unionProcessor(inst, ctx, json3, params);
       inst.options = def.options;
     });
     ZodDiscriminatedUnion2 = /* @__PURE__ */ $constructor("ZodDiscriminatedUnion", (inst, def) => {
@@ -13308,12 +13308,12 @@ var init_schemas2 = __esm({
     ZodIntersection2 = /* @__PURE__ */ $constructor("ZodIntersection", (inst, def) => {
       $ZodIntersection.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => intersectionProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => intersectionProcessor(inst, ctx, json3, params);
     });
     ZodTuple2 = /* @__PURE__ */ $constructor("ZodTuple", (inst, def) => {
       $ZodTuple.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => tupleProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => tupleProcessor(inst, ctx, json3, params);
       inst.rest = (rest) => inst.clone({
         ...inst._zod.def,
         rest
@@ -13322,14 +13322,14 @@ var init_schemas2 = __esm({
     ZodRecord2 = /* @__PURE__ */ $constructor("ZodRecord", (inst, def) => {
       $ZodRecord.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => recordProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => recordProcessor(inst, ctx, json3, params);
       inst.keyType = def.keyType;
       inst.valueType = def.valueType;
     });
     ZodMap2 = /* @__PURE__ */ $constructor("ZodMap", (inst, def) => {
       $ZodMap.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => mapProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => mapProcessor(inst, ctx, json3, params);
       inst.keyType = def.keyType;
       inst.valueType = def.valueType;
       inst.min = (...args) => inst.check(_minSize(...args));
@@ -13340,7 +13340,7 @@ var init_schemas2 = __esm({
     ZodSet2 = /* @__PURE__ */ $constructor("ZodSet", (inst, def) => {
       $ZodSet.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => setProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => setProcessor(inst, ctx, json3, params);
       inst.min = (...args) => inst.check(_minSize(...args));
       inst.nonempty = (params) => inst.check(_minSize(1, params));
       inst.max = (...args) => inst.check(_maxSize(...args));
@@ -13349,7 +13349,7 @@ var init_schemas2 = __esm({
     ZodEnum2 = /* @__PURE__ */ $constructor("ZodEnum", (inst, def) => {
       $ZodEnum.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => enumProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => enumProcessor(inst, ctx, json3, params);
       inst.enum = def.entries;
       inst.options = Object.values(def.entries);
       const keys = new Set(Object.keys(def.entries));
@@ -13387,7 +13387,7 @@ var init_schemas2 = __esm({
     ZodLiteral2 = /* @__PURE__ */ $constructor("ZodLiteral", (inst, def) => {
       $ZodLiteral.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => literalProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => literalProcessor(inst, ctx, json3, params);
       inst.values = new Set(def.values);
       Object.defineProperty(inst, "value", {
         get() {
@@ -13401,7 +13401,7 @@ var init_schemas2 = __esm({
     ZodFile = /* @__PURE__ */ $constructor("ZodFile", (inst, def) => {
       $ZodFile.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => fileProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => fileProcessor(inst, ctx, json3, params);
       inst.min = (size, params) => inst.check(_minSize(size, params));
       inst.max = (size, params) => inst.check(_maxSize(size, params));
       inst.mime = (types, params) => inst.check(_mime(Array.isArray(types) ? types : [types], params));
@@ -13409,7 +13409,7 @@ var init_schemas2 = __esm({
     ZodTransform = /* @__PURE__ */ $constructor("ZodTransform", (inst, def) => {
       $ZodTransform.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => transformProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => transformProcessor(inst, ctx, json3, params);
       inst._zod.parse = (payload, _ctx) => {
         if (_ctx.direction === "backward") {
           throw new $ZodEncodeError(inst.constructor.name);
@@ -13441,62 +13441,62 @@ var init_schemas2 = __esm({
     ZodOptional2 = /* @__PURE__ */ $constructor("ZodOptional", (inst, def) => {
       $ZodOptional.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => optionalProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => optionalProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodExactOptional = /* @__PURE__ */ $constructor("ZodExactOptional", (inst, def) => {
       $ZodExactOptional.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => optionalProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => optionalProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodNullable2 = /* @__PURE__ */ $constructor("ZodNullable", (inst, def) => {
       $ZodNullable.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => nullableProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => nullableProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodDefault2 = /* @__PURE__ */ $constructor("ZodDefault", (inst, def) => {
       $ZodDefault.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => defaultProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => defaultProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
       inst.removeDefault = inst.unwrap;
     });
     ZodPrefault = /* @__PURE__ */ $constructor("ZodPrefault", (inst, def) => {
       $ZodPrefault.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => prefaultProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => prefaultProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodNonOptional = /* @__PURE__ */ $constructor("ZodNonOptional", (inst, def) => {
       $ZodNonOptional.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => nonoptionalProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => nonoptionalProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodSuccess = /* @__PURE__ */ $constructor("ZodSuccess", (inst, def) => {
       $ZodSuccess.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => successProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => successProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodCatch2 = /* @__PURE__ */ $constructor("ZodCatch", (inst, def) => {
       $ZodCatch.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => catchProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => catchProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
       inst.removeCatch = inst.unwrap;
     });
     ZodNaN2 = /* @__PURE__ */ $constructor("ZodNaN", (inst, def) => {
       $ZodNaN.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => nanProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => nanProcessor(inst, ctx, json3, params);
     });
     ZodPipe = /* @__PURE__ */ $constructor("ZodPipe", (inst, def) => {
       $ZodPipe.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => pipeProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => pipeProcessor(inst, ctx, json3, params);
       inst.in = def.in;
       inst.out = def.out;
     });
@@ -13507,35 +13507,35 @@ var init_schemas2 = __esm({
     ZodReadonly2 = /* @__PURE__ */ $constructor("ZodReadonly", (inst, def) => {
       $ZodReadonly.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => readonlyProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => readonlyProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodTemplateLiteral = /* @__PURE__ */ $constructor("ZodTemplateLiteral", (inst, def) => {
       $ZodTemplateLiteral.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => templateLiteralProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => templateLiteralProcessor(inst, ctx, json3, params);
     });
     ZodLazy2 = /* @__PURE__ */ $constructor("ZodLazy", (inst, def) => {
       $ZodLazy.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => lazyProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => lazyProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.getter();
     });
     ZodPromise2 = /* @__PURE__ */ $constructor("ZodPromise", (inst, def) => {
       $ZodPromise.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => promiseProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => promiseProcessor(inst, ctx, json3, params);
       inst.unwrap = () => inst._zod.def.innerType;
     });
     ZodFunction2 = /* @__PURE__ */ $constructor("ZodFunction", (inst, def) => {
       $ZodFunction.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => functionProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => functionProcessor(inst, ctx, json3, params);
     });
     ZodCustom = /* @__PURE__ */ $constructor("ZodCustom", (inst, def) => {
       $ZodCustom.init(inst, def);
       ZodType2.init(inst, def);
-      inst._zod.processJSONSchema = (ctx, json2, params) => customProcessor(inst, ctx, json2, params);
+      inst._zod.processJSONSchema = (ctx, json3, params) => customProcessor(inst, ctx, json3, params);
     });
     describe2 = describe;
     meta2 = meta;
@@ -15398,10 +15398,10 @@ var require_util = __commonJS({
     var codegen_1 = require_codegen();
     var code_1 = require_code();
     function toHash(arr) {
-      const hash2 = {};
+      const hash3 = {};
       for (const item of arr)
-        hash2[item] = true;
-      return hash2;
+        hash3[item] = true;
+      return hash3;
     }
     exports.toHash = toHash;
     function alwaysValidSchema(it, schema) {
@@ -16472,26 +16472,26 @@ var require_json_schema_traverse = __commonJS({
       maxProperties: true,
       minProperties: true
     };
-    function _traverse(opts, pre, post, schema, jsonPtr, rootSchema2, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
+    function _traverse(opts, pre, post, schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex) {
       if (schema && typeof schema == "object" && !Array.isArray(schema)) {
-        pre(schema, jsonPtr, rootSchema2, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        pre(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
         for (var key in schema) {
           var sch = schema[key];
           if (Array.isArray(sch)) {
             if (key in traverse.arrayKeywords) {
               for (var i = 0; i < sch.length; i++)
-                _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema2, jsonPtr, key, schema, i);
+                _traverse(opts, pre, post, sch[i], jsonPtr + "/" + key + "/" + i, rootSchema, jsonPtr, key, schema, i);
             }
           } else if (key in traverse.propsKeywords) {
             if (sch && typeof sch == "object") {
               for (var prop in sch)
-                _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema2, jsonPtr, key, schema, prop);
+                _traverse(opts, pre, post, sch[prop], jsonPtr + "/" + key + "/" + escapeJsonPtr(prop), rootSchema, jsonPtr, key, schema, prop);
             }
           } else if (key in traverse.keywords || opts.allKeys && !(key in traverse.skipKeywords)) {
-            _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema2, jsonPtr, key, schema);
+            _traverse(opts, pre, post, sch, jsonPtr + "/" + key, rootSchema, jsonPtr, key, schema);
           }
         }
-        post(schema, jsonPtr, rootSchema2, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
+        post(schema, jsonPtr, rootSchema, parentJsonPtr, parentKeyword, parentSchema, keyIndex);
       }
     }
     function escapeJsonPtr(str) {
@@ -18961,7 +18961,7 @@ var require_core = __commonJS({
       errorsText(errors = this.errors, { separator = ", ", dataVar = "data" } = {}) {
         if (!errors || errors.length === 0)
           return "No errors";
-        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text, msg) => text + separator + msg);
+        return errors.map((e) => `${dataVar}${e.instancePath} ${e.message}`).reduce((text2, msg) => text2 + separator + msg);
       }
       $dataMetaSchema(metaSchema, keywordsJsonPointers) {
         const rules = this.RULES.all;
@@ -27679,8 +27679,8 @@ function parseStringDef(def, refs) {
   }
   return res;
 }
-function escapeLiteralCheckValue(literal2, refs) {
-  return refs.patternStrategy === "escape" ? escapeNonAlphaNumeric(literal2) : literal2;
+function escapeLiteralCheckValue(literal3, refs) {
+  return refs.patternStrategy === "escape" ? escapeNonAlphaNumeric(literal3) : literal3;
 }
 var ALPHA_NUMERIC = new Set("ABCDEFGHIJKLMNOPQRSTUVXYZabcdefghijklmnopqrstuvxyz0123456789");
 function escapeNonAlphaNumeric(source) {
@@ -30218,13 +30218,13 @@ var ExperimentalMcpServerTasks = class {
   constructor(_mcpServer) {
     this._mcpServer = _mcpServer;
   }
-  registerToolTask(name, config2, handler) {
-    const execution = { taskSupport: "required", ...config2.execution };
+  registerToolTask(name, config3, handler) {
+    const execution = { taskSupport: "required", ...config3.execution };
     if (execution.taskSupport === "forbidden") {
       throw new Error(`Cannot register task-based tool '${name}' with taskSupport 'forbidden'. Use registerTool() instead.`);
     }
     const mcpServerInternal = this._mcpServer;
-    return mcpServerInternal._createRegisteredTool(name, config2.title, config2.description, config2.inputSchema, config2.outputSchema, config2.annotations, execution, config2._meta, handler);
+    return mcpServerInternal._createRegisteredTool(name, config3.title, config3.description, config3.inputSchema, config3.outputSchema, config3.annotations, execution, config3._meta, handler);
   }
 };
 
@@ -30657,12 +30657,12 @@ var McpServer = class {
       return registeredResourceTemplate;
     }
   }
-  registerResource(name, uriOrTemplate, config2, readCallback) {
+  registerResource(name, uriOrTemplate, config3, readCallback) {
     if (typeof uriOrTemplate === "string") {
       if (this._registeredResources[uriOrTemplate]) {
         throw new Error(`Resource ${uriOrTemplate} is already registered`);
       }
-      const registeredResource = this._createRegisteredResource(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResource = this._createRegisteredResource(name, config3.title, uriOrTemplate, config3, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResource;
@@ -30670,7 +30670,7 @@ var McpServer = class {
       if (this._registeredResourceTemplates[name]) {
         throw new Error(`Resource template ${name} is already registered`);
       }
-      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config3.title, uriOrTemplate, config3, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResourceTemplate;
@@ -30786,14 +30786,14 @@ var McpServer = class {
     }
     return registeredPrompt;
   }
-  _createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, execution, _meta, handler) {
+  _createRegisteredTool(name, title, description, inputSchema2, outputSchema, annotations2, execution, _meta, handler) {
     validateAndWarnToolName(name);
     const registeredTool = {
       title,
       description,
-      inputSchema: getZodSchemaObject(inputSchema),
+      inputSchema: getZodSchemaObject(inputSchema2),
       outputSchema: getZodSchemaObject(outputSchema),
-      annotations,
+      annotations: annotations2,
       execution,
       _meta,
       handler,
@@ -30842,38 +30842,38 @@ var McpServer = class {
       throw new Error(`Tool ${name} is already registered`);
     }
     let description;
-    let inputSchema;
+    let inputSchema2;
     let outputSchema;
-    let annotations;
+    let annotations2;
     if (typeof rest[0] === "string") {
       description = rest.shift();
     }
     if (rest.length > 1) {
       const firstArg = rest[0];
       if (isZodRawShapeCompat(firstArg)) {
-        inputSchema = rest.shift();
+        inputSchema2 = rest.shift();
         if (rest.length > 1 && typeof rest[0] === "object" && rest[0] !== null && !isZodRawShapeCompat(rest[0])) {
-          annotations = rest.shift();
+          annotations2 = rest.shift();
         }
       } else if (typeof firstArg === "object" && firstArg !== null) {
         if (Object.values(firstArg).some((v2) => typeof v2 === "object" && v2 !== null)) {
           throw new Error(`Tool ${name} expected a Zod schema or ToolAnnotations, but received an unrecognized object`);
         }
-        annotations = rest.shift();
+        annotations2 = rest.shift();
       }
     }
     const callback = rest[0];
-    return this._createRegisteredTool(name, void 0, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, void 0, callback);
+    return this._createRegisteredTool(name, void 0, description, inputSchema2, outputSchema, annotations2, { taskSupport: "forbidden" }, void 0, callback);
   }
   /**
    * Registers a tool with a config object and callback.
    */
-  registerTool(name, config2, cb) {
+  registerTool(name, config3, cb) {
     if (this._registeredTools[name]) {
       throw new Error(`Tool ${name} is already registered`);
     }
-    const { title, description, inputSchema, outputSchema, annotations, _meta } = config2;
-    return this._createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, _meta, cb);
+    const { title, description, inputSchema: inputSchema2, outputSchema, annotations: annotations2, _meta } = config3;
+    return this._createRegisteredTool(name, title, description, inputSchema2, outputSchema, annotations2, { taskSupport: "forbidden" }, _meta, cb);
   }
   prompt(name, ...rest) {
     if (this._registeredPrompts[name]) {
@@ -30896,11 +30896,11 @@ var McpServer = class {
   /**
    * Registers a prompt with a config object and callback.
    */
-  registerPrompt(name, config2, cb) {
+  registerPrompt(name, config3, cb) {
     if (this._registeredPrompts[name]) {
       throw new Error(`Prompt ${name} is already registered`);
     }
-    const { title, description, argsSchema } = config2;
+    const { title, description, argsSchema } = config3;
     const registeredPrompt = this._createRegisteredPrompt(name, title, description, argsSchema, cb);
     this.setPromptRequestHandlers();
     this.sendPromptListChanged();
@@ -31121,8 +31121,8 @@ var StdioServerTransport = class {
   }
   send(message) {
     return new Promise((resolve2) => {
-      const json2 = serializeMessage(message);
-      if (this._stdout.write(json2)) {
+      const json3 = serializeMessage(message);
+      if (this._stdout.write(json3)) {
         resolve2();
       } else {
         this._stdout.once("drain", resolve2);
@@ -31228,178 +31228,179 @@ function N3(Z, $, J, X, V) {
 }
 
 // src/server.mjs
-import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { basename, dirname, isAbsolute, join, resolve } from "node:path";
+
+// src/state.mjs
+import { existsSync, readFileSync, readdirSync, realpathSync, mkdirSync, writeFileSync, renameSync } from "node:fs";
+import { homedir } from "node:os";
+import { basename, isAbsolute, join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
-var VERSION = "0.6.0";
-var RESOURCE_URI = "ui://operator/console.html";
-var TERMINAL_STATUSES = /* @__PURE__ */ new Set(["closed", "integrated", "shipped", "parked", "archived"]);
-var activeRoot = null;
-function readJson(path, fallback = null) {
+var hash2 = (value) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
+function json2(path, optional2 = false) {
+  if (optional2 && !existsSync(path)) return null;
   try {
     return JSON.parse(readFileSync(path, "utf8"));
   } catch {
-    return fallback;
+    throw new Error(`Cannot read valid Operator record: ${path}`);
   }
 }
-function ascend(start) {
-  let cursor = resolve(start);
-  while (true) {
-    if (existsSync(join(cursor, "operator.config.env"))) return cursor;
-    const parent = dirname(cursor);
-    if (parent === cursor) return null;
-    cursor = parent;
-  }
+function literal2(raw, key) {
+  const line = raw.split("\n").find((line2) => line2.startsWith(`${key}=`));
+  if (!line) return "";
+  const value = line.slice(key.length + 1).trim();
+  const match = value.match(/^(?:"([^"\n]*)"|'([^'\n]*)'|([^\s#]+))\s*(?:#.*)?$/);
+  if (!match) throw new Error(`Unsupported config value: ${key}. Use a literal path or value.`);
+  const result = match[1] ?? match[2] ?? match[3];
+  if (/[$`]/.test(result)) throw new Error(`Config expansion is not supported for ${key}.`);
+  return result;
 }
-function candidateRoots(explicit) {
-  const values = [explicit, activeRoot, process.env.OPERATOR_PROJECT_ROOT, process.cwd()];
-  const expanded = [];
-  for (const value of values.filter(Boolean)) {
-    expanded.push(value);
-    try {
-      for (const name of readdirSync(value)) {
-        const child = join(value, name);
-        if (statSync(child).isDirectory()) expanded.push(child);
-      }
-    } catch {
-    }
-  }
-  return [...new Set(expanded.map((value) => resolve(value)))];
-}
-function findRoot(explicit) {
-  if (explicit && !isAbsolute(explicit)) throw new Error("projectRoot must be an absolute path.");
-  for (const candidate of candidateRoots(explicit)) {
-    const found = ascend(candidate);
-    if (found) return realpathSync(found);
-  }
-  return null;
-}
-function parseConfig(path) {
-  const raw = readFileSync(path, "utf8");
-  const value = (key) => raw.match(new RegExp(`^${key}=["']?([^"'\\n]*)`, "m"))?.[1]?.trim() || "";
-  const laneBlock = raw.match(/^OPERATOR_LANES='\n([\s\S]*?)\n'/m)?.[1] || "";
-  const lanes = laneBlock.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
-    const [id, owner, worktree, branch, command] = line.split("|");
-    return { id, owner, worktree, branch, command, provider: command?.trim().split(/\s+/)[0] || "unknown" };
-  });
+function config2(root) {
+  const raw = readFileSync(join(root, "operator.config.env"), "utf8");
+  const block = raw.match(/^OPERATOR_LANES='\r?\n([\s\S]*?)\r?\n'/m)?.[1] || "";
   return {
-    projectName: value("PROJECT_NAME"),
-    projectRoot: value("PROJECT_ROOT"),
-    codeDir: value("CODE_DIR"),
-    operatorDir: value("OPERATOR_DIR"),
-    kitVersion: value("OPERATOR_KIT_VERSION"),
-    tmuxSession: value("TMUX_SESSION"),
-    lanes
+    name: literal2(raw, "PROJECT_NAME") || basename(root),
+    id: literal2(raw, "OPERATOR_PROJECT_ID"),
+    operatorDir: resolve(root, literal2(raw, "OPERATOR_DIR") || "operator"),
+    kitVersion: literal2(raw, "OPERATOR_KIT_VERSION") || "unknown",
+    session: literal2(raw, "TMUX_SESSION"),
+    lanes: block.split("\n").map((line) => line.trim()).filter(Boolean).map((line) => {
+      const [id, owner, worktree, branch] = line.split("|");
+      return { id, owner, worktree, branch };
+    })
   };
 }
-function findScripts(root) {
-  const candidates = [join(root, "scripts")];
+function frontier(root, operatorDir, capacity) {
+  const script = join(root, "scripts", "operator_local_graph.py");
+  if (!existsSync(script)) return { available: false, reason: "Canonical graph runtime is not installed.", runnable: [], excluded: [] };
+  const python = process.env.OPERATOR_PYTHON_PATH || (process.platform === "darwin" && existsSync("/Library/Developer/CommandLineTools/usr/bin/python3") ? "/Library/Developer/CommandLineTools/usr/bin/python3" : "python3");
+  const result = spawnSync(python, ["-E", "-s", script, "--operator-dir", operatorDir, "frontier", "--capacity", String(capacity), "--json"], { encoding: "utf8", timeout: 5e3, maxBuffer: 2 * 1024 * 1024 });
+  if (result.status !== 0) return { available: false, reason: (result.stderr || result.error?.message || "Canonical frontier failed.").trim().slice(0, 500), runnable: [], excluded: [] };
   try {
-    for (const name of readdirSync(root)) candidates.push(join(root, name, "scripts"));
+    const value = JSON.parse(result.stdout);
+    if (value.schemaVersion !== "operator.local-frontier/v1") throw new Error();
+    return { available: true, ...value };
+  } catch {
+    return { available: false, reason: "Invalid canonical frontier response.", runnable: [], excluded: [] };
+  }
+}
+function windows(session) {
+  if (!session) return { available: false, names: [] };
+  const result = spawnSync("tmux", ["list-windows", "-t", session, "-F", "#{window_name}"], { encoding: "utf8", timeout: 2e3 });
+  return { available: result.status === 0, names: result.status === 0 ? result.stdout.trim().split("\n") : [] };
+}
+function text(path) {
+  return existsSync(path) ? readFileSync(path, "utf8").slice(0, 6e3) : "";
+}
+function events(path, featureId) {
+  if (!existsSync(path)) return [];
+  const lines = readFileSync(path, "utf8").split("\n").filter(Boolean).slice(-8);
+  return lines.flatMap((line) => {
+    try {
+      const event = JSON.parse(line);
+      return [{ featureId, occurredAt: event.occurredAt, action: event.action, taskId: event.details?.nodeId || "", state: event.details?.to || "", source: "Operator graph event" }];
+    } catch {
+      return [];
+    }
+  });
+}
+function viewPath(project) {
+  return join(project.operatorDir, "console", "views", `${hash2(homedir()).slice(0, 16)}.json`);
+}
+function saveView(project, view) {
+  const path = viewPath(project);
+  mkdirSync(join(project.operatorDir, "console", "views"), { recursive: true });
+  const temporary = `${path}.${process.pid}.${Date.now()}.tmp`;
+  writeFileSync(temporary, JSON.stringify(view), { mode: 384 });
+  renameSync(temporary, path);
+}
+function snapshot(projectRoot, capacity = 4) {
+  if (!projectRoot || !isAbsolute(projectRoot)) throw new Error("Pass the absolute initialized projectRoot. This console never falls back to another project.");
+  if (!existsSync(join(projectRoot, "operator.config.env"))) throw new Error("No operator.config.env at the requested projectRoot. Select an initialized Operator project.");
+  const root = realpathSync(projectRoot);
+  const cfg = config2(root);
+  const operatorDir = realpathSync(cfg.operatorDir);
+  const project = { id: cfg.id || `local-${hash2(root).slice(0, 20)}`, root, operatorDir, name: cfg.name, kitVersion: cfg.kitVersion, identityScope: cfg.id ? "configured" : "local-path" };
+  const readiness = frontier(root, operatorDir, capacity);
+  const windowState = windows(cfg.session);
+  const featuresDir = join(operatorDir, "features");
+  const features = !existsSync(featuresDir) ? [] : readdirSync(featuresDir, { withFileTypes: true }).filter((e) => e.isDirectory() && e.name.startsWith("FS-")).sort((a, b) => a.name.localeCompare(b.name)).map((entry) => {
+    const folder = join(featuresDir, entry.name);
+    const status = json2(join(folder, "status.json"));
+    if (typeof status.id !== "string" || typeof status.status !== "string") throw new Error(`Incomplete feature status: ${entry.name}`);
+    const graph = json2(join(folder, "graph.json"), true);
+    if (graph && (!Array.isArray(graph.nodes) || graph.featureId !== status.id)) throw new Error(`Invalid graph for ${status.id}`);
+    const tasks = (graph?.nodes || []).map((node) => {
+      const eligible = readiness.available && readiness.runnable.some((item) => item.featureId === status.id && item.node.id === node.id);
+      const reasons = readiness.excluded.find((item) => item.featureId === status.id && item.node.id === node.id)?.reasons || [];
+      return { id: node.id, title: node.title || node.id, state: node.state, lane: node.lane, approval: node.approval, dependsOn: node.dependsOn || [], eligible, reasons, updatedAt: graph.updatedAt, source: "Operator dependency graph" };
+    });
+    const recordNames = ["feature.md", "decisions.md", "memory.md"];
+    return { id: status.id, title: status.title || status.id, status: status.status, branch: status.branch || "", worktree: status.worktree || "", updatedAt: status.updatedAt || status.lastActivity || "", boundChats: (status.boundChats || []).filter((c) => c.tool === "codex" && typeof c.chat === "string").map((c) => ({ id: c.chat, boundAt: c.boundAt })), tasks, graphRevision: graph?.revision ?? null, recentChanges: events(join(folder, "graph-events.jsonl"), status.id), brief: text(join(folder, "feature.md")), records: recordNames.filter((name) => existsSync(join(folder, name))).map((name) => ({ name, path: join(folder, name), excerpt: text(join(folder, name)) })) };
+  });
+  const attention = features.flatMap((feature) => [
+    ...["blocked", "in-review", "human-feedback"].includes(feature.status) ? [{ featureId: feature.id, title: feature.title, reason: `Feature: ${feature.status}`, source: "Recorded feature status" }] : [],
+    ...feature.tasks.filter((task) => ["blocked", "failed"].includes(task.state) || task.approval === "pending").map((task) => ({ featureId: feature.id, taskId: task.id, title: task.title, reason: task.approval === "pending" ? "Approval pending" : task.state, source: task.source }))
+  ]);
+  const data = { schemaVersion: "operator.console/v2", project, features, attention, readiness, lanes: cfg.lanes.map((lane) => ({ ...lane, windowPresent: windowState.available ? windowState.names.includes(lane.id) : null, activity: "unknown" })), summary: { features: features.length, recordedActiveTasks: features.reduce((n, f2) => n + f2.tasks.filter((t) => t.state === "active").length, 0), attention: attention.length, eligibleTasks: readiness.available ? readiness.runnable.length : null }, capabilities: { mode: "read-only", pollIntervalMs: 4e3, collaboration: "local-records", knowledge: "local-documents" } };
+  let savedView = null;
+  try {
+    savedView = json2(viewPath(project), true);
   } catch {
   }
-  return candidates.find((path) => existsSync(join(path, "operator-feature.sh"))) || null;
+  return { ...data, savedView, revision: hash2(data), generatedAt: (/* @__PURE__ */ new Date()).toISOString() };
 }
-function tmuxWindows(session) {
-  if (!session) return /* @__PURE__ */ new Set();
-  const result = spawnSync("tmux", ["list-windows", "-t", session, "-F", "#{window_name}"], { encoding: "utf8", timeout: 2500 });
-  return result.status === 0 ? new Set(result.stdout.trim().split("\n").filter(Boolean)) : /* @__PURE__ */ new Set();
-}
-function readFeatures(operatorDir) {
-  const featuresDir = join(operatorDir, "features");
-  if (!existsSync(featuresDir)) return [];
-  return readdirSync(featuresDir, { withFileTypes: true }).filter((entry) => entry.isDirectory() && entry.name.startsWith("FS-")).map((entry) => {
-    const folder = join(featuresDir, entry.name);
-    const status = readJson(join(folder, "status.json"), {});
-    const graph = readJson(join(folder, "graph.json"), { nodes: [], revision: 0 });
-    const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
-    const counts = nodes.reduce((acc, node) => {
-      acc[node.state || "unknown"] = (acc[node.state || "unknown"] || 0) + 1;
-      return acc;
-    }, {});
-    const runnable = nodes.filter((node) => ["pending", "ready"].includes(node.state) && (node.dependsOn || []).every((id) => nodes.find((other) => other.id === id)?.state === "completed"));
-    return {
-      id: status.id || entry.name.split("-").slice(0, 2).join("-"),
-      slug: status.slug || entry.name,
-      title: status.title || entry.name,
-      status: status.status || "unknown",
-      branch: status.branch || "",
-      worktree: status.worktree || "",
-      updatedAt: status.updatedAt || status.lastActivity || graph.updatedAt || "",
-      boundChats: status.boundChats || [],
-      roles: status.roleInstances || [],
-      claims: status.claims || {},
-      merge: status.merge || {},
-      graph: { revision: graph.revision || 0, nodes, counts, runnable: runnable.map((node) => node.id) }
-    };
-  }).filter((feature) => !TERMINAL_STATUSES.has(feature.status)).sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
-}
-function conflictSummary(root, scripts) {
-  if (!scripts || !existsSync(join(scripts, "operator-conflicts.sh"))) return "";
-  const result = spawnSync("bash", [join(scripts, "operator-conflicts.sh"), "summary"], { cwd: root, encoding: "utf8", timeout: 5e3 });
-  return (result.stdout || result.stderr || "").trim();
-}
-function snapshot(projectRoot) {
-  const root = findRoot(projectRoot);
-  if (!root) {
-    return { schemaVersion: "operator.console/v1", initialized: false, searchedFrom: projectRoot || process.cwd(), message: "No operator.config.env was found. Open the console from an initialized Operator project or pass its absolute project root.", generatedAt: (/* @__PURE__ */ new Date()).toISOString() };
+
+// src/server.mjs
+var RESOURCE_URI = "ui://operator/console-v2.html";
+var server = new McpServer({ name: "operator-console", version: "0.6.0" });
+var inputSchema = {
+  projectRoot: external_exports3.string().describe("Exact absolute project root containing operator.config.env; required on every call."),
+  projectId: external_exports3.string().optional().describe("Expected project ID from the initial snapshot; prevents accidental rebinding."),
+  sinceRevision: external_exports3.string().optional().describe("Last received revision; unchanged reads return only a receipt."),
+  capacity: external_exports3.number().int().min(0).max(100).default(4).describe("Explicit advisory frontier capacity; never dispatches work.")
+};
+var annotations = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
+async function read(args) {
+  try {
+    const state = snapshot(args.projectRoot, args.capacity);
+    if (args.projectId && args.projectId !== state.project.id) throw new Error("Project identity changed. Reopen the intended project explicitly.");
+    const unchanged = args.sinceRevision === state.revision;
+    const structuredContent = unchanged ? { schemaVersion: state.schemaVersion, unchanged: true, project: state.project, revision: state.revision, generatedAt: state.generatedAt } : state;
+    return { content: [{ type: "text", text: `${state.project.name}: ${state.summary.features} features; ${state.summary.attention} attention items. ${unchanged ? "No recorded changes." : "Snapshot read."}` }], structuredContent };
+  } catch (error48) {
+    return { isError: true, content: [{ type: "text", text: error48.message }] };
   }
-  activeRoot = root;
-  const config2 = parseConfig(join(root, "operator.config.env"));
-  const operatorDir = config2.operatorDir && isAbsolute(config2.operatorDir) ? config2.operatorDir : join(root, config2.operatorDir || "operator");
-  const windows = tmuxWindows(config2.tmuxSession);
-  const lanes = config2.lanes.map((lane) => ({ ...lane, running: windows.has(lane.id) }));
-  const features = readFeatures(operatorDir);
-  const scripts = findScripts(root);
-  return {
-    schemaVersion: "operator.console/v1",
-    initialized: true,
-    generatedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    project: { name: config2.projectName || basename(root), root, kitVersion: config2.kitVersion || "unknown", operatorDir },
-    summary: {
-      activeFeatures: features.length,
-      runningLanes: lanes.filter((lane) => lane.running).length,
-      runnableTasks: features.reduce((sum, feature) => sum + feature.graph.runnable.length, 0),
-      pendingApprovals: features.reduce((sum, feature) => sum + feature.graph.nodes.filter((node) => node.approval === "pending").length, 0)
-    },
-    lanes,
-    features,
-    conflicts: conflictSummary(root, scripts),
-    capabilities: { mode: "read-only", embeddedActions: ["refresh", "ask-plan", "ask-conflicts", "ask-status"] }
-  };
 }
-function textSummary(state) {
-  if (!state.initialized) return state.message;
-  return `${state.project.name}: ${state.summary.activeFeatures} active features, ${state.summary.runnableTasks} runnable tasks, ${state.summary.runningLanes} running lanes. The embedded Operator Console is attached.`;
-}
-var rootSchema = { projectRoot: external_exports3.string().optional().describe("Absolute root of the initialized Operator project. Pass the current workspace root when known.") };
-var server = new McpServer({ name: "operator-console", version: VERSION });
-for (const [name, title, description] of [
-  ["operator_console", "Open Operator Console", "Open the embedded, read-only Operator project console. Pass the current workspace root when known."],
-  ["operator_console_refresh", "Refresh Operator Console", "Refresh the embedded Operator project console without changing project state."]
-]) {
-  K3(server, name, {
-    title,
-    description,
-    inputSchema: rootSchema,
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-    _meta: { ui: { resourceUri: RESOURCE_URI, visibility: ["app", "model"] }, "openai/outputTemplate": RESOURCE_URI }
-  }, async ({ projectRoot }) => {
-    try {
-      const state = snapshot(projectRoot);
-      return { content: [{ type: "text", text: textSummary(state) }], structuredContent: state };
-    } catch (error48) {
-      return { isError: true, content: [{ type: "text", text: `Operator Console: ${error48.message}` }] };
-    }
-  });
-}
-N3(server, "Operator Console", RESOURCE_URI, { mimeType: p }, async () => ({
-  contents: [{
-    uri: RESOURCE_URI,
-    mimeType: p,
-    text: await readFile(new URL("../dist/console.html", import.meta.url), "utf8"),
-    _meta: { ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } } }
-  }]
-}));
+K3(server, "operator_console", {
+  title: "Open Operator cockpit",
+  description: "Open one project cockpit. Always pass the initialized Operator workspace root; source worktrees may live below it.",
+  inputSchema,
+  annotations,
+  _meta: { ui: { resourceUri: RESOURCE_URI, visibility: ["app", "model"] } }
+}, (args) => read({ ...args, sinceRevision: void 0 }));
+server.registerTool("operator_console_refresh", {
+  title: "Read Operator cockpit state",
+  description: "Read or poll the same bound project without creating another UI card. Returns an acknowledged snapshot or unchanged revision.",
+  inputSchema,
+  annotations,
+  _meta: { ui: { visibility: ["app", "model"] } }
+}, read);
+server.registerTool("operator_console_save_view", {
+  title: "Remember Operator cockpit view",
+  description: "Save only this local user\u2019s project cockpit selection, tab and scroll position. Does not change tasks or dispatch work.",
+  inputSchema: { projectRoot: inputSchema.projectRoot, projectId: external_exports3.string(), view: external_exports3.object({ selectedId: external_exports3.string().nullable(), selectedTask: external_exports3.string().nullable(), tab: external_exports3.enum(["work", "brief", "records"]), scrollY: external_exports3.number().min(0).max(1e6) }).strict() },
+  annotations: { ...annotations, readOnlyHint: false },
+  _meta: { ui: { visibility: ["app"] } }
+}, async (args) => {
+  try {
+    const state = snapshot(args.projectRoot);
+    if (state.project.id !== args.projectId) throw new Error("Project identity mismatch.");
+    saveView(state.project, args.view);
+    return { content: [{ type: "text", text: "Cockpit view saved." }], structuredContent: { saved: true, projectId: state.project.id } };
+  } catch (e) {
+    return { isError: true, content: [{ type: "text", text: e.message }] };
+  }
+});
+N3(server, "Operator cockpit", RESOURCE_URI, { mimeType: p }, async () => ({ contents: [{ uri: RESOURCE_URI, mimeType: p, text: await readFile(new URL("../dist/console.html", import.meta.url), "utf8"), _meta: { ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } } } }] }));
 await server.connect(new StdioServerTransport());

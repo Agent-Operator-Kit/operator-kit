@@ -1,150 +1,129 @@
-import { App, applyDocumentTheme, applyHostFonts, applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
+import { App, applyDocumentTheme, applyHostStyleVariables } from '@modelcontextprotocol/ext-apps';
 
 const root = document.querySelector('#app');
 const notice = document.querySelector('#notice');
-const bridge = new App({ name: 'Operator Console', version: '0.6.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
-let state = null;
-let selectedId = null;
-let busy = false;
+const bridge = new App({ name: 'Operator Console POC', version: '0.6.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const stamp = value => value ? new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'not yet';
+let state, selectedId, selectedTask, timer, busy = false, failures = 0, lastRead, connected = false, requestSequence = 0, saveTimer, restored = false;
+let currentTab = 'work';
+let error = '';
+let toolRoot;
+const view = () => ({ selectedId: selectedId || null, selectedTask: selectedTask || null, tab: currentTab, scrollY: window.scrollY });
 
-const escape = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]);
-const stamp = value => value ? new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No activity';
-
-function toast(message, error = false) {
-  notice.textContent = message;
-  notice.className = error ? 'show error' : 'show';
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => { notice.className = ''; }, 4200);
+function say(message) { notice.textContent = message; notice.className = 'show'; clearTimeout(say.timer); say.timer = setTimeout(() => { notice.className = ''; }, 6000); }
+function statusLine() {
+  const label = !connected ? 'Connecting to host' : error ? `Stale · last checked ${stamp(lastRead)} · ${error}` : busy ? 'Checking for changes…' : `Checked ${stamp(lastRead)} · auto refresh ${document.hidden ? 'paused' : 'every 4s'}`;
+  const el = document.querySelector('#sync');
+  if (el) { el.textContent = label; el.dataset.stale = String(Boolean(error)); }
+  const button = document.querySelector('#refresh');
+  if (button) button.disabled = busy;
 }
-
-function ingest(result) {
-  if (!result?.structuredContent?.schemaVersion) return;
-  state = result.structuredContent;
-  if (state.initialized && !state.features.some(feature => feature.id === selectedId)) selectedId = state.features[0]?.id || null;
-  render();
-}
-
-async function refresh() {
-  if (busy) return;
-  busy = true;
-  render();
-  try {
-    const result = await bridge.callServerTool({ name: 'operator_console_refresh', arguments: { projectRoot: state?.project?.root } });
-    if (result.isError) throw new Error(result.content?.[0]?.text || 'Refresh failed.');
-    ingest(result);
-    toast('Operator state refreshed.');
-  } catch (error) { toast(error.message, true); }
-  finally { busy = false; render(); }
-}
-
-async function ask(prompt) {
-  try {
-    const result = await bridge.sendMessage({ role: 'user', content: [{ type: 'text', text: prompt }] });
-    if (result?.isError) throw new Error('Codex did not accept the request.');
-    toast('Request added to this conversation.');
-  } catch (error) { toast(error.message, true); }
-}
-
-function mark() { return '<span class="mark" aria-hidden="true">o<span>:</span></span>'; }
-
-function featureCard(feature) {
-  const total = feature.graph.nodes.length;
-  const completed = feature.graph.counts.completed || 0;
-  const progress = total ? Math.round(completed / total * 100) : 0;
-  return `<button class="feature-card ${feature.id === selectedId ? 'selected' : ''}" data-feature="${escape(feature.id)}">
-    <span class="feature-top"><span class="feature-id">${escape(feature.id)}</span><span class="status ${escape(feature.status)}">${escape(feature.status)}</span></span>
-    <strong>${escape(feature.title)}</strong>
-    <span class="progress"><i style="width:${progress}%"></i></span>
-    <span class="feature-meta"><span>${completed}/${total || '—'} complete</span><span>${feature.graph.runnable.length} runnable</span></span>
-  </button>`;
-}
-
-function nodeRow(node, feature) {
-  const runnable = feature.graph.runnable.includes(node.id);
-  return `<div class="node-row">
-    <span class="node-state ${escape(node.state)}">${node.state === 'completed' ? '✓' : runnable ? '→' : '·'}</span>
-    <span class="node-copy"><strong>${escape(node.title || node.id)}</strong><small>${escape(node.id)} · ${escape(node.lane || 'unassigned')}</small></span>
-    <span class="node-tags">${runnable ? '<b>runnable</b>' : ''}${node.approval === 'pending' ? '<em>approval</em>' : ''}</span>
-  </div>`;
-}
-
-function detail(feature) {
-  if (!feature) return '<section class="empty panel"><h2>No active features</h2><p>Operator is initialized, but no active feature sessions were found.</p></section>';
-  const next = feature.graph.nodes.filter(node => feature.graph.runnable.includes(node.id));
-  return `<section class="detail panel">
-    <div class="detail-head"><div><span class="eyebrow">${escape(feature.id)} · ${escape(feature.branch || 'no branch')}</span><h2>${escape(feature.title)}</h2></div><span class="status ${escape(feature.status)}">${escape(feature.status)}</span></div>
-    <div class="detail-meta"><span>Updated ${escape(stamp(feature.updatedAt))}</span><span>${feature.boundChats.length} bound chat${feature.boundChats.length === 1 ? '' : 's'}</span><span>${feature.roles.length} role${feature.roles.length === 1 ? '' : 's'}</span></div>
-    <div class="section-head"><h3>Dependency graph</h3><span>revision ${feature.graph.revision}</span></div>
-    <div class="nodes">${feature.graph.nodes.length ? feature.graph.nodes.map(node => nodeRow(node, feature)).join('') : '<p class="muted">No graph has been created for this feature.</p>'}</div>
-    <div class="actions">
-      <button class="primary" id="ask-plan" ${!next.length ? 'disabled' : ''}>Plan next runnable task</button>
-      <button class="secondary" id="ask-status">Explain this feature</button>
-    </div>
-    <p class="safety">These buttons send a request into this Codex conversation. They do not dispatch, merge, or modify the project by themselves.</p>
-  </section>`;
-}
-
-function initialized() {
-  const feature = state.features.find(item => item.id === selectedId);
-  return `<header>
-    <div class="brand">${mark()}<span>Operator <i>Console</i></span><b>EMBEDDED</b></div>
-    <div class="project"><strong>${escape(state.project.name)}</strong><span>Kit ${escape(state.project.kitVersion)} · read-only</span></div>
-    <button class="icon-button" id="refresh" aria-label="Refresh" title="Refresh" ${busy ? 'disabled' : ''}>${busy ? '…' : '↻'}</button>
-  </header>
-  <main>
-    <section class="metrics">
-      <div><strong>${state.summary.activeFeatures}</strong><span>Active features</span></div>
-      <div><strong>${state.summary.runnableTasks}</strong><span>Runnable tasks</span></div>
-      <div><strong>${state.summary.runningLanes}</strong><span>Running lanes</span></div>
-      <div><strong>${state.summary.pendingApprovals}</strong><span>Approvals waiting</span></div>
-    </section>
-    <div class="layout">
-      <aside class="feature-list panel"><div class="section-head"><h2>Feature sessions</h2><span>${state.features.length}</span></div>${state.features.map(featureCard).join('')}</aside>
-      ${detail(feature)}
-    </div>
-    <section class="lanes panel"><div class="section-head"><h2>Worker lanes</h2><span>${state.lanes.filter(lane => lane.running).length} live</span></div><div class="lane-grid">${state.lanes.map(lane => `<div class="lane"><span class="live ${lane.running ? 'on' : ''}"></span><div><strong>${escape(lane.id)}</strong><small>${escape(lane.owner)}</small></div><code>${escape(lane.provider)}</code></div>`).join('')}</div></section>
-    <section class="conflicts panel"><div class="section-head"><h2>Coordination check</h2><button class="text-button" id="ask-conflicts">Ask Codex to review</button></div><pre>${escape(state.conflicts || 'No conflict summary is available.')}</pre></section>
-  </main>
-  <footer><span>${escape(state.project.root)}</span><span>MCP App → Operator project state</span></footer>`;
-}
-
-function uninitialized() {
-  return `<div class="setup"><div class="brand">${mark()}<span>Operator <i>Console</i></span></div><h1>Open an initialized Operator project</h1><p>${escape(state.message)}</p><code>${escape(state.searchedFrom)}</code><button class="primary" id="ask-setup">Set up Operator here</button></div>`;
-}
-
-function bind() {
-  document.querySelector('#refresh')?.addEventListener('click', refresh);
-  document.querySelectorAll('[data-feature]').forEach(button => button.addEventListener('click', () => { selectedId = button.dataset.feature; render(); }));
-  document.querySelector('#ask-plan')?.addEventListener('click', () => ask(`Using Operator, inspect ${selectedId} in ${state.project.root}. Propose the next runnable task and wait for my approval before dispatching it.`));
-  document.querySelector('#ask-status')?.addEventListener('click', () => ask(`Using Operator, explain the current status, blockers, and next decision for ${selectedId} in ${state.project.root}.`));
-  document.querySelector('#ask-conflicts')?.addEventListener('click', () => ask(`Using Operator, review active feature conflicts in ${state.project.root} and recommend any coordination needed. Do not dispatch work.`));
-  document.querySelector('#ask-setup')?.addEventListener('click', () => ask('Using Operator, inspect this workspace and guide me through the correct project setup. Do not install or change files until you show me the plan.'));
-}
-
-function render() {
+function saveView() {
+  clearTimeout(saveTimer);
   if (!state) return;
-  root.innerHTML = state.initialized ? initialized() : uninitialized();
-  bind();
+  window.openai?.setWidgetState?.({ projectId: state.project.id, ...view() });
+  saveTimer = setTimeout(async () => {
+    try {
+      const result = await bridge.callServerTool({ name: 'operator_console_save_view', arguments: { projectRoot: state.project.root, projectId: state.project.id, view: view() } });
+      if (result.isError) throw new Error(result.content?.[0]?.text);
+    } catch { say('View could not be saved. Current selection is still available while this view is open.'); }
+  }, 600);
 }
-
-bridge.ontoolresult = ingest;
-bridge.onhostcontextchanged = context => {
-  if (context.theme) applyDocumentTheme(context.theme);
-  if (context.styles?.variables) applyHostStyleVariables(context.styles.variables);
-  if (context.styles?.css?.fonts) applyHostFonts(context.styles.css.fonts);
-};
-
+function ingest(result) {
+  if (result?.isError) throw new Error(result.content?.[0]?.text || 'Read failed.');
+  const next = result?.structuredContent;
+  if (next?.schemaVersion !== 'operator.console/v2' || !next.project?.id || !next.revision || !next.generatedAt) throw new Error('Invalid snapshot returned by Operator.');
+  if (state && (state.project.id !== next.project.id || state.project.root !== next.project.root)) throw new Error('Project binding changed. Reopen the intended project.');
+  if (!state && next.unchanged) throw new Error('The initial snapshot was missing.');
+  if (!next.unchanged && (!Array.isArray(next.features) || !Array.isArray(next.attention))) throw new Error('Incomplete project snapshot.');
+  lastRead = next.generatedAt;
+  error = '';
+  failures = 0;
+  if (next.unchanged) { statusLine(); return; }
+  const changed = state?.revision !== next.revision;
+  state = next;
+  if (!restored) {
+    const stored = window.openai?.widgetState;
+    const saved = stored?.projectId === state.project.id ? stored : state.savedView;
+    selectedId = saved?.selectedId || state.features[0]?.id;
+    selectedTask = saved?.selectedTask || null;
+    currentTab = saved?.tab || 'work';
+    restored = true;
+    render();
+    requestAnimationFrame(() => window.scrollTo(0, saved?.scrollY || 0));
+  } else if (changed) render();
+  statusLine();
+}
+function schedule() {
+  clearTimeout(timer);
+  if (!connected || document.hidden || !state) return;
+  timer = setTimeout(() => refresh(), Math.min(30000, 4000 * 2 ** Math.min(failures, 3)));
+}
+async function refresh(manual = false) {
+  if (busy || !connected || !toolRoot) return;
+  busy = true; const sequence = ++requestSequence; statusLine();
+  try {
+    const result = await bridge.callServerTool({ name: 'operator_console_refresh', arguments: { projectRoot: state?.project.root || toolRoot, projectId: state?.project.id, sinceRevision: state?.revision, capacity: 4 } }, { timeout: 12000 });
+    if (sequence !== requestSequence) return;
+    ingest(result);
+    if (manual) say(`Refresh completed at ${stamp(lastRead)}.`);
+  } catch (e) {
+    error = e.message; failures++;
+    if (!state) {
+      root.innerHTML = `<section class="setup"><h1>Unable to read this project</h1><p>${escape(error)}</p><button id="refresh">Retry</button></section>`;
+      document.querySelector('#refresh').onclick = () => refresh(true);
+    }
+  } finally { busy = false; statusLine(); schedule(); }
+}
+function featureCard(feature) {
+  return `<button class="feature-card ${feature.id === selectedId ? 'selected' : ''}" data-feature="${escape(feature.id)}" aria-pressed="${feature.id === selectedId}"><span class="feature-top"><span class="feature-id">${escape(feature.id)}</span><span class="status ${escape(feature.status)}">${escape(feature.status)}</span></span><strong>${escape(feature.title)}</strong><span class="feature-meta">${feature.tasks.length} recorded tasks · ${feature.tasks.filter(t => t.state === 'completed').length} completed</span></button>`;
+}
+function taskDetail(feature) {
+  const task = feature.tasks.find(t => t.id === selectedTask);
+  if (selectedTask && !task) return '<p class="muted">The selected task is no longer in the latest record.</p>';
+  if (!task) return '<p class="muted">Select a recorded task to inspect its state and dependencies.</p>';
+  return `<div class="task-detail"><span class="eyebrow">${escape(task.id)}</span><h3>${escape(task.title)}</h3><dl><dt>Recorded state</dt><dd>${escape(task.state)}</dd><dt>Lane</dt><dd>${escape(task.lane || 'unassigned')}</dd><dt>Approval</dt><dd>${escape(task.approval)}</dd><dt>Dependencies</dt><dd>${escape(task.dependsOn.join(', ') || 'none')}</dd><dt>Eligibility</dt><dd>${task.eligible ? 'Selected by advisory frontier; execution is a separate action.' : escape(task.reasons.join('; ') || 'Not selected by the current frontier.')}</dd><dt>Evidence</dt><dd>${escape(task.source)} · revision ${feature.graphRevision} · ${stamp(task.updatedAt)}</dd></dl></div>`;
+}
+function detail(feature) {
+  if (!feature) return `<section class="panel empty"><h2>${selectedId ? 'Selected feature unavailable' : 'No feature sessions yet'}</h2><p>Choose a feature from the project overview when one is available.</p></section>`;
+  const tabs = ['work', 'brief', 'records'];
+  const content = currentTab === 'work' ? `<div class="nodes">${feature.tasks.length ? feature.tasks.map(task => `<button class="node-row ${task.id === selectedTask ? 'selected' : ''}" data-task="${escape(task.id)}" aria-pressed="${task.id === selectedTask}"><span class="node-copy"><strong>${escape(task.title)}</strong><small>${escape(task.lane || 'unassigned')}</small></span><span class="status">${escape(task.state)}</span></button>`).join('') : '<p class="muted">No dependency graph tasks have been recorded for this feature.</p>'}</div>${taskDetail(feature)}` : currentTab === 'brief' ? `<pre class="record">${escape(feature.brief || 'No feature brief recorded.')}</pre>` : `<div class="records">${feature.records.map(record => `<details data-record="${escape(record.name)}"><summary>${escape(record.name)}</summary><small>${escape(record.path)}</small><pre class="record">${escape(record.excerpt)}</pre></details>`).join('')}<p class="muted">Local source documents. Shared knowledge and session questions are not connected in this POC.</p></div>`;
+  return `<section class="detail panel"><div class="detail-head"><div><span class="eyebrow">${escape(feature.id)} · ${escape(feature.branch || 'no branch')}</span><h2>${escape(feature.title)}</h2></div><span class="status">${escape(feature.status)}</span></div><p class="detail-meta">${feature.boundChats.length} bound Codex task(s) · ${escape(feature.worktree || 'No worktree recorded')}</p><nav aria-label="Feature detail">${tabs.map(tab => `<button data-tab="${tab}" aria-pressed="${tab === currentTab}">${tab[0].toUpperCase() + tab.slice(1)}</button>`).join('')}</nav>${content}<div class="actions">${feature.boundChats.map((chat, i) => `<button class="secondary" data-chat="${escape(chat.id)}">Open Codex task${feature.boundChats.length > 1 ? ` ${i + 1}` : ''}</button>`).join('') || '<span class="muted">No Codex conversation bound.</span>'}</div><p class="safety">Open task asks the host conversation to navigate. It does not start work.</p></section>`;
+}
+function render() {
+  const y = window.scrollY;
+  const focused = document.activeElement;
+  const focusKey = ['id', 'data-feature', 'data-task', 'data-tab', 'data-chat'].map(key => [key, focused?.getAttribute(key)]).find(([, value]) => value);
+  const expanded = [...document.querySelectorAll('details[open]')].map(el => el.dataset.record);
+  root.innerHTML = `<header><div class="brand"><span class="mark">o:</span>Operator <i>Console</i><b>POC</b></div><div class="project"><strong>${escape(state.project.name)}</strong><span>Kit ${escape(state.project.kitVersion)} · local records</span></div><button id="expand" class="secondary">Expand</button><button id="refresh" class="icon-button" aria-label="Refresh">↻</button></header><div id="sync" role="status" aria-live="off"></div><main><section class="metrics"><div><strong>${state.summary.features}</strong><span>Feature sessions</span></div><div><strong>${state.summary.recordedActiveTasks}</strong><span>Tasks recorded active</span></div><div><strong>${state.summary.attention}</strong><span>Need attention</span></div><div><strong>${state.summary.eligibleTasks ?? '—'}</strong><span>Eligible · capacity 4</span></div></section><section class="panel attention"><div class="section-head"><h2>Needs attention</h2><span>Recorded Operator state</span></div>${state.attention.length ? state.attention.map(item => `<button class="attention-item" data-feature="${escape(item.featureId)}" data-select-task="${escape(item.taskId || '')}"><span>${escape(item.title)}</span><small>${escape(item.reason)}</small></button>`).join('') : '<p class="muted">No recorded attention items.</p>'}</section><div class="layout"><aside class="feature-list panel"><div class="section-head"><h2>Project overview</h2><span>${state.features.length}</span></div>${state.features.map(featureCard).join('')}</aside>${detail(state.features.find(f => f.id === selectedId))}</div><section class="lanes panel"><div class="section-head"><h2>Configured lanes</h2><span>Worker activity unverified</span></div><div class="lane-grid">${state.lanes.map(lane => `<div class="lane"><div><strong>${escape(lane.id)}</strong><small>${escape(lane.owner)}</small></div><small>${lane.windowPresent === null ? 'window unknown' : lane.windowPresent ? 'window present' : 'no window'}</small></div>`).join('')}</div></section><section class="panel recent"><div class="section-head"><h2>Recent recorded changes</h2><span>Graph events</span></div>${state.features.flatMap(f => f.recentChanges || []).sort((a, b) => String(b.occurredAt).localeCompare(String(a.occurredAt))).slice(0, 6).map(event => `<p>${escape(event.featureId)} · ${escape(event.taskId)} · ${escape(event.state || event.action)} <small>${stamp(event.occurredAt)}</small></p>`).join('') || '<p class="muted">No graph events recorded yet.</p>'}</section>${!state.readiness.available ? `<p class="warning">Eligibility unavailable: ${escape(state.readiness.reason)}</p>` : ''}</main><footer><span>${escape(state.project.root)}</span><span>Revision ${state.revision.slice(0, 8)}</span></footer>`;
+  document.querySelector('#refresh').onclick = () => refresh(true);
+  document.querySelector('#expand').onclick = async () => { try { await bridge.requestDisplayMode({ mode: 'fullscreen' }); } catch { say('This host did not grant fullscreen.'); } };
+  document.querySelectorAll('[data-feature]').forEach(button => button.onclick = () => { selectedId = button.dataset.feature; selectedTask = button.dataset.selectTask || null; render(); saveView(); });
+  document.querySelectorAll('[data-task]').forEach(button => button.onclick = () => { selectedTask = button.dataset.task; render(); saveView(); });
+  document.querySelectorAll('[data-tab]').forEach(button => button.onclick = () => { currentTab = button.dataset.tab; render(); saveView(); });
+  document.querySelectorAll('[data-chat]').forEach(button => button.onclick = async () => {
+    try {
+      const result = await bridge.sendMessage({ role: 'user', content: [{ type: 'text', text: `Open the existing Codex task with ID ${button.dataset.chat}, bound to ${selectedId} in Operator project ${state.project.name}. Use host task navigation if available. This requests navigation only.` }] });
+      if (result?.isError) throw new Error();
+      say('Navigation request accepted by the host.');
+    } catch { say('Task navigation is unavailable in this host.'); }
+  });
+  for (const name of expanded) { const element = [...document.querySelectorAll('details')].find(el => el.dataset.record === name); if (element) element.open = true; }
+  if (focusKey) [...document.querySelectorAll(`[${focusKey[0]}]`)].find(el => el.getAttribute(focusKey[0]) === focusKey[1])?.focus({ preventScroll: true });
+  window.scrollTo(0, y); statusLine();
+}
+bridge.ontoolinput = input => { toolRoot = input.arguments?.projectRoot; if (connected && !state) refresh(); };
+bridge.ontoolresult = result => { try { ingest(result); toolRoot = state.project.root; schedule(); } catch (e) { error = e.message; statusLine(); } };
+bridge.onhostcontextchanged = context => { if (context.theme) applyDocumentTheme(context.theme); if (context.styles?.variables) applyHostStyleVariables(context.styles.variables); };
+document.addEventListener('visibilitychange', () => { clearTimeout(timer); if (!document.hidden) refresh(); statusLine(); });
+window.addEventListener('focus', () => refresh());
+window.addEventListener('scroll', () => saveView(), { passive: true });
 try {
-  await bridge.connect();
+  await bridge.connect(); connected = true;
   const context = bridge.getHostContext();
   if (context?.theme) applyDocumentTheme(context.theme);
   if (context?.styles?.variables) applyHostStyleVariables(context.styles.variables);
-  if (context?.styles?.css?.fonts) applyHostFonts(context.styles.css.fonts);
-  setTimeout(async () => {
-    if (state) return;
-    try { ingest(await bridge.callServerTool({ name: 'operator_console_refresh', arguments: {} })); }
-    catch (error) { root.innerHTML = `<div class="setup"><h1>Operator Console unavailable</h1><p>${escape(error.message)}</p></div>`; }
-  }, 250);
-} catch (error) {
-  root.innerHTML = `<div class="setup"><h1>This host did not start the MCP App</h1><p>${escape(error.message)}</p></div>`;
-}
+  statusLine();
+  if (toolRoot && !state) refresh(); else schedule();
+} catch (e) { root.innerHTML = `<section class="setup"><h1>Host connection unavailable</h1><p>${escape(e.message)}</p><p>This resource needs an MCP Apps host.</p></section>`; }
