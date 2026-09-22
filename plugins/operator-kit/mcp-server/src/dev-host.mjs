@@ -27,7 +27,12 @@ export async function serve(root, port = 43132, browserPort = port) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       const url = new URL(req.url, origin);
-      if (req.method === 'GET' && url.pathname === '/') { res.setHeader('Content-Type', 'text/html'); res.setHeader('Content-Security-Policy', "frame-ancestors 'none'"); return res.end(page); }
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/embedded')) {
+        res.setHeader('Content-Type', 'text/html'); res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
+        if (url.pathname === '/embedded') return res.end(page);
+        const web = await readFile(new URL('./web.html', import.meta.url), 'utf8');
+        return res.end(web.replace('<!-- WEB_CONFIG -->', () => `<script id="config" type="application/json">${JSON.stringify({ token })}</script>`));
+      }
       if (req.method === 'GET' && url.pathname === '/host.js') { res.setHeader('Content-Type', 'text/javascript'); return res.end(await readFile(new URL('./host.js', import.meta.url))); }
       if (req.method === 'GET' && url.pathname === '/resource') { res.setHeader('Content-Type', 'text/html'); return res.end((await client.readResource({ uri: resourceUri })).contents[0].text); }
       if (req.method === 'GET' && url.pathname === '/favicon.ico') { res.writeHead(204); return res.end(); }

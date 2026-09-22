@@ -18,6 +18,7 @@ const ui = await build({
   bundle: true,
   format: 'esm',
   target: 'es2022',
+  define: { OPERATOR_WEB_PREVIEW: 'false' },
   minify: true,
   write: false
 });
@@ -27,6 +28,13 @@ const html = template
   .replace('<!-- STYLE -->', () => `<style>${css}</style>`)
   .replace('<!-- SCRIPT -->', () => `<script type="module">${ui.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script>`);
 await writeFile('dist/console.html', html);
+
+const webUi = await build({ entryPoints: ['src/ui.js'], bundle: true, format: 'esm', target: 'es2022', minify: true, write: false, define: { OPERATOR_WEB_PREVIEW: 'true' } });
+const webHtml = template
+  .replace('<body>', '<body><!-- WEB_CONFIG -->')
+  .replace('<!-- STYLE -->', () => `<style>${css}\n:root[data-preview-mode=inline] #app{max-width:900px;margin:auto}</style>`)
+  .replace('<!-- SCRIPT -->', () => `<script type="module">${webUi.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script>`);
+await writeFile('dist/web.html', webHtml);
 
 console.log('Built Operator Console MCP server and embedded UI.');
 

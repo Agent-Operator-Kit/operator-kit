@@ -209,7 +209,11 @@ window.addEventListener('focus', () => refresh());
 window.addEventListener('scroll', () => saveView(), { passive: true });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyAppearance());
 try {
-  await bridge.connect(); connected = true;
+  if (typeof OPERATOR_WEB_PREVIEW !== 'undefined' && OPERATOR_WEB_PREVIEW) {
+    const { connectWebHost } = await import('./web-host.js');
+    await connectWebHost(bridge);
+  } else await bridge.connect();
+  connected = true;
   applyHostContext(bridge.getHostContext() || {});
   statusLine();
   if (toolRoot && !state) await refresh(); else schedule();

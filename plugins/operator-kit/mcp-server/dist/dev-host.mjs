@@ -21993,10 +21993,12 @@ async function serve(root, port = 43132, browserPort = port) {
       res.setHeader("Cache-Control", "no-store");
       res.setHeader("X-Content-Type-Options", "nosniff");
       const url2 = new URL(req.url, origin);
-      if (req.method === "GET" && url2.pathname === "/") {
+      if (req.method === "GET" && (url2.pathname === "/" || url2.pathname === "/embedded")) {
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
-        return res.end(page);
+        if (url2.pathname === "/embedded") return res.end(page);
+        const web = await readFile(new URL("./web.html", import.meta.url), "utf8");
+        return res.end(web.replace("<!-- WEB_CONFIG -->", () => `<script id="config" type="application/json">${JSON.stringify({ token })}</script>`));
       }
       if (req.method === "GET" && url2.pathname === "/host.js") {
         res.setHeader("Content-Type", "text/javascript");

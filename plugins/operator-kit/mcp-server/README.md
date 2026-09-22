@@ -122,6 +122,15 @@ not shipped in this repository.
 
 ### Open the web preview from another computer over SSH
 
+The default `/` page renders the cockpit directly in the document for element
+inspection and design annotations. It builds from the same `src/ui.js` and CSS
+as the native MCP resource, with an in-memory SDK App/AppBridge connection to the
+existing HTTP-to-MCP development host. `/embedded` retains the iframe host and
+its theme/language/disconnection controls for MCP integration testing. Native
+MCP rendering continues to use `dist/console.html`; the direct browser page is
+`dist/web.html`. Browser task navigation still requires the Codex host and is
+not available in either web preview mode.
+
 Start the preview on the project host, explicitly allowing the laptop's local
 forwarded port as the optional final argument:
 
