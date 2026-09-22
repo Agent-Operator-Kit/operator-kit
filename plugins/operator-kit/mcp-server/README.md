@@ -188,3 +188,7 @@ and caching before scaling.
 Codex's workspace fullscreen toolbar is a separate host action. Persistent display
 across task switches and detached windows remain unverified. **Open Codex task**
 requests navigation through the conversation and never dispatches work.
+
+### Accepted design system
+
+The live console uses the shared `design-system/tokens.json` and `tokens.dark.json` in both native and browser builds. Inter Variable is embedded with the HTML; its license is in the design-system directory. No font CDN is required. Host appearance remains the automatic theme source; manual light/dark selection is supported. The project sidebar collapses into an icon rail and preserves its state through polls and renders. `/preview.html` aliases the live browser page for existing SSH preview links.

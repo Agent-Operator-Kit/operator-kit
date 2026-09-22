@@ -1,4 +1,5 @@
 const pl = {
+  'Workspace': 'Obszar roboczy', 'Expand sidebar': 'Rozwiń pasek boczny', 'Collapse sidebar': 'Zwiń pasek boczny',
   'Console': 'Konsola', 'All projects': 'Wszystkie projekty', 'Current project': 'Bieżący projekt',
   'Language': 'Język', 'Appearance': 'Wygląd', 'Follow host': 'Jak w aplikacji', 'Light': 'Jasny', 'Dark': 'Ciemny',
   'Expand': 'Rozwiń', 'Back to inline': 'Wróć do rozmowy', 'Full screen': 'Pełny ekran', 'Refresh': 'Odśwież',

@@ -21993,7 +21993,7 @@ async function serve(root, port = 43132, browserPort = port) {
       res.setHeader("Cache-Control", "no-store");
       res.setHeader("X-Content-Type-Options", "nosniff");
       const url2 = new URL(req.url, origin);
-      if (req.method === "GET" && (url2.pathname === "/" || url2.pathname === "/embedded")) {
+      if (req.method === "GET" && (url2.pathname === "/" || url2.pathname === "/preview.html" || url2.pathname === "/embedded")) {
         res.setHeader("Content-Type", "text/html");
         res.setHeader("Content-Security-Policy", "frame-ancestors 'none'");
         if (url2.pathname === "/embedded") return res.end(page);

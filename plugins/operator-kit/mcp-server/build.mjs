@@ -23,7 +23,13 @@ const ui = await build({
   write: false
 });
 const template = await readFile('src/ui.html', 'utf8');
-const css = await readFile('src/style.css', 'utf8');
+// Build both hosts from the accepted token source and bundle the font offline.
+const designRoot = new URL('../../../design-system/', import.meta.url);
+const tokenBlock = (selector, tokens) => selector + '{' + Object.entries(tokens).filter(([key]) => !key.startsWith('$')).flatMap(([group, values]) => Object.entries(values).map(([key, value]) => '--op-' + group + '-' + key + ':' + value + ';')).join('') + '}';
+const light = JSON.parse(await readFile(new URL('tokens.json', designRoot), 'utf8'));
+const dark = JSON.parse(await readFile(new URL('tokens.dark.json', designRoot), 'utf8'));
+const font = (await readFile(new URL('InterVariable.woff2', designRoot))).toString('base64');
+const css = tokenBlock(':root', light) + tokenBlock(':root[data-theme=dark]', dark) + '@font-face{font-family:InterVariable;font-style:normal;font-weight:100 900;font-display:swap;src:url(data:font/woff2;base64,' + font + ') format("woff2")}' + await readFile('src/style.css', 'utf8');
 const html = template
   .replace('<!-- STYLE -->', () => `<style>${css}</style>`)
   .replace('<!-- SCRIPT -->', () => `<script type="module">${ui.outputFiles[0].text.replaceAll('</script', '<\\/script')}</script>`);

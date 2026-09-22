@@ -58,6 +58,11 @@ test('SSH browser port admits matching requests and rejects other hosts, origins
   const host = `127.0.0.1:${browserPort}`;
   const page = await http('/', host);
   assert.equal(page.status, 200);
+  const preview = await http('/preview.html', host);
+  assert.equal(preview.status, 200);
+  assert.equal(preview.text, page.text);
+  assert.match(page.text, /data:font\/woff2;base64,/);
+  assert.equal((await http('/preview.html', 'untrusted.example')).status, 403);
   assert.equal((await http('/', `127.0.0.1:${port}`)).status, 200);
   assert.equal((await http('/', 'untrusted.example')).status, 403);
   const token = JSON.parse(page.text.match(/<script id="config" type="application\/json">([^<]+)<\/script>/)[1]).token;

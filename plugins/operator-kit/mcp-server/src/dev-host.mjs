@@ -27,7 +27,7 @@ export async function serve(root, port = 43132, browserPort = port) {
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       const url = new URL(req.url, origin);
-      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/embedded')) {
+      if (req.method === 'GET' && (url.pathname === '/' || url.pathname === '/preview.html' || url.pathname === '/embedded')) {
         res.setHeader('Content-Type', 'text/html'); res.setHeader('Content-Security-Policy', "frame-ancestors 'none'");
         if (url.pathname === '/embedded') return res.end(page);
         const web = await readFile(new URL('./web.html', import.meta.url), 'utf8');
