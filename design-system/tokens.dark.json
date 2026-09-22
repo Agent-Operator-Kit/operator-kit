@@ -1,0 +1,30 @@
+{
+  "$description": "Operator dark adaptation; original proposed values, not an extracted source theme.",
+  "color": {
+    "canvas": "#161719",
+    "sidebar": "#121315",
+    "surface": "#191A1D",
+    "paper": "#1E1F23",
+    "hover": "#27282D",
+    "selected": "#303138",
+    "border": "#303137",
+    "border-strong": "#70727E",
+    "text": "#EEEFF2",
+    "text-secondary": "#A9ABB5",
+    "text-inverse": "#191A1D",
+    "action": "#EEEFF2",
+    "action-hover": "#D9DBE2",
+    "focus": "#A2AEFF",
+    "success": "#86D5AA",
+    "success-soft": "#1B3528",
+    "warning": "#EAC180",
+    "warning-soft": "#3A2E1E",
+    "danger": "#F3A0A6",
+    "danger-soft": "#3D242A",
+    "info": "#A8B7FF",
+    "info-soft": "#292F49"
+  },
+  "shadow": {
+    "popover": "0 12px 36px rgba(0,0,0,0.4)"
+  }
+}
