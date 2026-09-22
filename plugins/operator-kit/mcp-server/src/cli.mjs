@@ -17,12 +17,12 @@ try {
       break;
     }
     case 'serve': {
-      if (!args[0]) throw new Error('Usage: node dist/cli.mjs serve /absolute/operator/project [port]');
+      if (!args[0]) throw new Error('Usage: node dist/cli.mjs serve /absolute/operator/project [port] [ssh-browser-port]');
       const { serve } = await import('./dev-host.mjs');
-      await serve(resolve(args[0]), Number(args[1] || 43132));
+      await serve(resolve(args[0]), Number(args[1] || 43132), Number(args[2] || args[1] || 43132));
       break;
     }
     default:
-      console.log(`Operator v6-alpha (Node 20+)\n\nregister <project-root> [...]   Add initialized workspaces\nprojects                        List registered projects\nconfig                          Print an absolute-path Codex MCP config\nserve <project-root> [port]      Open a loopback development host\n\nRegistry: ${registryPath()}\nMCP stdio: run the adjacent launch script without arguments.`);
+      console.log(`Operator v6-alpha (Node 20+)\n\nregister <project-root> [...]   Add initialized workspaces\nprojects                        List registered projects\nconfig                          Print an absolute-path Codex MCP config\nserve <project-root> [port] [ssh-browser-port]\n                                Open a loopback development host\n\nRegistry: ${registryPath()}\nMCP stdio: run the adjacent launch script without arguments.`);
   }
 } catch (error) { console.error(error.message); process.exitCode = 1; }

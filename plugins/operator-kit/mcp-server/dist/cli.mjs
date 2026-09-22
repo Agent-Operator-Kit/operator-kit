@@ -147,9 +147,9 @@ tool_timeout_sec = 30
       break;
     }
     case "serve": {
-      if (!args[0]) throw new Error("Usage: node dist/cli.mjs serve /absolute/operator/project [port]");
+      if (!args[0]) throw new Error("Usage: node dist/cli.mjs serve /absolute/operator/project [port] [ssh-browser-port]");
       const { serve } = await import("./dev-host.mjs");
-      await serve(resolve2(args[0]), Number(args[1] || 43132));
+      await serve(resolve2(args[0]), Number(args[1] || 43132), Number(args[2] || args[1] || 43132));
       break;
     }
     default:
@@ -158,7 +158,8 @@ tool_timeout_sec = 30
 register <project-root> [...]   Add initialized workspaces
 projects                        List registered projects
 config                          Print an absolute-path Codex MCP config
-serve <project-root> [port]      Open a loopback development host
+serve <project-root> [port] [ssh-browser-port]
+                                Open a loopback development host
 
 Registry: ${registryPath()}
 MCP stdio: run the adjacent launch script without arguments.`);

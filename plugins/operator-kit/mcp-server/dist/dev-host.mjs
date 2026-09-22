@@ -21971,10 +21971,12 @@ function projectInfo(projectRoot) {
 }
 
 // src/dev-host.mjs
-async function serve(root, port = 43132) {
+async function serve(root, port = 43132, browserPort = port) {
   const project = projectInfo(root);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error("Choose a port from 1024 to 65535.");
+  if (!Number.isInteger(browserPort) || browserPort < 1024 || browserPort > 65535) throw new Error("Choose a browser port from 1024 to 65535.");
   const origin = `http://127.0.0.1:${port}`, token = randomBytes(24).toString("hex");
+  const browserOrigins = new Map([port, browserPort].map((value) => [`127.0.0.1:${value}`, `http://127.0.0.1:${value}`]));
   const client = new Client({ name: "Operator v6-alpha development host", version: "0.6.0-alpha.1" });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [fileURLToPath(new URL("./server.mjs", import.meta.url))], env: { ...process.env } }));
   const tools = (await client.listTools()).tools;
@@ -21983,7 +21985,8 @@ async function serve(root, port = 43132) {
   const allowed = new Set(tools.map((tool) => tool.name));
   const server = createServer(async (req, res) => {
     try {
-      if (req.headers.host !== `127.0.0.1:${port}`) {
+      const requestOrigin = browserOrigins.get(req.headers.host);
+      if (!requestOrigin) {
         res.writeHead(403);
         return res.end();
       }
@@ -22014,7 +22017,10 @@ async function serve(root, port = 43132) {
       }
       if (req.method === "GET" && url2.pathname === "/initial") return res.end(JSON.stringify({ root: project.root, result: await client.callTool({ name: "operator_console", arguments: { projectRoot: project.root } }) }));
       if (req.method === "POST" && url2.pathname === "/rpc") {
-        if (req.headers.origin !== origin) throw new Error("Invalid origin");
+        if (req.headers.origin !== requestOrigin) {
+          res.writeHead(403);
+          return res.end(JSON.stringify({ isError: true, content: [{ type: "text", text: "Invalid origin" }] }));
+        }
         let body = "";
         for await (const chunk of req) {
           body += chunk;
@@ -22039,6 +22045,7 @@ async function serve(root, port = 43132) {
     throw e;
   });
   console.log(`Operator v6-alpha: ${origin}`);
+  if (browserPort !== port) console.log(`Allowed SSH browser address: http://127.0.0.1:${browserPort}`);
   for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, async () => {
     server.close();
     await client.close();

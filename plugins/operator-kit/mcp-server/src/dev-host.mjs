@@ -6,10 +6,14 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { projectInfo } from './state.mjs';
 
-export async function serve(root, port = 43132) {
+export async function serve(root, port = 43132, browserPort = port) {
   const project = projectInfo(root);
   if (!Number.isInteger(port) || port < 1024 || port > 65535) throw new Error('Choose a port from 1024 to 65535.');
+  if (!Number.isInteger(browserPort) || browserPort < 1024 || browserPort > 65535) throw new Error('Choose a browser port from 1024 to 65535.');
   const origin = `http://127.0.0.1:${port}`, token = randomBytes(24).toString('hex');
+  // SSH forwarding preserves the browser's Host and Origin. Admit only the
+  // explicitly configured loopback ports and require each POST to match its Host.
+  const browserOrigins = new Map([port, browserPort].map(value => [`127.0.0.1:${value}`, `http://127.0.0.1:${value}`]));
   const client = new Client({ name: 'Operator v6-alpha development host', version: '0.6.0-alpha.1' });
   await client.connect(new StdioClientTransport({ command: process.execPath, args: [fileURLToPath(new URL('./server.mjs', import.meta.url))], env: { ...process.env } }));
   const tools = (await client.listTools()).tools;
@@ -18,7 +22,8 @@ export async function serve(root, port = 43132) {
   const allowed = new Set(tools.map(tool => tool.name));
   const server = createServer(async (req, res) => {
     try {
-      if (req.headers.host !== `127.0.0.1:${port}`) { res.writeHead(403); return res.end(); }
+      const requestOrigin = browserOrigins.get(req.headers.host);
+      if (!requestOrigin) { res.writeHead(403); return res.end(); }
       res.setHeader('Cache-Control', 'no-store');
       res.setHeader('X-Content-Type-Options', 'nosniff');
       const url = new URL(req.url, origin);
@@ -30,7 +35,7 @@ export async function serve(root, port = 43132) {
       if (req.headers['x-operator-token'] !== token) { res.writeHead(403); return res.end('{}'); }
       if (req.method === 'GET' && url.pathname === '/initial') return res.end(JSON.stringify({ root: project.root, result: await client.callTool({ name: 'operator_console', arguments: { projectRoot: project.root } }) }));
       if (req.method === 'POST' && url.pathname === '/rpc') {
-        if (req.headers.origin !== origin) throw new Error('Invalid origin');
+        if (req.headers.origin !== requestOrigin) { res.writeHead(403); return res.end(JSON.stringify({ isError: true, content: [{ type: 'text', text: 'Invalid origin' }] })); }
         let body = ''; for await (const chunk of req) { body += chunk; if (body.length > 32000) throw new Error('Request too large'); }
         const call = JSON.parse(body);
         if (!allowed.has(call.name)) throw new Error('Unknown console tool');
@@ -41,5 +46,6 @@ export async function serve(root, port = 43132) {
   });
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); }).catch(async e => { await client.close(); throw e; });
   console.log(`Operator v6-alpha: ${origin}`);
+  if (browserPort !== port) console.log(`Allowed SSH browser address: http://127.0.0.1:${browserPort}`);
   for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, async () => { server.close(); await client.close(); process.exit(0); });
 }

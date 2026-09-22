@@ -29,6 +29,48 @@ async function connect(t, root) {
 }
 const call = (client, root, extra = {}) => client.callTool({ name: 'operator_console_refresh', arguments: { projectRoot: root, ...extra } });
 
+test('SSH browser port admits matching requests and rejects other hosts, origins and missing tokens', async t => {
+  const { createServer } = await import('node:net');
+  const { request } = await import('node:http');
+  const { spawn } = await import('node:child_process');
+  const f = await fixture(t);
+  const reservation = createServer();
+  await new Promise(resolve => reservation.listen(0, '127.0.0.1', resolve));
+  const port = reservation.address().port;
+  await new Promise(resolve => reservation.close(resolve));
+  const browserPort = port === 43133 ? 43134 : 43133;
+  const child = spawn(process.execPath, [resolve('dist/cli.mjs'), 'serve', f.root, String(port), String(browserPort)], { env: { ...process.env, OPERATOR_CONSOLE_REGISTRY: join(f.root, 'registry.json') }, stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(async () => { if (child.exitCode !== null) return; await new Promise(resolve => { child.once('exit', resolve); child.kill('SIGTERM'); }); });
+  await new Promise((resolve, reject) => {
+    let output = '';
+    const timeout = setTimeout(() => reject(new Error(`Preview startup timeout: ${output}`)), 15000);
+    child.once('error', error => { clearTimeout(timeout); reject(error); });
+    child.once('exit', code => { clearTimeout(timeout); reject(new Error(`Preview exited: ${code}: ${output}`)); });
+    child.stdout.on('data', chunk => { output += chunk; if (output.includes('Operator v6-alpha:')) { clearTimeout(timeout); resolve(); } });
+    child.stderr.on('data', chunk => { output += chunk; });
+  });
+  const http = (path, host, headers = {}, body) => new Promise((resolve, reject) => {
+    const req = request({ hostname: '127.0.0.1', port, path, method: body === undefined ? 'GET' : 'POST', headers: { Host: host, ...headers } }, response => {
+      let text = ''; response.on('data', chunk => { text += chunk; }); response.on('end', () => resolve({ status: response.statusCode, text }));
+    });
+    req.on('error', reject); req.end(body);
+  });
+  const host = `127.0.0.1:${browserPort}`;
+  const page = await http('/', host);
+  assert.equal(page.status, 200);
+  assert.equal((await http('/', `127.0.0.1:${port}`)).status, 200);
+  assert.equal((await http('/', 'untrusted.example')).status, 403);
+  const token = JSON.parse(page.text.match(/<script id="config" type="application\/json">([^<]+)<\/script>/)[1]).token;
+  assert.equal((await http('/initial', host)).status, 403);
+  const headers = { 'X-Operator-Token': token, Origin: `http://${host}`, 'Content-Type': 'application/json' };
+  const body = JSON.stringify({ name: 'operator_console_refresh', arguments: { projectRoot: f.root } });
+  const result = await http('/rpc', host, headers, body);
+  assert.equal(result.status, 200);
+  assert.equal(JSON.parse(result.text).structuredContent.project.name, 'fixture');
+  assert.equal((await http('/rpc', host, { ...headers, Origin: 'https://untrusted.example' }, body)).status, 403);
+  assert.equal((await http('/rpc', host, { ...headers, Origin: `http://127.0.0.1:${port}` }, body)).status, 403);
+});
+
 test('publishes canonical readiness and refresh without a rendering resource', async t => {
   const f = await fixture(t); const client = await connect(t, f.root);
   const tools = (await client.listTools()).tools;

@@ -120,6 +120,31 @@ not shipped in this repository.
 
 ## Build and verify
 
+### Open the web preview from another computer over SSH
+
+Start the preview on the project host, explicitly allowing the laptop's local
+forwarded port as the optional final argument:
+
+```sh
+node dist/cli.mjs serve /absolute/operator/project 43132 43133
+```
+
+In a terminal **on the laptop**, keep this authenticated SSH tunnel running:
+
+```sh
+ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:43133:127.0.0.1:43132 user@project-host
+```
+
+Open `http://127.0.0.1:43133/` in the laptop's browser. The host remains bound to
+loopback. Only the listening port and the explicit forwarded browser port are
+accepted, and each RPC request's Origin must match its Host. A different local
+port without the corresponding server argument produces HTTP 403. SSH access
+and a reachable project host are prerequisites; Codex Remote alone does not set
+up this tunnel. Restarting the preview changes its request token, so reload any
+already-open preview tabs.
+
+### Rebuild the package
+
 ```sh
 npm ci
 npm run build
