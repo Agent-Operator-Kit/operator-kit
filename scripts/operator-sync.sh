@@ -27,6 +27,8 @@ Options:
   --bootstrap-if-missing    Bootstrap target repo if operator.config.env is missing.
   --bootstrap-profile <name> Profile to use with --bootstrap-if-missing.
                             Valid profiles: default, cursor.
+  --refresh-cursor-adapter  Refresh Cursor sticky-mode rules, operator skill,
+                            and /operator command after project update.
   -h, --help                Show this help.
 
 Examples:
@@ -61,6 +63,8 @@ SKIP_PROJECT=0
 SKIP_CHECKS=0
 BOOTSTRAP_IF_MISSING=0
 BOOTSTRAP_PROFILE="${OPERATOR_BOOTSTRAP_PROFILE:-default}"
+REFRESH_CURSOR_ADAPTER=0
+CHANNEL_EXPLICIT=0
 TMP_ROOT=""
 TEMP_EXEC_SCRIPT="${OPERATOR_SYNC_TEMP_SCRIPT:-}"
 
@@ -92,6 +96,7 @@ while [ "$#" -gt 0 ]; do
       ;;
     --channel)
       CHANNEL="${2:-}"
+      CHANNEL_EXPLICIT=1
       shift 2
       ;;
     --target)
@@ -134,6 +139,10 @@ while [ "$#" -gt 0 ]; do
       BOOTSTRAP_PROFILE="${2:-}"
       shift 2
       ;;
+    --refresh-cursor-adapter)
+      REFRESH_CURSOR_ADAPTER=1
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -155,8 +164,49 @@ case "$BOOTSTRAP_PROFILE" in
     ;;
 esac
 
+if [ "$BOOTSTRAP_PROFILE" = "cursor" ] && [ "$CHANNEL_EXPLICIT" -eq 0 ] && [ "$CHANNEL" = "stable" ]; then
+  CHANNEL="latest"
+fi
+
 print_section() {
   printf '\n## %s\n' "$1"
+}
+
+refresh_cursor_adapter_assets() {
+  local target="$1"
+  local source="$2"
+  local dry_run="$3"
+
+  refresh_file() {
+    local src="$1"
+    local dest="$2"
+    local label="$3"
+    if [ ! -f "$src" ]; then
+      printf 'Skipped; missing source %s\n' "$label"
+      return 0
+    fi
+    if [ "$dry_run" -eq 1 ]; then
+      printf 'Would refresh %s\n' "$label"
+      return 0
+    fi
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+    printf 'Refreshed %s\n' "$label"
+  }
+
+  print_section "Cursor Adapter Refresh"
+  refresh_file \
+    "$source/templates/cursor/rules/operator-workflow.mdc" \
+    "$target/.cursor/rules/operator-workflow.mdc" \
+    ".cursor/rules/operator-workflow.mdc"
+  refresh_file \
+    "$source/templates/cursor/skills/operator/SKILL.md" \
+    "$target/.cursor/skills/operator/SKILL.md" \
+    ".cursor/skills/operator/SKILL.md"
+  refresh_file \
+    "$source/templates/cursor/commands/operator.md" \
+    "$target/.cursor/commands/operator.md" \
+    ".cursor/commands/operator.md"
 }
 
 is_kit_source() {
@@ -580,6 +630,10 @@ if [ "$DRY_RUN" -eq 1 ]; then
   update_args+=(--dry-run)
 fi
 bash "$SOURCE_PATH/scripts/operator-update.sh" "${update_args[@]}"
+
+if [ "$REFRESH_CURSOR_ADAPTER" -eq 1 ]; then
+  refresh_cursor_adapter_assets "$TARGET_REPO" "$SOURCE_PATH" "$DRY_RUN"
+fi
 
 if [ "$DRY_RUN" -eq 0 ] && [ "$SKIP_CHECKS" -eq 0 ]; then
   run_project_checks "$TARGET_REPO"

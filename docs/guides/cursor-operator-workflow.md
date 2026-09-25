@@ -124,6 +124,43 @@ The installed always-applied Cursor rule records the routing convention, so new
 Cursor chats in the same project should prefer the operator skill for execution
 requests.
 
+## Planning surfaces
+
+Use one planning authority per chat:
+
+| Surface | Use for |
+| --- | --- |
+| `operator-planner` + `operator-roadmap.sh` | RM-* roadmap, now/next/later, dispatch plans |
+| `deck-plan.md` and domain artifacts | Product/deck approval gates |
+| Cursor Plan mode | Avoid in operator chats; use for non-operator exploration only |
+
+## Worker policy
+
+| Worker type | When to use |
+| --- | --- |
+| tmux lane dispatch | Default for code execution when lanes exist |
+| Cursor Task subagent | Long background work when no tmux lane is available |
+| Cursor Multitask | UI convenience only; do not duplicate Task workers |
+
+Register background workers per task slug:
+
+```bash
+bash scripts/operator-workers.sh register <task-slug> <worker-id> --kind task
+```
+
+Check workspace context and adapter health:
+
+```bash
+bash scripts/operator-context.sh
+bash scripts/operator-adapter-check.sh
+```
+
+Refresh preserved Cursor adapter files after kit upgrades:
+
+```bash
+bash scripts/operator-sync.sh --channel latest --target /path/to/project --skip-skills --refresh-cursor-adapter
+```
+
 ## Local Operating Loop
 
 Start from the operator lane in Cursor:

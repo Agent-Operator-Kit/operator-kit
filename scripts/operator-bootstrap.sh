@@ -118,7 +118,7 @@ for cursor_skill in "${obsolete_cursor_skills[@]}"; do
     "$repo_root/.claude/commands/$cursor_skill.md"
 done
 
-for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
+for script in operator-lib.sh operator-tmux.sh operator-status.sh operator-context.sh operator-adapter-check.sh operator-workers.sh operator-task.sh operator-dispatch.sh operator-collect.sh operator-summary.sh operator-memory.sh operator-roadmap.sh operator-feedback.sh operator-feature.sh operator-conflicts.sh operator-catalog.sh operator-system-map.sh operator-recommend-lanes.sh operator-plan-batch.sh operator-role-map.sh operator-graph.sh operator-v5-1-migrate.sh operator-model-select.sh operator-update.sh operator-sync.sh operator-upgrade.sh; do
   copy_executable "$KIT_ROOT/scripts/$script" "$repo_root/scripts/$script"
 done
 
@@ -197,6 +197,11 @@ for cursor_skill in operator-workflow operator operator-planner operator-feedbac
     cp "$KIT_ROOT/templates/cursor/skills/$cursor_skill/SKILL.md" "$repo_root/.cursor/skills/$cursor_skill/SKILL.md"
   fi
 done
+
+if [ ! -f "$repo_root/.cursor/commands/operator.md" ] && [ -f "$KIT_ROOT/templates/cursor/commands/operator.md" ]; then
+  mkdir -p "$repo_root/.cursor/commands"
+  cp "$KIT_ROOT/templates/cursor/commands/operator.md" "$repo_root/.cursor/commands/operator.md"
+fi
 
 if [ ! -f "$repo_root/.cursor/environment.json.example" ] && [ ! -f "$repo_root/.cursor/environment.json" ]; then
   cp "$KIT_ROOT/templates/cursor/environment.json.example" "$repo_root/.cursor/environment.json.example"
